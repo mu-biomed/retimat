@@ -220,13 +220,13 @@ for i_bscan = 1:n_bscan
  
     % Read segmentation     
     status = fseek(fid, 256 + 2048 + (size_x_slo*size_y_slo) + (ii*(bscan_hdr_size+n_ascan*n_axial*4)), -1 );
-    seg = (fread(fid, n_seg*n_ascan, '*float' ))';
+    seg = (fread(fid, n_seg(i_bscan)*n_ascan, '*float' ))';
     
     ILM(i_bscan,:) = seg(1:n_ascan);
     BM(i_bscan,:) = seg((1:n_ascan) + n_ascan);
     NFL_GCL(i_bscan,:) = seg((1:n_ascan) + 2*n_ascan);
     
-    if n_seg > 3
+    if n_seg(i_bscan) > 3
         GCL_IPL(i_bscan,:) = seg((1:n_ascan) + 3*n_ascan);
         IPL_INL(i_bscan,:) = seg((1:n_ascan) + 4*n_ascan);
         INL_OPL(i_bscan,:) = seg((1:n_ascan) + 5*n_ascan);
@@ -247,7 +247,7 @@ if visuseg == 1
     mesh(double(ILM));
     hold on
     mesh(double(BM));
-    if n_seg == 3
+    if mean(n_seg) == 3
         hold on
         mesh(double(NFL_GCL));
     end
