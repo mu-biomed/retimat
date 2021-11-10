@@ -1,5 +1,4 @@
-# oct-proc
-Retinal optical coherence tomography image analysis in Matlab
+# RETIMAT: Retinal image analysis in Matlab
 
 ```diff
 -This is work in progress. Use the code carefully!
