@@ -1,61 +1,91 @@
-function [header, segment, bscan, slo] = read_vol(file, options)
-
-% Read Heidelberg Engineering (HE) OCT raw files (VOL ending)
-% [header, segment, bscan, slo] = read_vol(file, options)
-% This function performs volume OCT data (xxxx.vol) reading. 
-% HEADER: Header information as described by HE. Struct with each entry
-%   named by the HE conventions. 
-% BSCANHEADER: B-scan header information. Struct with each entry named by 
-%   the HE conventions. The entries consist of vectors/matrices, with one 
-%   field per B-Scan. 
-% SLO: Slo image as unsigned integers.
-% BScans: BScans. 3D matrix with floating point data of the B-Scans.
-% file: Filename of the VOL-file to read, with ending.
+function [header, segment, bscan, slo] = read_vol(file, varargin)
+%read_vol Read .vol file exported from Spectralis OCT (Heidelberg Engineering)
 %
-% OPTIONS: Various output possibilites, 
-%   written in the options variable as string text, i.e. 'visu writemeta'
-%   Possibilities: 
-%       visu: The read-in is visualized.
-%       visuseg: The HE segmentation is also visualized.
-%       header: Only the Header and BScansHeader Information is read, 
-%            not the image data  
-%       nodisp: nothing is diplayed during read in
+%   [header, segment, bscan, slo] = read_vol(file, options)
 %
-% Originally writen by Radim Kolar, Brno University, Czech Republic
-% Modified by Markus Mayer, Pattern Recognition Lab, University of
-% Erlangen-Nuremberg
-% Modified by Kris Sheets, Retinal Cell Biology Lab, 
-% Neuroscience Center of Excellence, LSU Health Sciences Center, 
-% New Orleans
-% 
-% Modified by Andrew Lang, Image Analysis and Communications Lab, Johns
-% Hopkins University - Modifications to increase efficiency - 5/17/2012 
-% 
-% Modified by David Romero, Biomedical Engineering Department, Mondragon
-% Unibertsitatea, 11/08/2021
+%   This function reads the header, segmentation and image information 
+%   contained in the .vol files. 
 %
-% You may use this code as you want. I would be grateful if you would go to
-% our homepage look for articles that you find worth citing in your next
-% publication:
-% http://www.vutbr.cz/lide/radim-kolar-2796/publikace
-% http://www5.informatik.uni-erlangen.de/en/our-team/mayer-markus
-% Thanks, Radim & Markus
+%   Input arguments:
+%  
+%   'file'           String containing the path to the .vol file to be read.          
+%  
+%   'varargin'       Optional parameters from the list:
+%                       
+%                    'visu': Visualize the scanning patter along with B-Scans
+%                    and slo image.
+%                       
+%                    'verbose': Display header info during read.
+%
+%                    'full_header': Retrieve the original header with all the
+%                    parameters (By default only a few important parameters are
+%                    retrieved).
+%
+%                    'coordinates': retrieve fundus and A-Scan X, Y coordinates
+%
+%   Output arguments:
+%  
+%   'header'         Structure with .vol file header values.          
+%  
+%   'segment'        Segmenation data stored in the .vol file.
+%
+%   'bscan'          3D single image with B-Scans.
+%
+%   'slo'            2D fundus image.
+%   
+%
+%   Notes
+%   -----
+%   Spectralis OCT data can be exported into both E2E and vol format. We
+%   recommend using the latter as it provides a better access to the header
+%   information.
+%
+%
+%   References
+%   ----------
+%   [1] 
+%
+%   Examples
+%   ---------      
+%   % Read all the information in a .vol file
+%
+%     file = 'my_oct.vol';
+%     [header, segment, bscan, slo] = read_vol(file)
+%     
+%
+%   % Read only the header (faster) of the .vol file
+%     file = 'my_oct.vol';
+%     header = read_vol(file)
+%
+%
+%   Originally writen by Radim Kolar, Brno University, Czech Republic
+%   Modified by Markus Mayer, Pattern Recognition Lab, University of
+%   Erlangen-Nuremberg
+%
+%   Modified by Kris Sheets, Retinal Cell Biology Lab,
+%   Neuroscience Center of Excellence, LSU Health Sciences Center, 
+%   New Orleans  
+%   
+%   Modified by Andrew Lang, Image Analysis and Communications Lab, Johns
+%   Hopkins University - Modifications to increase efficiency - 5/17/2012 
+%
+%   Current version modified by David Romero-Bascones, Biomedical Engineering
+%   Department, Mondragon Unibertsitatea, 2021
+%
+%   David Romero-Bascones, Biomedical Engineering Department, Mondragon
+%   Unibertsitatea, 2021
+%   dromero@mondragon.edu
 
 
 % Configure visualization options
-if nargin==1
-    options = '';
-end
 
-visu = 0;
-visuseg = 0;
-
-if numel(strfind(options, 'visu')) ~= 0
-    visu = 1;
-end
-if numel(strfind(options, 'visuseg')) ~= 0
-    visuseg = 1;
-end
+visu = any(strcmp('visu', varargin));
+verbose = any(strcmp('verbose', varargin));
+full_header = any(strcmp('full_header', varargin));
+coordinates = any(strcmp('coordinates', varargin));
+read_seg = nargout >= 2;
+read_bscan = nargout >= 3; 
+read_slo = nargout == 4;
 
 % Open the file
 fid = fopen(file);
@@ -91,8 +121,8 @@ grid_type = fread(fid, 1, '*int32');
 grid_offset = fread(fid, 1, '*int32');
 spare = fread(fid, 1832, '*int8');
  
-if numel(strfind(options, 'nodisp')) == 0
-    disp(['---------------------------------------------']);
+if verbose
+    disp('---------------------------------------------');
     disp(['           Version: ' char(version')]);
     disp(['         NumAScans: ' num2str(n_ascan)]);
     disp(['         NumBScans: ' num2str(n_bscan)]);
@@ -120,41 +150,22 @@ if numel(strfind(options, 'nodisp')) == 0
     disp(['         VisitDate: ' datestr(double(visit_date+693960))]);
     disp(['          GridType: ' num2str(grid_type)]);
     disp(['        GridOffset: ' num2str(grid_offset)]);
-    disp(['---------------------------------------------']);
+    disp('---------------------------------------------');
 end
-
-if nargout == 1
-    fclose(fid);
-    return
-end
-status = fseek(fid, 2048, -1 );
-
 
 % Read fundus image (slo)
-if(~any(strcmp(options, 'header')))
+status = fseek(fid, 2048, -1 );
+
+if read_slo
     slo = fread(fid, size_x_slo*size_y_slo, '*uint8');
     slo = reshape(slo, size_x_slo, size_y_slo);
     slo = slo';
-else
-    slo = [];
 end
  
-% Display fundus image (slo)
-if visu==1
-    scrsz = get(0,'ScreenSize');
-    figure('Position',[1 0 scrsz(3) scrsz(4)-70]);
-    subplot(1,2,1);
-    imshow(slo);
-end
-
-
 % Read BScans, A-Scan coordinates and boundary segmentation
 status = fseek(fid, 2048+(size_x_slo*size_y_slo), -1);
- 
-if(~any(strcmp(options, 'header')))
+if read_bscan
     bscan=zeros(n_axial, n_ascan, n_bscan, 'single');
-else
-    bscan= [];
 end
 
 start_x = zeros(1, n_bscan, 'double');
@@ -166,17 +177,19 @@ quality = zeros(1, n_bscan, 'single');
 shift = zeros(1, n_bscan, 'int32');
 off_seg = zeros(1, n_ascan, 'single');
 
-ILM = zeros(n_bscan, n_ascan, 'single');
-BM = zeros(n_bscan, n_ascan, 'single');
-NFL_GCL = zeros(n_bscan, n_ascan, 'single');
-GCL_IPL = zeros(n_bscan, n_ascan, 'single');
-IPL_INL = zeros(n_bscan, n_ascan, 'single');
-INL_OPL = zeros(n_bscan, n_ascan, 'single');
-OPL_ONL = zeros(n_bscan, n_ascan, 'single');
-ELM = zeros(n_bscan, n_ascan, 'single');
-MZ_EZ = zeros(n_bscan, n_ascan, 'single');
-PHROS_IDZ = zeros(n_bscan, n_ascan, 'single');
-IDZ_RPE = zeros(n_bscan, n_ascan, 'single');
+if read_seg
+    ILM = zeros(n_bscan, n_ascan, 'single');
+    BM = zeros(n_bscan, n_ascan, 'single');
+    NFL_GCL = zeros(n_bscan, n_ascan, 'single');
+    GCL_IPL = zeros(n_bscan, n_ascan, 'single');
+    IPL_INL = zeros(n_bscan, n_ascan, 'single');
+    INL_OPL = zeros(n_bscan, n_ascan, 'single');
+    OPL_ONL = zeros(n_bscan, n_ascan, 'single');
+    ELM = zeros(n_bscan, n_ascan, 'single');
+    MZ_EZ = zeros(n_bscan, n_ascan, 'single');
+    PHROS_IDZ = zeros(n_bscan, n_ascan, 'single');
+    IDZ_RPE = zeros(n_bscan, n_ascan, 'single');
+end
 
 for i_bscan = 1:n_bscan
     ii = i_bscan - 1;
@@ -187,16 +200,7 @@ for i_bscan = 1:n_bscan
     start_y(i_bscan) = fread(fid, 1, '*double');  
     end_x(i_bscan) = fread(fid, 1, '*double');
     end_y(i_bscan) = fread(fid, 1, '*double');  
-    
-          
-    if visu==1
-        start_x_px = round(start_x(i_bscan)/scale_x_slo); %StartX in pixels
-        start_y_px = round(start_y(i_bscan)/scale_y_slo); %StartY in pixels
-        end_x_px = round(end_x(i_bscan)/scale_x__slo); %EndX in pixels
-        end_y_px = round(end_y(i_bscan)/scale_y_slo); %EndY in pixels
-        subplot(1,2,1); hold on, line([start_x_px end_x_px],[start_y_px end_y_px],'color','b');
-    end
-        
+                     
     % Read Bscan info 
     n_seg(i_bscan) = fread(fid, 1, '*int32'); % number of segmentated boundaries
     off_seg(i_bscan) = fread(fid, 1, '*int32'); % just in case it is useful
@@ -204,7 +208,7 @@ for i_bscan = 1:n_bscan
     shift(i_bscan) = fread(fid, 1, '*int32');
         
     % Read Bscan (images)    
-    if(~any(strcmp(options, 'header')))
+    if read_bscan
         status = fseek( fid, bscan_hdr_size + 2048 + (size_x_slo*size_y_slo) + (ii*(bscan_hdr_size+n_ascan*n_axial*4)), -1);
         oct = fread(fid, n_ascan*n_axial, '*float32');
         oct = reshape(oct, n_ascan, n_axial);
@@ -212,51 +216,34 @@ for i_bscan = 1:n_bscan
         bscan(:,:,i_bscan)=oct';
     end
          
-    if visu==1
-        subplot(1,2,2);
-        imshow(bscan(:,:,i_bscan),[0 1]);
-        drawnow
-    end
- 
+
     % Read segmentation     
     status = fseek(fid, 256 + 2048 + (size_x_slo*size_y_slo) + (ii*(bscan_hdr_size+n_ascan*n_axial*4)), -1 );
-    seg = (fread(fid, n_seg(i_bscan)*n_ascan, '*float' ))';
-    
-    ILM(i_bscan,:) = seg(1:n_ascan);
-    BM(i_bscan,:) = seg((1:n_ascan) + n_ascan);
-    NFL_GCL(i_bscan,:) = seg((1:n_ascan) + 2*n_ascan);
-    
-    if n_seg(i_bscan) > 3
-        GCL_IPL(i_bscan,:) = seg((1:n_ascan) + 3*n_ascan);
-        IPL_INL(i_bscan,:) = seg((1:n_ascan) + 4*n_ascan);
-        INL_OPL(i_bscan,:) = seg((1:n_ascan) + 5*n_ascan);
-        OPL_ONL(i_bscan,:) = seg((1:n_ascan) + 6*n_ascan);   
-
-        ELM(i_bscan,:) = seg((1:n_ascan) + 8*n_ascan);
-
-        MZ_EZ(i_bscan,:) = seg((1:n_ascan) + 14*n_ascan);
-        PHROS_IDZ(i_bscan,:) = seg((1:n_ascan) + 15*n_ascan);
-        IDZ_RPE(i_bscan,:) = seg((1:n_ascan) + 16*n_ascan);
-    end
-
-end
-
-% Display the segmentation
-if visuseg == 1
-    figure;
-    mesh(double(ILM));
-    hold on
-    mesh(double(BM));
-    if mean(n_seg) == 3
-        hold on
-        mesh(double(NFL_GCL));
+    if read_seg
+        seg = (fread(fid, n_seg(i_bscan)*n_ascan, '*float' ))';
+        
+        ILM(i_bscan,:) = seg(1:n_ascan);
+        BM(i_bscan,:) = seg((1:n_ascan) + n_ascan);
+        NFL_GCL(i_bscan,:) = seg((1:n_ascan) + 2*n_ascan);
+        
+        if n_seg(i_bscan) > 3
+            GCL_IPL(i_bscan,:) = seg((1:n_ascan) + 3*n_ascan);
+            IPL_INL(i_bscan,:) = seg((1:n_ascan) + 4*n_ascan);
+            INL_OPL(i_bscan,:) = seg((1:n_ascan) + 5*n_ascan);
+            OPL_ONL(i_bscan,:) = seg((1:n_ascan) + 6*n_ascan);
+            
+            ELM(i_bscan,:) = seg((1:n_ascan) + 8*n_ascan);
+            
+            MZ_EZ(i_bscan,:) = seg((1:n_ascan) + 14*n_ascan);
+            PHROS_IDZ(i_bscan,:) = seg((1:n_ascan) + 15*n_ascan);
+            IDZ_RPE(i_bscan,:) = seg((1:n_ascan) + 16*n_ascan);
+        end
     end
 end
 
 fclose(fid);
 
 % Build the header
-header.version = version;
 
 header.n_ascan = n_ascan;
 header.n_bscan = n_bscan;
@@ -270,43 +257,261 @@ header.size_y_slo = size_y_slo;
 header.scale_x_slo = scale_x_slo;
 header.scale_y_slo = scale_y_slo;
 header.fov_slo = fov_slo;
-header.scan_focus = scan_focus;
-header.eye = eye;
-header.exam_time = exam_time;
-header.scan_pattern = scan_pattern;
-header.bscan_hdr_size = bscan_hdr_size;
-header.id = id;
-header.reference_id = reference_id;
-header.pid = pid;
+
 header.patient_id = patient_id;
-header.padding = padding;
-header.dob = dob;
-header.vid = vid;
-header.visit_id = visit_id;
-header.visit_date = visit_date;
-header.grid_type = grid_type;
-header.grid_offset = grid_offset;
-header.spare = spare;
+header.eye = eye(1:2);
+header.scan_focus = scan_focus;
 
-header.quality = quality;
-header.off_seg = off_seg;
+switch scan_pattern
+    case 2
+        header.scan_type = 'peripapillary';
+    case 3
+        header.scan_type = 'macula_raster';
+    case 5
+        header.scan_type = 'macula_star';
+    otherwise
+        header.scan_type = 'unknown';
+end
 
-header.start_x = start_x;
-header.start_y = start_y;
-header.end_x = end_x;
-header.end_y = end_y;
-header.n_seg = n_seg;
-header.shit = shift;
-header.off_seg = off_seg;
+% Return the entire header only if required
+if full_header
+    header.version = version;
+    header.exam_time = exam_time;
+    header.scan_pattern = scan_pattern;
+    header.bscan_hdr_size = bscan_hdr_size;
+    header.id = id;
+    header.reference_id = reference_id;
+    header.pid = pid;
+    header.padding = padding;
+    header.dob = dob;
+    header.vid = vid;
+    header.visit_id = visit_id;
+    header.visit_date = visit_date;
+    header.grid_type = grid_type;
+    header.grid_offset = grid_offset;
+    header.spare = spare;
 
-segment.ILM = ILM;
-segment.BM = BM;
-segment.NFL_GCL = NFL_GCL;
-segment.GCL_IPL = GCL_IPL;
-segment.IPL_INL = IPL_INL;
-segment.INL_OPL = INL_OPL;
-segment.OPL_ONL = OPL_ONL;
-segment.ELM = ELM;
-segment.MZ_EZ = MZ_EZ;
-segment.PHROS_IDZ = PHROS_IDZ;
-segment.IDZ_RPE = IDZ_RPE;
+    header.quality = quality;
+    header.off_seg = off_seg;    
+    header.start_x = start_x;
+    header.start_y = start_y;
+    header.end_x = end_x;
+    header.end_y = end_y;
+    header.n_seg = n_seg;
+    header.shit = shift;
+    header.off_seg = off_seg;
+end
+
+% Compute A-Scan coordinates following the convention:
+%  X: left to right
+%  Y: inferior to superior
+if coordinates
+    
+    switch header.scan_type
+        case 'macula_raster'
+            [X_slo, Y_slo, X_oct, Y_oct] = ...
+                get_macular_coords(header, start_x, start_y, end_x, end_y);
+            header.X_slo = X_slo;
+            header.Y_slo = Y_slo;
+            header.X_oct = X_oct;
+            header.Y_oct = Y_oct;
+        case 'peripapillary'
+            [X_slo, Y_slo, X_oct, Y_oct, x_onh, y_onh] = ...
+                get_onh_coordinates(header, start_x, start_y, end_x, end_y);
+            header.X_slo = X_slo;
+            header.Y_slo = Y_slo;
+            header.X_oct = X_oct;
+            header.Y_oct = Y_oct;            
+            header.x_onh = x_onh;
+            header.y_onh = y_onh;
+        otherwise
+            warning(['Unable to compute coordinates for ' header.scan_type]);
+    end
+end
+
+% Save segmentation data
+if read_seg   
+    segment.ILM = ILM;
+    segment.BM = BM;
+    segment.NFL_GCL = NFL_GCL;
+    segment.GCL_IPL = GCL_IPL;
+    segment.IPL_INL = IPL_INL;
+    segment.INL_OPL = INL_OPL;
+    segment.OPL_ONL = OPL_ONL;
+    segment.ELM = ELM;
+    segment.MZ_EZ = MZ_EZ;
+    segment.PHROS_IDZ = PHROS_IDZ;
+    segment.IDZ_RPE = IDZ_RPE;
+    
+    % Remove outliers if present
+    layers = fields(segment);
+    for i=1:11
+        segment.(layers{i})(abs(segment.(layers{i})) > n_axial) = nan;
+    end
+
+end
+
+% Visualize the acquisition patter if asked
+if visu
+    scrsz = get(0,'ScreenSize');
+    figure('Position',[1 0 scrsz(3) scrsz(4)-70]);
+    subplot(1,2,1);
+    imshow(slo);
+
+    for i_bscan = 1:n_bscan       
+        start_x_px = round(start_x(i_bscan)/scale_x_slo); %StartX in pixels
+        start_y_px = round(start_y(i_bscan)/scale_y_slo); %StartY in pixels
+        end_x_px = round(end_x(i_bscan)/scale_x_slo); %EndX in pixels
+        end_y_px = round(end_y(i_bscan)/scale_y_slo); %EndY in pixels
+        
+        subplot(1,2,1); 
+        hold on;
+        line([start_x_px end_x_px],[start_y_px end_y_px],'color','b');
+                
+        subplot(1,2,2);
+        imshow(bscan(:,:,i_bscan),[0 1]);
+        drawnow
+    end
+end
+end
+
+
+
+function [X_slo, Y_slo, X_oct, Y_oct] = get_macular_coords(header, start_x,...
+    start_y, end_x, end_y)
+% Compute X,Y coordinates of fundus image and each A-Scan.
+% Axis convention
+% - X: left to right
+% - Y: inferior to superior
+
+size_x_slo = double(header.size_x_slo);
+size_y_slo = double(header.size_y_slo);
+scale_x_slo = header.scale_x_slo;
+scale_y_slo = header.scale_y_slo;
+n_ascan = header.n_ascan;
+n_bscan = header.n_bscan;
+
+% 1. Define fundus coordinate grid. Initial origin is at upper-left corner of
+% the image and B-Scan delimiting values are in mm values
+x_range_slo = linspace(0, scale_x_slo * (size_x_slo - 1), size_x_slo);
+y_range_slo = linspace(0, scale_y_slo * (size_y_slo - 1), size_y_slo);   
+[X_slo, Y_slo] = meshgrid(x_range_slo, y_range_slo);
+
+% 2. Revert the y axis (we want y axis in inferior-superior direction)
+Y_slo = -Y_slo;
+start_y = -start_y;
+end_y = -end_y;
+
+
+% -----------------------------------------------------------------------------
+% 3. Set coordinate origin at the center of the fundus image
+%------------------------------------------------------------------------------
+% Distance to fundus image center
+x_offset = scale_x_slo * (size_x_slo - 1)/2;
+y_offset = -scale_y_slo * (size_y_slo - 1)/2;
+
+% Translate all coordinates (fundus + start/end A-scans)
+X_slo = X_slo - x_offset;
+Y_slo = Y_slo - y_offset;
+start_x = start_x - x_offset;
+start_y = start_y - y_offset;
+end_x = end_x - x_offset;
+end_y = end_y - y_offset;
+
+% Compute A-Scan coordinates
+X_oct = nan(n_bscan, n_ascan);
+Y_oct = nan(n_bscan, n_ascan);
+for i_bscan = 1:n_bscan
+    X_oct(i_bscan, :) = linspace(start_x(i_bscan), end_x(i_bscan), n_ascan);
+    Y_oct(i_bscan, :) = linspace(start_y(i_bscan), end_y(i_bscan), n_ascan);
+end
+
+
+% -----------------------------------------------------------------------------
+% 4. Set coordinate origin at the acquisition center (B-Scan 13)
+% -----------------------------------------------------------------------------
+mid_bscan = (n_bscan + 1)/2; % Central B-Scan n_bscan = 25 -> mid_bscan=13
+
+% If n_bscan is even not sure what to do (pending)
+if mod(n_bscan, 2) == 0
+    error('Even number of B-Scans in raster');
+end
+
+% Get Y coordinate of central B-Scan (average for small
+% differences)
+y_oct_center = mean(Y_oct(mid_bscan,:));
+
+% Get X coordinate of central A-Scan             
+mid_ascan = (n_ascan + 1)/2;
+if mod(n_ascan, 2) ~=0 % If odd get the central directly
+    x_oct_center = X_oct(mid_bscan, mid_ascan);
+else % if odd there is no center point (find it between previous and posterior)
+    xc_prev = X_oct(mid_bscan, floor(mid_ascan));
+    xc_post = X_oct(mid_bscan, ceil(mid_ascan));            
+    x_oct_center = (xc_prev + xc_post)/2;
+end
+
+% Translate all coordinates
+X_slo = X_slo - x_oct_center;
+Y_slo = Y_slo - y_oct_center;
+
+X_oct = X_oct - x_oct_center;
+Y_oct = Y_oct - y_oct_center;
+end
+
+function [X_slo, Y_slo, X_oct, Y_oct, x_onh, y_onh] = ...
+    get_onh_coordinates(header, start_x, start_y, end_x, end_y)
+% Compute fundus and A-Scan coordinates for peripapillary scans
+% Axis convention:
+% -X: left to right
+% -Y: inferior to superior
+
+% Global properties of fundus image 
+size_x_slo = double(header.size_x_slo);
+size_y_slo = double(header.size_y_slo);
+scale_x_slo = header.scale_x_slo;
+scale_y_slo = header.scale_y_slo;
+n_ascan = header.n_ascan;
+eye = header.eye;
+
+% Fundus coordinates
+x_range_slo = linspace(0, scale_x_slo * (size_x_slo - 1), size_x_slo);
+y_range_slo = linspace(0, scale_y_slo * (size_y_slo - 1), size_y_slo);   
+[X_slo, Y_slo] = meshgrid(x_range_slo, y_range_slo);
+
+% ONH center
+x_onh = end_x(1);
+y_onh = end_y(1);
+
+% Revert Y axis
+Y_slo = -Y_slo;
+y_onh = -y_onh;
+start_y = -start_y;
+
+% Compute distance to the fundus image centre
+x_offset = scale_x_slo * (size_x_slo - 1)/2;
+y_offset = -scale_y_slo * (size_y_slo - 1)/2;
+
+% Translate to image centre
+start_x = start_x(1) - x_offset;
+start_y = start_y(1) - y_offset;
+X_slo = X_slo - x_offset;
+Y_slo = Y_slo - y_offset;
+x_onh = x_onh - x_offset;
+y_onh = y_onh - y_offset;
+
+% Compute B-Scan coordinates
+
+radius = sqrt((x_onh - start_x)^2 + (y_onh - start_y)^2);  % onh radius
+% Generate a circle (clockwise or anticlockwise depending on eye type)
+if strcmp(eye,'OS')
+    theta = linspace(0, 2*pi, n_ascan);
+elseif strcmp(eye,'OD')
+    theta = linspace(pi, -pi, n_ascan);
+end
+[X_oct, Y_oct] = pol2cart(theta, repmat(radius, 1, n_ascan));
+
+% Translate the circle to the onh center
+X_oct = X_oct + x_onh;
+Y_oct = Y_oct + y_onh;
+end
