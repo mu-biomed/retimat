@@ -1,7 +1,7 @@
-function FD = compute_FD(I, visu)
-%compute_FD Compute Fractal Dimension of a grayscale image
+function FD = fractal_dimension(I, visu)
+%fractal_dimension Compute Fractal Dimension of a grayscale image
 %
-%   FD = compute_FD(I)
+%   FD = fractal_dimension(I)
 %   Computes the fractal dimension of a 2D image by using the differential box
 %   counting method
 %
@@ -37,7 +37,7 @@ function FD = compute_FD(I, visu)
 %   % Compute fractal dimension
 %
 %     I = imread('cameraman.tif');
-%     FD = compute_FD(I);
+%     FD = fractal_dimension(I);
 %     
 %
 %  
