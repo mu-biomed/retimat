@@ -39,9 +39,8 @@ function OUT = template(IN1,IN2)
 %     
 %
 %  
-%   David Romero-Bascones, Biomedical Engineering Department, Mondragon
-%   Unibertsitatea, 2021
-%   dromero@mondragon.edu
+%   David Romero-Bascones, dromero@mondragon.edu
+%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
 
 outputArg1 = inputArg1;
 outputArg2 = inputArg2;
