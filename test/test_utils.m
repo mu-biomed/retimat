@@ -1,5 +1,5 @@
 close all;clc;clearvars;
-addpath(genpath('..'));
+addpath(genpath('../'));
 
 %% Rearange star coordinates
 [header, seg] = read_vol('../data/star.vol','coordinates');
