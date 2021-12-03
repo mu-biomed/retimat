@@ -245,15 +245,15 @@ fclose(fid);
 
 % Build the header
 
-header.n_ascan = n_ascan;
-header.n_bscan = n_bscan;
-header.n_axial = n_axial;
+header.n_ascan = double(n_ascan);
+header.n_bscan = double(n_bscan);
+header.n_axial = double(n_axial);
 header.scale_x = scale_x;
 header.scale_y = scale_y;
 header.scale_z = scale_z;
 
-header.size_x_slo = size_x_slo;
-header.size_y_slo = size_y_slo;
+header.size_x_slo = double(size_x_slo);
+header.size_y_slo = double(size_y_slo);
 header.scale_x_slo = scale_x_slo;
 header.scale_y_slo = scale_y_slo;
 header.fov_slo = fov_slo;
@@ -305,27 +305,17 @@ end
 % Compute A-Scan coordinates following the convention:
 %  X: left to right
 %  Y: inferior to superior
-if coordinates
-    
-    switch header.scan_type
-        case 'macula_raster'
-            [X_slo, Y_slo, X_oct, Y_oct] = ...
-                get_macular_coords(header, start_x, start_y, end_x, end_y);
-            header.X_slo = X_slo;
-            header.Y_slo = Y_slo;
-            header.X_oct = X_oct;
-            header.Y_oct = Y_oct;
-        case 'peripapillary'
-            [X_slo, Y_slo, X_oct, Y_oct, x_onh, y_onh] = ...
-                get_onh_coordinates(header, start_x, start_y, end_x, end_y);
-            header.X_slo = X_slo;
-            header.Y_slo = Y_slo;
-            header.X_oct = X_oct;
-            header.Y_oct = Y_oct;            
-            header.x_onh = x_onh;
-            header.y_onh = y_onh;
-        otherwise
-            warning(['Unable to compute coordinates for ' header.scan_type]);
+if coordinates    
+    known_scan_types = {'macula_raster','macula_star','peripapillary'};
+    if any(strcmp(header.scan_type, known_scan_types))
+        [X_slo, Y_slo, X_oct, Y_oct] = get_coordinates(header, start_x, start_y, ...
+        end_x, end_y);
+        header.X_slo = X_slo;
+        header.Y_slo = Y_slo;
+        header.X_oct = X_oct;
+        header.Y_oct = Y_oct;
+    else
+        warning(['Unable to compute coordinates for scan_type: ' header.scan_type]);
     end
 end
 
@@ -375,9 +365,7 @@ if visu
 end
 end
 
-
-
-function [X_slo, Y_slo, X_oct, Y_oct] = get_macular_coords(header, start_x,...
+function [X_slo, Y_slo, X_oct, Y_oct] = get_coordinates(header, start_x, ...
     start_y, end_x, end_y)
 % Compute X,Y coordinates of fundus image and each A-Scan.
 % Axis convention
@@ -402,7 +390,6 @@ Y_slo = -Y_slo;
 start_y = -start_y;
 end_y = -end_y;
 
-
 % -----------------------------------------------------------------------------
 % 3. Set coordinate origin at the center of the fundus image
 %------------------------------------------------------------------------------
@@ -418,38 +405,87 @@ start_y = start_y - y_offset;
 end_x = end_x - x_offset;
 end_y = end_y - y_offset;
 
-% Compute A-Scan coordinates
-X_oct = nan(n_bscan, n_ascan);
-Y_oct = nan(n_bscan, n_ascan);
-for i_bscan = 1:n_bscan
-    X_oct(i_bscan, :) = linspace(start_x(i_bscan), end_x(i_bscan), n_ascan);
-    Y_oct(i_bscan, :) = linspace(start_y(i_bscan), end_y(i_bscan), n_ascan);
-end
-
-
 % -----------------------------------------------------------------------------
-% 4. Set coordinate origin at the acquisition center (B-Scan 13)
+% 4. Compute A-Scan coordinates (in fundus image space)
 % -----------------------------------------------------------------------------
-mid_bscan = (n_bscan + 1)/2; % Central B-Scan n_bscan = 25 -> mid_bscan=13
+     
+switch header.scan_type
+    case 'macula_raster'          
+        % Compute A-Scan coordinates
+        X_oct = nan(n_bscan, n_ascan);
+        Y_oct = nan(n_bscan, n_ascan);
+        for i_bscan = 1:n_bscan
+            X_oct(i_bscan, :) = linspace(start_x(i_bscan), end_x(i_bscan), n_ascan);
+            Y_oct(i_bscan, :) = linspace(start_y(i_bscan), end_y(i_bscan), n_ascan);
+        end
 
-% If n_bscan is even not sure what to do (pending)
-if mod(n_bscan, 2) == 0
-    error('Even number of B-Scans in raster');
+        mid_bscan = (n_bscan + 1)/2; % Central B-Scan n_bscan = 25 -> mid_bscan=13        
+        mid_ascan = (n_ascan + 1)/2; % Central A-Scan
+
+        % If n_bscan or n_ascan there is no central so use two adjacent scans
+        if mod(n_bscan, 2) == 0
+            mid_bscan = [floor(mid_bscan) ceil(mid_bscan)];
+        end
+        
+        if mod(n_ascan, 2) == 0
+            mid_ascan = [floor(mid_ascan) ceil(mid_ascan)];
+        end
+        
+        % Get Y coordinate of central B-Scan (average for small differences)
+        x_oct_center = mean(X_oct(mid_bscan, mid_ascan),'all');        
+        y_oct_center = mean(Y_oct(mid_bscan, mid_ascan),'all');        
+        
+    case 'macula_star'             
+        % Compute A-Scan coordinates
+        X_oct = nan(n_bscan, n_ascan);
+        Y_oct = nan(n_bscan, n_ascan);
+        for i_bscan = 1:n_bscan
+            X_oct(i_bscan, :) = linspace(start_x(i_bscan), end_x(i_bscan), n_ascan);
+            Y_oct(i_bscan, :) = linspace(start_y(i_bscan), end_y(i_bscan), n_ascan);
+        end
+        
+        % Get centre Xc based on the first (vertical) B-Scan
+        x_oct_center = mean(X_oct(1, :)); % first vertical B-Scan
+        
+        % Get centre Yc based on the horizontal B-Scan
+        hor_bscan = n_bscan/2 + 1;
+        y_oct_center = mean(Y_oct(hor_bscan,:));
+        
+        % Alternative (maybe better)
+%         mid_ascan = (n_ascan + 1)/2; % Central A-Scan
+%         if mod(n_ascan, 2) == 0
+%             mid_ascan = [floor(mid_ascan) ceil(mid_ascan)];
+%         end
+%         x_oct_center = mean(X_oct(:, mid_ascan),'all'); % Alternative
+%         y_oct_center = mean(Y_oct(:, mid_ascan),'all'); % Alternative
+
+    case 'peripapillary'
+        % ONH center
+        x_onh = end_x(1);
+        y_onh = end_y(1);
+                
+        % Compute A-Scan coordinates        
+        radius = sqrt((x_onh - start_x)^2 + (y_onh - start_y)^2);  % onh radius
+        
+        % Generate a circle (clockwise or anticlockwise depending on eye type)
+        if strcmp(header.eye,'OS')
+            theta = linspace(0, 2*pi, n_ascan);
+        elseif strcmp(header.eye,'OD')
+            theta = linspace(pi, -pi, n_ascan);
+        end
+        [X_oct, Y_oct] = pol2cart(theta, repmat(radius, 1, n_ascan));
+        
+        % Translate the circle to the onh center
+        X_oct = X_oct + x_onh;
+        Y_oct = Y_oct + y_onh;
+        
+        x_oct_center = x_onh;
+        y_oct_center = y_onh;
 end
-
-% Get Y coordinate of central B-Scan (average for small
-% differences)
-y_oct_center = mean(Y_oct(mid_bscan,:));
-
-% Get X coordinate of central A-Scan             
-mid_ascan = (n_ascan + 1)/2;
-if mod(n_ascan, 2) ~=0 % If odd get the central directly
-    x_oct_center = X_oct(mid_bscan, mid_ascan);
-else % if odd there is no center point (find it between previous and posterior)
-    xc_prev = X_oct(mid_bscan, floor(mid_ascan));
-    xc_post = X_oct(mid_bscan, ceil(mid_ascan));            
-    x_oct_center = (xc_prev + xc_post)/2;
-end
+ 
+% -----------------------------------------------------------------------------
+% 5. Set coordinate origin at the acquisition center
+% -----------------------------------------------------------------------------            
 
 % Translate all coordinates
 X_slo = X_slo - x_oct_center;
@@ -457,61 +493,9 @@ Y_slo = Y_slo - y_oct_center;
 
 X_oct = X_oct - x_oct_center;
 Y_oct = Y_oct - y_oct_center;
-end
 
-function [X_slo, Y_slo, X_oct, Y_oct, x_onh, y_onh] = ...
-    get_onh_coordinates(header, start_x, start_y, end_x, end_y)
-% Compute fundus and A-Scan coordinates for peripapillary scans
-% Axis convention:
-% -X: left to right
-% -Y: inferior to superior
-
-% Global properties of fundus image 
-size_x_slo = double(header.size_x_slo);
-size_y_slo = double(header.size_y_slo);
-scale_x_slo = header.scale_x_slo;
-scale_y_slo = header.scale_y_slo;
-n_ascan = header.n_ascan;
-eye = header.eye;
-
-% Fundus coordinates
-x_range_slo = linspace(0, scale_x_slo * (size_x_slo - 1), size_x_slo);
-y_range_slo = linspace(0, scale_y_slo * (size_y_slo - 1), size_y_slo);   
-[X_slo, Y_slo] = meshgrid(x_range_slo, y_range_slo);
-
-% ONH center
-x_onh = end_x(1);
-y_onh = end_y(1);
-
-% Revert Y axis
-Y_slo = -Y_slo;
-y_onh = -y_onh;
-start_y = -start_y;
-
-% Compute distance to the fundus image centre
-x_offset = scale_x_slo * (size_x_slo - 1)/2;
-y_offset = -scale_y_slo * (size_y_slo - 1)/2;
-
-% Translate to image centre
-start_x = start_x(1) - x_offset;
-start_y = start_y(1) - y_offset;
-X_slo = X_slo - x_offset;
-Y_slo = Y_slo - y_offset;
-x_onh = x_onh - x_offset;
-y_onh = y_onh - y_offset;
-
-% Compute B-Scan coordinates
-
-radius = sqrt((x_onh - start_x)^2 + (y_onh - start_y)^2);  % onh radius
-% Generate a circle (clockwise or anticlockwise depending on eye type)
-if strcmp(eye,'OS')
-    theta = linspace(0, 2*pi, n_ascan);
-elseif strcmp(eye,'OD')
-    theta = linspace(pi, -pi, n_ascan);
-end
-[X_oct, Y_oct] = pol2cart(theta, repmat(radius, 1, n_ascan));
-
-% Translate the circle to the onh center
-X_oct = X_oct + x_onh;
-Y_oct = Y_oct + y_onh;
+% Set to zero horizontal and vertical
+X_oct(abs(X_oct) < 1e-6) = 0;
+Y_oct(abs(Y_oct) < 1e-6) = 0;
+       
 end
