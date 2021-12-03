@@ -49,7 +49,7 @@ function [L, s] = lacunarity(I, method)
 %
 %  
 %   David Romero-Bascones dromero@mondragon.edu
-%   Biomedical Engineering Department, MondragonUnibertsitatea, 2021
+%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
 
 
 if nargin == 1
@@ -91,7 +91,7 @@ for i_scale=1:n_scale
                 m = reshape(conv2(I, ones(s_i, s_i), 'valid'),[], 1);
         
         otherwise
-            error(["Method:" method " not supported"]);
+            error(["Method: " method " not supported"]);
     end
     L(i_scale) = var(m(:))/mean(m(:))^2 + 1;
 end
