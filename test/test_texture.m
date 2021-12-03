@@ -1,6 +1,7 @@
-%% Fractal Dimension
 close all;clc;clearvars;
+addpath(genpath('..'));
 
+%% Fractal Dimension
 I = imread('../data/D33.gif');
 FD = compute_FD(I, true);
 
