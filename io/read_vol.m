@@ -154,7 +154,7 @@ if verbose
 end
 
 % Read fundus image (slo)
-status = fseek(fid, 2048, -1 );
+fseek(fid, 2048, -1 );
 
 if read_slo
     slo = fread(fid, size_x_slo*size_y_slo, '*uint8');
@@ -163,7 +163,7 @@ if read_slo
 end
  
 % Read BScans, A-Scan coordinates and boundary segmentation
-status = fseek(fid, 2048+(size_x_slo*size_y_slo), -1);
+fseek(fid, 2048+(size_x_slo*size_y_slo), -1);
 if read_bscan
     bscan=zeros(n_axial, n_ascan, n_bscan, 'single');
 end
@@ -195,7 +195,7 @@ for i_bscan = 1:n_bscan
     ii = i_bscan - 1;
    
     % Read Bscan/Ascan positions in SLO image    
-    status = fseek(fid, 16 + 2048 + (size_x_slo*size_y_slo)+(ii*(bscan_hdr_size+n_ascan*n_axial*4)), -1);
+    fseek(fid, 16 + 2048 + (size_x_slo*size_y_slo)+(ii*(bscan_hdr_size+n_ascan*n_axial*4)), -1);
     start_x(i_bscan) = fread(fid, 1, '*double'); 
     start_y(i_bscan) = fread(fid, 1, '*double');  
     end_x(i_bscan) = fread(fid, 1, '*double');
@@ -209,16 +209,17 @@ for i_bscan = 1:n_bscan
         
     % Read Bscan (images)    
     if read_bscan
-        status = fseek( fid, bscan_hdr_size + 2048 + (size_x_slo*size_y_slo) + (ii*(bscan_hdr_size+n_ascan*n_axial*4)), -1);
+        fseek( fid, bscan_hdr_size + 2048 + (size_x_slo*size_y_slo) + (ii*(bscan_hdr_size+n_ascan*n_axial*4)), -1);
         oct = fread(fid, n_ascan*n_axial, '*float32');
         oct = reshape(oct, n_ascan, n_axial);
-        oct = oct.^0.25;  % necessary to enhance the contrast but not sure why is that value concretely.
+        oct = oct.^0.25;  % as per Van der Schoot et al. (IOVS, 2012) normalizes the range to [0,1]
         bscan(:,:,i_bscan)=oct';
+        bscan(bscan > 1e3) = 0;  % remove outliers at the edges
     end
          
 
     % Read segmentation     
-    status = fseek(fid, 256 + 2048 + (size_x_slo*size_y_slo) + (ii*(bscan_hdr_size+n_ascan*n_axial*4)), -1 );
+    fseek(fid, 256 + 2048 + (size_x_slo*size_y_slo) + (ii*(bscan_hdr_size+n_ascan*n_axial*4)), -1 );
     if read_seg
         seg = (fread(fid, n_seg(i_bscan)*n_ascan, '*float' ))';
         
