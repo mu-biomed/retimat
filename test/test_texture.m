@@ -23,13 +23,15 @@ X = compute_glcm_metrics(GLCM);
 
 %% Lacunarity
 close all;clc;clearvars;
-I = imread('cameraman.tif');
-I_noise = I + uint8(randi([-10 10], size(I)));
+I = imread('../data/D33.gif');
+% I = ones(257, 256);
+% I = imread('cameraman.tif');
+I_noise = double(I) + rand(size(I));
 
-[Lw, sw] = lacunarity(I);
-[Lw_noise, ~] = lacunarity(I_noise);
-[Lb, sb] = lacunarity(I, 'box');
-[Lb_noise, ~] = lacunarity(I_noise, 'box');
+[Lw, sw] = lacunarity(I,'box_3d');
+[Lw_noise, ~] = lacunarity(I,'window');
+% [Lb, sb] = lacunarity(I, 'box');
+% [Lb_noise, ~] = lacunarity(I_noise, 'box');
 
 subplot(121);hold on;
 plot(log10(sw), Lw, 'LineWidth', 1.5);
@@ -40,14 +42,14 @@ grid on;
 title('Window method');
 legend({'Original','Noise'});
 
-subplot(122);hold on;
-plot(log10(sb), Lb, 'LineWidth', 1.5);
-plot(log10(sb), Lb_noise, 'LineWidth', 1.5);
-xlabel('Log_{10}(s)');
-ylabel('L');
-grid on;
-title('Box method');
-legend({'Original','Noise'});
+% subplot(122);hold on;
+% plot(log10(sb), Lb, 'LineWidth', 1.5);
+% plot(log10(sb), Lb_noise, 'LineWidth', 1.5);
+% xlabel('Log_{10}(s)');
+% ylabel('L');
+% grid on;
+% title('Box method');
+% legend({'Original','Noise'});
 %% LBP feature extraction
 close all;clc;clearvars;
 

@@ -68,7 +68,7 @@ if ~isnumeric(I)
 end
 
 % Convert to gray-scale if it is a color image
-if length(size(I)) == 3
+if ndims(I) == 3
     warning("Input image has color. It will be converted to gray-scale");
     I = rgb2gray(I);
 end
