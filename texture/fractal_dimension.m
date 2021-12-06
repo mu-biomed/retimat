@@ -2,17 +2,18 @@ function FD = fractal_dimension(I, method, visu)
 %fractal_dimension Compute Fractal Dimension of a grayscale image
 %
 %   FD = fractal_dimension(I)
-%   Computes the fractal dimension of a 2D image by using the differential box
-%   counting method
+%   Computes the fractal dimension of a 2D grayscale image 
+%
 %
 %   Input arguments:
 %  
 %   'I'              Input image as a 2D matrix. Color images are converted to
 %                    gray scale values.          
 %
-%   'method'         Optionsl. String indicating the method to use for fractal dimension
-%                    computation.
-%                    Options: 'DBC', 'IR_DBC' (see references [1] and [2])
+%   'method'         Optional. String indicating the method to use for fractal 
+%                    dimension computation.
+%                    Options: 'DBC', 'IR_DBC' (see references [1] and [2], 
+%                    respectively)
 %                    Default = 'IR_DBC'
 %
 %   'visu'           Optional. If true a plot with the computed values is
@@ -28,8 +29,8 @@ function FD = fractal_dimension(I, method, visu)
 %   Notes
 %   -----
 %   This implementation does not incorporate a procedure to compute the fractal
-%   dimension of color images. If the goal is that, check other references. The
-%   'DBC' method has several assumptions on image size so 'IR_DBC' is prefered.
+%   dimension of neither color nor binary images. The 'DBC' method has several
+%   assumptions on image size so 'IR_DBC' method is prefered.
 %
 %
 %   References
@@ -58,8 +59,12 @@ function FD = fractal_dimension(I, method, visu)
 if nargin == 1
     method = 'IR_DBC';
 end
-if nargin<=2
+if nargin <= 2
     visu = false;
+end
+
+if ~isnumeric(I)
+    error(['Input image must be numeric but is: ', class(I)]);
 end
 
 % Convert to gray-scale if it is a color image
@@ -68,98 +73,111 @@ if length(size(I)) == 3
     I = rgb2gray(I);
 end
 
-[M, N] = size(I);  %  image dimension
+if isequal(class(I), 'uint8')
+    n_lev = 2^8;
+elseif isequal(class(I), 'uint16')
+    n_lev = 2^16;
+else
+    warning(['Input image is of type ', class(I), '. Converting to uint8.']);
+    I = im2uint8(I);
+    n_lev = 2^8;
+end
+
+[M, N] = size(I); 
 
 switch method
-    case 'DBC'        
+    case 'DBC'  %  See reference [1]        
         if M ~= N
-            error("The number of columns and rows must be equal");
-        end
-        if mod(M, 2) ~=0
-            error(["Number of rows must be multiple of 2 but is " num2str(M)]);
+            max_dim = max([M N]);            
+            warning(['Number of columns and rows dont match. Resizing ',... 
+                'image to ', num2str(max_dim),' x ', num2str(max_dim),'.']);
+            I = imresize(I, max_dim*[1 1]);
+            M = max_dim;
+%             N = max_dim;  %  not used
         end
 
         % List of s values to analyze
-        s_max = M/2;
-        s_vals = [2.^(1:(log2(s_max) - 1)) s_max];
+        s_max = floor(M/2);  %  floor to get an integer that maximizes coverage
+%         s_vals = [2.^(1:(log2(s_max) - 1)) s_max];  %  powers of two
+        s_vals = round(exp(linspace(log(2), log(s_max), 10)));
         
         % Define differential box counting function
         DBC_fun = @(block) max(block.data(:)) - min(block.data(:)) + 1;
-        
-        % When the blocks do not fit exactly in the image the last block is processed
-        % with the number of pixels that fall on it
-        
+                
         Nr = nan(1, length(s_vals));
-        r = s_vals/M;
+        r_vals = s_vals/M;
         for i_s=1:length(s_vals)
             s = s_vals(i_s);
             
-            % From gray level values to box indexes
-            I_box = ceil((double(I) + 1)./s);
+            % Compute box height (s_z). (s' in the paper. Equal to s only when
+            % the number of gray levels equals image size). If the image is too
+            % big the computed height might be smaller than 1!.
+            s_z = round(n_lev*s/M);
+            if s_z < 1
+                warning(['Computed box height is < 1.',...
+                    ' Using s_z = 1 instead. Results might be biased.',...
+                    ' Consider reducing image size to ', num2str(n_lev),...
+                    ' x ', num2str(n_lev),'.']);
+                s_z = 1;
+            end
             
+            % From gray level values to box indexes (starting from 1)
+            I_box = ceil((double(I) + 1)./s_z);  %  floor((double(I))./s_z); works as well
+
             % Differential box counting
+            % When the blocks do not fit exactly in the image the last block is 
+            % processed with the number of pixels that fall in it        
             nr = blockproc(I_box, [s s], DBC_fun);
-            Nr(i_s) = sum(nr(:));
-            
-            % Slow method
-            %     % Number of columns of boxes on each side
-            %     n_col_side = M/s;
-            %     nr2 = nan(n_col_side, n_col_side);
-            %     for i=1:n_col_side
-            %         for j=1:n_col_side
-            %             mask = false(M, M);
-            %             ind_i = (1:s) + s*(i-1); % rows (x) of pixels in column (z)
-            %             ind_j = (1:s) + s*(j-1); % columns (y) of pixels in column (z)
-            %             mask(ind_i, ind_j) = true;
-            %
-            %             l = max(I_box(mask));
-            %             k = min(I_box(mask));
-            %             nr2(i, j) = l - k + 1;
-            %
-            % %             clf;
-            % %             subplot(1,2,1);imagesc(I_box);colorbar;
-            % %             subplot(1,2,2);imagesc(mask);
-            % %             pause;
-            %         end
-            %     end
-            %     Nr2(i_s) = sum(nr2(:));
-            
+            Nr(i_s) = sum(nr(:));                        
         end
 
-    case 'IR_DBC'
-        n_lev = 256;
+    case 'IR_DBC'  %  See reference [2]
         
-        Q = min([(M*N)^1/3 M N]);  %  maximum value of r (Q)
-        r_vals = linspace(2, Q, 20);  %  Define r values
+        Q = min([(M*N)^(1/3) M N]);  %  maximum value of r (Q)       
+        r_vals = exp(linspace(log(2), log(Q), 10));  %  r-vals to sample (equally divided in log-space)
         
         Nr = nan(1, length(r_vals));
         for i_r=1:length(r_vals)
-            r = 2;
+            r = r_vals(i_r);
             m = floor(M/r);
             n = floor(N/r);            
             p = n_lev/r;
-            
+                       
             % Integer ratio differential box counting
+            % It does not matter whether I is in range [0,255] or [0,256] as we
+            % are only considering the difference.
+            % The numel(block.data)/(m*n) is 1 for full blocks (size = m x n) 
+            % and smaller when the block was smaller (at the edges).
             IR_DBC_fun = @(block) ((max(block.data(:))-min(block.data(:)))/p + 1) * numel(block.data)/(m*n) ;
-            nr = blockproc(I, [m n], IR_DBC_fun);
+                        
+            nr = blockproc(double(I), [m n], IR_DBC_fun);
+            
             Nr(i_r) = sum(nr(:));
         end
 
+        % Necessary adjustment (probably a notation error in the paper [2])
+        % The "r" used for FD calculation in regression is the inverse of what
+        % they use for defining block sizes. Caution!        
+        r_vals = 1./r_vals;
+        
     otherwise
         error("Unsupported method. Use 'DBC' or 'IR_DBC' instead.");
 end
 
-x = log(1./r);
+% Compute fractal dimension (FD, D in the literature)
+x = log(1./r_vals);
 y = log(Nr);
 p = polyfit(x, y, 1);
 FD = p(1);
 
 if visu
-    plot(x, x*p(1) + p(2),'b','linewidth',1.5); hold on;
-    scatter(x, y,50,'filled','linewidth',1.5,'MarkerFaceColor','white','MarkerEdgeColor','blue');
+    p = plot(x, x*p(1) + p(2),'linewidth',1.5); hold on;
+    scatter(x, y,50,'filled','linewidth',1.5,'MarkerFaceColor','white',...
+        'MarkerEdgeColor',p.Color,'HandleVisibility','off');
     xlabel('Log(1/r)');
     ylabel('Log(Nr)');
     grid on;
     title(['FD = ' num2str(FD)]);
+    set(gca, 'FontSize', 12);
 end
 end
