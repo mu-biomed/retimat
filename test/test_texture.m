@@ -22,34 +22,28 @@ GLCM = graycomatrix(I,'NumLevels',250);
 X = compute_glcm_metrics(GLCM);
 
 %% Lacunarity
-close all;clc;clearvars;
+close all;clc;
 I = imread('../data/D33.gif');
-% I = ones(257, 256);
-% I = imread('cameraman.tif');
 I_noise = double(I) + rand(size(I));
 
-[Lw, sw] = lacunarity(I,'box_3d');
-[Lw_noise, ~] = lacunarity(I,'window');
-% [Lb, sb] = lacunarity(I, 'box');
-% [Lb_noise, ~] = lacunarity(I_noise, 'box');
+methods = {'local_bin', 'box_3d', 'window'};
+r = 2:2:20;
 
-subplot(121);hold on;
-plot(log10(sw), Lw, 'LineWidth', 1.5);
-plot(log10(sw), Lw_noise, 'LineWidth', 1.5);
-xlabel('Log_{10}(s)');
-ylabel('L');
-grid on;
-title('Window method');
-legend({'Original','Noise'});
+for i=1:3
+    [L, r] = lacunarity(I,'box_3d',r);
+    [Ln, ~] = lacunarity(I_noise,'box_3d',r);
 
-% subplot(122);hold on;
-% plot(log10(sb), Lb, 'LineWidth', 1.5);
-% plot(log10(sb), Lb_noise, 'LineWidth', 1.5);
-% xlabel('Log_{10}(s)');
-% ylabel('L');
-% grid on;
-% title('Box method');
-% legend({'Original','Noise'});
+    subplot(1,3,i);hold on;
+    plot(r, L, 'LineWidth', 1.5);
+    plot(r, Ln, 'LineWidth', 1.5);
+    xlabel('Log(r)');
+    ylabel('L');
+    grid on;
+    title(methods{i});
+    legend({'Original','Noise'});
+
+end
+
 %% LBP feature extraction
 close all;clc;clearvars;
 

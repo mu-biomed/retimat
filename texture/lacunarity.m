@@ -1,4 +1,4 @@
-function [L, r] = lacunarity(I, method, visu, r)
+function [L, r] = lacunarity(I, method, r, visu)
 %lacunarity Compute lacunarity of a gray-scale image
 %
 %   [L, r] = lacunarity(I, method)
@@ -9,15 +9,19 @@ function [L, r] = lacunarity(I, method, visu, r)
 %   'I'              Input grayscale/binary image. 
 %             
 %   'method          Method to compute lacunarity.          
-%                    Options: ['window', 'box']
+%                    Options:
+%                     'window': Fast and simple. See [2] Section 2.2
+%                     'local_bin': See [3] Section 3.1.
+%                     'box_3d': Slow. See [3] Section 3.2.
 %                    Default: 'window'
+%
+%   'r'              1D array with window size values. By default 10 values 
+%                    from 1 to the minimum between rows and columns are used.
 %
 %   'visu'           Optional. If true a plot with the computed values is
 %                    shown.
 %                    Default = false
 %
-%   'r'              1D array with window size values. By default 10 values 
-%                    from 1 to the minimum between rows and columns are used.
 %
 %
 %   Output arguments:
@@ -29,16 +33,12 @@ function [L, r] = lacunarity(I, method, visu, r)
 %
 %   Notes
 %   -----
-%   Color images will be converted to grayscale. By default window sizes from 1
+%   Color images will be converted to grayscale. By default box sizes from 1
 %   to min{M, N} are used.
 %
 %
 %   References
 %   ----------
-%   [1] Manikka-Baduge D.C. and Dougherty G. "Texture analysis using lacunarity 
-%   and average local variance", Proceedings of SPIE, 2009 
-%   https://www.researchgate.net/publication/252776086_Texture_analysis_using_lacunarity_and_average_local_variance
-%   
 %   [1] Allain C. and Clitre M. "Charaterizing the lacunarity of random and
 %   deterministic fractal sets", Physical Review, 1991.
 %   https://doi.org/10.1103/PhysRevA.44.3552
@@ -47,7 +47,8 @@ function [L, r] = lacunarity(I, method, visu, r)
 %   Grayscale Patterns", Fractals, 2014
 %   https://doi.org/10.1142/S0218348X14400039
 %
-%   [4]"A new approach to estimate lacunarity of texture images"
+%   [4] Backes A.R. "A new approach to estimate lacunarity of texture images",
+%   Pattern Recognition Letters, 2013
 %
 %   Example
 %   ---------      
@@ -66,6 +67,8 @@ if nargin == 1
     method = 'window'; 
 elseif nargin == 2
     visu = false;
+elseif nargin == 3
+    visu = false;
 end
 
 if ~isnumeric(I) & ~islogical(I)
@@ -78,22 +81,18 @@ if ndims(I) == 3
     I = rgb2gray(I);
 end
 
-if isequal(class(I), 'uint8')
-    n_lev = 2^8;
-elseif isequal(class(I), 'uint16')
-    n_lev = 2^16;
-elseif isequal(class(I), 'logical')
-    n_lev = 2;
-else
+if ~isequal(class(I), 'uint8') | isequal(class(I), 'uint16') | isequal(class(I), 'logical')
     warning(['Input image is of type ', class(I), '. Converting to uint8.']);
     I = uint8(255*(I - min(I(:)))./(max(I(:)) - min(I(:))));
 end
 
 [M, N] = size(I);
 
-r_max = min([M N]);  %  maximum window size equals the minimum size
-% r_vals = [2.^(0:(log2(r_max) - 1)) r_max];  %  powers of two
-r = round(exp(linspace(log(1), log(r_max), 10)));  %  log-uniform points
+if nargin == 2
+    r_max = min([M N]);  %  maximum window size equals the minimum size
+    % r_vals = [2.^(0:(log2(r_max) - 1)) r_max];  %  powers of two
+    r = round(exp(linspace(log(1), log(r_max), 5)));  %  log-uniform points
+end
 
 n_scale = length(r);
 L = nan(1, n_scale);
@@ -102,7 +101,16 @@ for i_scale=1:n_scale
     r_i = r(i_scale);
     
     switch method
-        case 'local_bin'  %  See reference [4] Section 3.1. Slow because of the
+        case 'window'  %  See reference [2] Section 2.2
+            % Sliding-window through all the image. For each position we
+            % compute the sum of the values in each window as mass.
+            m = reshape(conv2(I, ones(r_i, r_i), 'valid'),[], 1);
+
+            L(i_scale) = var(m(:))/mean(m(:))^2 + 1;
+
+%         case 'normalized'
+        
+        case 'local_bin'  %  See reference [3] Section 3.1. Slow because of the
             % nested for loops. Always 1 for r=1.
             n_row = M - r_i + 1;  %  number of rows with starting window
             n_col = N - r_i + 1;  %  number of columns with starting window
@@ -114,22 +122,14 @@ for i_scale=1:n_scale
                 end
             end
             
-        case 'box_3d'  %  See reference [4] Section 3.2
-            n_lev = max(I(:));  % L in the paper
-            
-            L(i_scale) = lacunarity_3d(I, M, n_lev, 2);
-            
-        case 'window'  %  See reference [2] Section 2.2
-            % Sliding-window through all the image. For each position we
-            % compute the sum of the values in each window as mass.
-            m = reshape(conv2(I, ones(r_i, r_i), 'valid'),[], 1);
-            
-%         case 'normalized'
+            L(i_scale) = var(m(:))/mean(m(:))^2 + 1;
+
+        case 'box_3d'  %  See reference [3] Section 3.2. Slow method         
+            L(i_scale) = lacunarity_3d(I, M, N, r_i);
             
         otherwise
-            error("Provided method is not supported. Use 'box' or 'window'.");
+            error("Provided method is not supported. Use 'window', 'local_bin' or 'box_3d'.");
     end
-    L(i_scale) = var(m(:))/mean(m(:))^2 + 1;
 end
 
 if visu
@@ -140,85 +140,136 @@ if visu
 end
 end
 
-function Lac = lacunarity_3d(I, M, L, r)
-    S_max = r^3;
-    l = L - r + 1;  % number of boxes in Y direction
-
-    vl = zeros(1,l);
+function Lac = lacunarity_3d(I, M, N, r)
+    % We glide a box of r x r (2D) over the whole image and mathematically
+    % compute the numbe of cubes (3D) intercepted by pixel intensity.
     
-    for x=0:r-1
-        vl = compute_column(I, vl, l, x, 0, r, 1);
+    % Intuition: we built a tower of l cubes of rxrxr and we glide the entire
+    % tower through the image. The base of the tower is what we call 'box'. 
+    % We compute the occupied space/volume for each cube in the tower and store
+    % it in vl.
+    %
+    % As we glide the tower, there is an overlap with the previous tower so
+    % that we do not need to compute vl entirely. We can just remove the
+    % occupied space due to the old rows/columns that do not belong to the new
+    % tower and add the new/columns. In this way, the occupied space due to the
+    % shared columns/rows is kept and the computation is faster.
+    %
+    % We then only consider those cubes that have partial volume, i.e. that are
+    % neither empty (vl=0) or completely filled (vl=S_max=r^3)
+    
+    L = max(I(:));  % Maximum number of gray values
+    l = L - r + 1;  %  number of boxes in Y direction
+    S_max = r^3;  %  maximum occupied volume in a cube
+    
+    if l <= 0
+        warning(['box size (r=', num2str(r), ') is > than the number of', ...
+            ' gray levels (', num2str(L),'). Use a smaller value.']); 
+        Lac = nan;
+        return;
     end
+    vl = zeros(1, l);  %  occupied volume of each cube in the tower (z direction)
     
-    vl1 = vl;
+    % Get the occupied space in each cube of the tower located at the first box
+    % (first r columns/rows). We do this by gliding through all pixels in the
+    % box
+    for x=1:r
+        vl = compute_column(I, vl, l, x, 1, r, 1);
+    end
+        
+    vl1 = vl;  % store the volume of the first box
     
     n = zeros(1, S_max);
     
+    % Glide the box/tower through the X and Y directions
     first = true;
-    for y=(r-1):(M-1)
-        for x=(r-1):(M-1)
+    
+    % Loop through columns
+    for y=r:N
+        % Loop through rows
+        for x=r:M
             if first
+                % If it is the first box --> store the volume directly
                 first = false;
             else
-                vl = compute_column(I, vl, x-r, y-r+1, r, -1);
-                vl = compute_column(I, vl, x, y-r+1, r, 1);                
+                % Remove the volume of the column from previous box that does
+                % not belong to this new box.
+                vl = compute_column(I, vl, l, x-r, y-r+1, r, -1); 
+
+                %  Add the volume from the columns that are new to this box.
+                %  The volume of shared columns is kept.
+                vl = compute_column(I, vl, l, x, y-r+1, r, 1);                  
             end
-            for i=1:(l-1)
-                if vl(i)~=0 & vl(i+1)~=S_max
+            
+            for i=1:l
+                % Do not count cubes that are empty (vl=0) or completely filled
+                % (vl=S_max)
+                if vl(i)~=0 & vl(i)~=S_max
                     n(vl(i)) = n(vl(i)) + 1;  % add boxes with mass vl 
                 end
             end
         end
-        if y < M -1
-            vl1 = compute_row(I, vl1, l, 0, y-r+1, r, -1);
-            vl1 = compute_row(I, vl1, l, 0, y+1, r, 1);
-            vl = vl1;
+        
+        % When we have gone through all the rows check if there are more
+        % columns remaining (y < N) and if so compute the volume of the first
+        % box at the top.
+        if y < N
+            vl1 = compute_row(I, vl1, l, 1, y-r+1, r, -1);
+            vl1 = compute_row(I, vl1, l, 1, y+1, r, 1);
+            vl = vl1;            
         end
         first = true;
     end
-    N = 0;
-    Z1 = 0;
-    Z2 = 0;
     
-    for S=0:S_max
-        N = N + n(S); 
-    end
-    for S=0:S_max
-        i = S; % ?
-        Z1 = Z2 + i * n(S)/N;
-        Z2 = Z2 + i^2 * n(S)/N;
-    end
-    if Z1 == 0
-        Lac = 0;
+    % Calculate Lacunarity
+    
+    % Probability density distribution of a partially filled cube having
+    % certain occupancy. We just divide the number of cubes with each occupancy
+    % by the total number of partially filled cubes.
+    
+    n_cube = sum(n);  % number of partially filled cubes
+    if n_cube == 0
+        Lac = 0;  % All boxes were fully filled or empty.
     else
-        Lac = Z2/Z1^2; 
+        c = n./sum(n);
+    
+        Z1 = sum((1:S_max) .* c);  % mean occupied cubes
+        Z2 = sum((1:S_max).^2 .* c);
+        
+        Lac = Z2/Z1^2;
     end
 end
 
 function vl = compute_column(I, vl, l, x, y, r, t)
-    for y1 = y:y+r-1
-        [cc, cr] = count_boxes(l, I(x+1,y1+1), r);
-        
-        vl = vl + t*r;
+    % t: 1 or -1 to add or remove, respectively
+    % r: box size
+    % l: ma
+    
+    for y1=y:y+r-1
+        [cc, cr] = count_boxes(l, I(x,y1), r);      
 
-        i = cc;
+        % Store/remove the volume of each cube that was filled
+        vl(1:cc) = vl(1:cc) + t*r;
+
+        % Store the volume of those cubes partially filled
+        i = cc + 1;
         while (i<l) & (cr > 0)
-            vl(i) = vl(i) + t * cr;
+            vl(i) = vl(i) + t*cr;  %  add partial volume
             cr = cr - 1;
             i = i + 1;
         end
     end
 end
 
-function compute_row(I, vl, l, x, y, r, t)
+function vl = compute_row(I, vl, l, x, y, r, t)
     for x1 = x:x+r-1
-        [cc, cr] = count_boxes(l, I(x1+1,y+1), r);
+        [cc, cr] = count_boxes(l, I(x1,y), r);
 
-        vl = vl + t * r;
+        vl(1:cc) = vl(1:cc) + t*r;
         
-        i = cc;
+        i = cc + 1;
         while (i<l) & (cr > 0)
-            vl(i) = vl(i) + t * cr;
+            vl(i) = vl(i) + t*cr;
             cr = cr - 1;
             i = i + 1;
         end
@@ -228,19 +279,22 @@ end
 function [cc, cr] = count_boxes(l, h, r)
     % Number of cubes which a given pixel intercepts in function of its gray
     % level intensity;
-    % h: pixel intensity (height)
-    % cc: crossed cubes (intercepted)
     % l: maximal number of cumbes allowed in the pixel intensity direction
-    % cr: cros
+    % h: pixel intensity (height)
+    % r: cube size
+    % cc: crossed cubes (intercepted). Fully filled boxes with that intensity
+    % cr: part of the height that is used to partially fill cubes (note that
+    % this part can be also used to fill the previous cubes below)
+    
     cc = h - r + 1;
     
+    % If not even a single box is filled
     if cc <= 0
         cc = 0;
         cr = h;
-    else
-        if cc < l
-            cc = r - 1;
-            cr = 0;
-        end
+    elseif cc < l  % Not all boxes filled (regular case)
+        cr = r - 1;  % Typo in the original paper I believe
+    else  %  All boxes filled (no height to partially fill cubes cr=0)
+        cr = 0;        
     end
 end
