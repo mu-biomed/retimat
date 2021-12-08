@@ -17,9 +17,9 @@ legend({'DBC', 'IRDBC', 'IRDBC \sigma_{1}', 'IRDBC \sigma_{2}'},...
 %% GLCM features
 close all;clc;clearvars;
 
-I = randn(200, 200);
+I = imread('../data/D33.gif');
 GLCM = graycomatrix(I,'NumLevels',250);
-X = compute_glcm_metrics(GLCM);
+X = GLCM_features(GLCM);
 
 %% Lacunarity
 close all;clc;
