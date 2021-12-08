@@ -24,24 +24,24 @@ X = compute_glcm_metrics(GLCM);
 %% Lacunarity
 close all;clc;
 I = imread('../data/D33.gif');
-I_noise = double(I) + rand(size(I));
+I_noise = double(I) + 100*rand(size(I));
 
-methods = {'local_bin', 'box_3d', 'window'};
-r = 2:2:20;
+methods = {'window', 'local_bin', 'box_3d'};
+r = 2:5:10;
 
+figure();
 for i=1:3
-    [L, r] = lacunarity(I,'box_3d',r);
-    [Ln, ~] = lacunarity(I_noise,'box_3d',r);
+    [L, r] = lacunarity(I, methods{i}, r);
+    [Ln, ~] = lacunarity(I_noise, methods{i}, r);
 
     subplot(1,3,i);hold on;
-    plot(r, L, 'LineWidth', 1.5);
-    plot(r, Ln, 'LineWidth', 1.5);
-    xlabel('Log(r)');
+    plot(r, L, '-bo', 'LineWidth', 1.5);
+    plot(r, Ln, '-ro', 'LineWidth', 1.5);
+    xlabel('r');
     ylabel('L');
     grid on;
-    title(methods{i});
+    title(methods{i}, 'Interpreter', 'None');
     legend({'Original','Noise'});
-
 end
 
 %% LBP feature extraction
