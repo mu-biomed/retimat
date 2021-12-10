@@ -1,4 +1,4 @@
-function plot_radial_grid(conf)
+function plot_grid(conf)
 
 
 % Set default params
