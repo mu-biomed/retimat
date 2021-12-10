@@ -1,20 +1,47 @@
-function Thickness = compute_thickness(header,layers)
-% get_thickness - Compute thickness from from .vol data
+function Thickness = compute_thickness(seg, layers, scale_z)
+%COMPUTE_THICKNESS Compute thickness for several layers
 %
-% Thickness = compute_thickness(header,layers)
+%   Thickness = compute_thickness(seg, layers, scale_z)
+%   Compute the thickness of the layers specified by 'layers' using the
+%   segmentation data stored in 'seg' struct.
 %
-% Input arguments:
-%   header: struct with .vol header
-%   layers: cell array specifying the layers to compute
+%   Input arguments:
+%  
+%   'Seg'            Struct with the segmentation of the boundaries. Each field
+%                    must correspond to a specific boundary.
 %
-% Output arguments:
-%   Thickness: struct with a field for each layer
+%   'layers'         String or a cell array of strings indicating the layers
+%                    for which to compute thickness.
+%                    
+%   'scale_z'        Optional. Axial (depth) resolution of the images in mm. If 
+%                    provided, it is used to transform thicknes values from
+%                    pixel to um units.
+%  
+%  
+%   Output arguments:
+%  
+%   'Thickness'      Struct with thickness values for each layer.
 %
-% David Romero-Bascones 
-% dromero@mondragon.edu
-% 2021, Mondragon Unibertsitatea, Biomedical Engineering Department
-% ------------------------------------------------------------------------
+%   
+%   Notes
+%   -----
+%   The naming convention of the boundaries and layers might differ from one 
+%   scan to the other. This function assumes the convention specified below.
+%
+%
+%   Example 1
+%   ---------      
+%   % Compute thickness for the NFL and GCL layers
+%
+%   [header, seg, ~, ~] = read_vol(file,'verbose', 'coordinates');
+%   Thickness = compute_thickness(seg, {'NFL','GCL'}, header.scale_z);
+%
+%  
+%   David Romero-Bascones, dromero@mondragon.edu
+%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
 
+% Definition of layer and boundary names.
+% Each row: [layer, top boundary, bottom boundary]
 layer_top_bottom = {'TRT','ILM','BM';
     'NFL','ILM','NFL_GCL';
     'GCL','NFL_GCL','GCL_IPL';
@@ -30,26 +57,35 @@ layer_top_bottom = {'TRT','ILM','BM';
     'RPE','IDZ_RPE','BM';
     'ELM_BM','ELM','BM'};
     
+if nargin == 1
+    error("At least 2 input arguments must be provided");
+elseif nargin == 2
+    scale_z = 1; 
+end
 
-% Get necessary header parameters
-sizeZ  = double(header.SizeZ);
-scaleZ = double(header.ScaleZ);
+if ischar(layers)
+    layers = {layers}; 
+end
 
 for i=1:length(layers)
-    ind = find(strcmp(layer_top_bottom(:,1),layers{i}));
+    ind = find(strcmp(layer_top_bottom(:,1), layers{i}));
     
     if length(ind)~=1 
-        error('wrong number of layers detected');
+        error(['Unknown layer. Accepted values: ',...
+            'TRT,NFL,GCL,IPL,GCIPL,INL,OPL,ONL,OPL_ONL,PHR1,PHR2,PHR3,RPE,ELM_BM']);
     end
     
     % Get top and bottom layer names    
-    top = layer_top_bottom{ind,2};
-    bottom = layer_top_bottom{ind,3};
+    top = layer_top_bottom{ind, 2};
+    bottom = layer_top_bottom{ind, 3};
     
-    % Get segmented boundaries in um
-    top_thick = (sizeZ - double(header.(top)))*scaleZ;
-    bottom_thick = (sizeZ - double(header.(bottom)))*scaleZ;
+    if ~isfield(seg, top)
+        warning(['Boundary ' top ' not found in Seg. Unable to compute thickness for ' layers{i} ' layer']);
+    end
+    if ~isfield(seg, bottom)
+        warning(['Boundary ' bottom ' not found in Seg. Unable to compute thickness for ' layers{i} ' layer']);
+    end
     
     % Compute thickness
-    Thickness.(layers{i}) = 1e3*(top_thick - bottom_thick);
+    Thickness.(layers{i}) = 1e3 * scale_z * abs(double(seg.(top)) - double(seg.(bottom)));
 end
