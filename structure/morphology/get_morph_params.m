@@ -1,5 +1,5 @@
-function Paramorf = get_morph_params(rho,TRT)
-% getMorphParams - compute morphological parameters of the foveal pit
+function Paramorf = get_morph_params(rho, Y)
+% GET_MORPH_PARAMS - compute morphological parameters of the foveal pit
 % based on TRT values
 %
 % Paramorf = getMorphParams(rho,TRT)
@@ -14,20 +14,20 @@ function Paramorf = get_morph_params(rho,TRT)
 %  2021, Mondragon Unibertsitatea, Biomedical Engineering Department
 
 % Get step
-n_angles = size(TRT, 1);
+n_angles = size(Y, 1);
 
-step = rho(1,2)-rho(1,1);
+step = rho(1,2) - rho(1,1);
 
 % Check both axis in mm
-if max(TRT(1))>1
-   TRT = 1e-3*TRT;
+if max(Y(1))>1
+   Y = 1e-3*Y;
 end
 
 % Radial parameter computation
 for n=1:n_angles
 
     x = rho(n,:);
-    y = TRT(n,:);
+    y = Y(n,:);
 
     % Central Foveal Thickness
     Paramorf.cft(n) = 1e3*y(1);
