@@ -13,14 +13,3 @@ subplot(121);plot(TRT');
 [theta, rho] = cart2pol(X_radial, Y_radial);
 subplot(122);plot(rho',TRT_radial');
 
-%% GLCM features
-close all;clc;clearvars;
-
-% I = randn(200, 200);
-I = imread('cameraman.tif');
-GLCM = graycomatrix(I,'NumLevels',250);
-X = GLCM_features(GLCM);
-
-%% Lacunarity
-close all;clc;clearvars;
-I = imread('cameraman.tif');

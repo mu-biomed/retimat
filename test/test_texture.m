@@ -46,7 +46,9 @@ end
 
 %% LBP feature extraction
 close all;clc;clearvars;
+I = imread('cameraman.tif');
 
+[H,X] = LBP_features(I,8);
 
 %% Wavelet feature extraction
 close all;clc;clearvars;

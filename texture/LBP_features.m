@@ -1,4 +1,4 @@
-function X = LBP_features(I, n_neighbor, features)
+function [X, LBP_hist] = LBP_features(I, n_neighbor, features)
 %LBP_features Compute features using Local Binary Pattern 
 %
 %   X = LBP_features(I, n_neighbor, features)
@@ -8,22 +8,24 @@ function X = LBP_features(I, n_neighbor, features)
 %  
 %   'I'              Input grayscale image to be analyzed.
 %
-%                    Accepted values
+%   'n_neighbor'     Number of neighbors. Default is 8
 %
-%                    Default: 
-%            
+%   'features'       String or a cell array of strings defining the nmerical   
+%                    features to be computed. By default all the features will   
+%                    be returned. If 'none' then no features are computed and 
+%                    only the LBP histogram is returned.
 %  
 %  
 %   Output arguments:
 %  
-%   'ARG1'           Description of the argument. Type and purpose.          
-%  
+%   'X'              Struct with features computed from LBP histogram.
+%
+%   'H'              LBP histogram
 %
 %   
 %   Notes
 %   -----
-%   Important usage informationAnother name for a gray-level co-occurrence matrix is a gray-level
-%   spatial dependence matrix.
+%   
 %
 %
 %   References
@@ -35,7 +37,7 @@ function X = LBP_features(I, n_neighbor, features)
 %   % Example description
 %
 %     I = imread('cameraman.tif');
-%     X = LBP_features(I,'NumLevels',9,'G',[])
+%     X = LBP_features(I, 8)
 %     
 %
 %  
@@ -47,21 +49,53 @@ if nargin == 1
     n_neighbor = 8;
 end
 if nargin <= 2
-    features = 'low_order';
-end 
+    features = {'mean',...
+                'median',...
+                'std',...
+                'var',...
+                'iqr',...
+                'range',...
+                'skewness',...
+                'kurtosis',...
+                'energy',...
+                'entropy'};
+end
 
-LBP = extractLBPFeatures(I, 'NumNeighbors', n_neighbor);
+LBP_hist = extractLBPFeatures(I, 'NumNeighbors', n_neighbor);
 % extra parameters can be entered (radius, rotation-invariance)
 
-switch features
-    case 'low_order'
-        X.mean = mean(LBP);
-        X.median = median(LBP);
-        X.std = std(LBP);
-        X.iqr = iqr(LBP);
-        X.range = max(LBP) - min(LBP);
-        X.skewness = skewness(LBP);
-        X.kurtosis = kurtosis(LBP);
-    case 'histogram'
-        X = LBP;
+if ischar(features)
+    features = {features};
+elseif ~iscell(features)
+    error('features argument must be either a string or a cell array of strings');
+end
+
+for i=1:length(features)
+    switch features{i}
+        case 'mean'
+            X.mean = mean(LBP_hist);
+        case 'median'
+            X.median = median(LBP_hist);
+        case 'std'
+            X.std = std(LBP_hist);
+        case 'var'
+            X.var = var(LBP_hist);
+        case 'iqr'
+            X.iqr = iqr(LBP_hist);
+        case 'range'
+            X.range = max(LBP_hist) - min(LBP_hist);
+        case 'skewness'
+            X.skewness = skewness(LBP_hist);
+        case 'kurtosis'
+            X.kurtosis = kurtosis(LBP_hist);
+        case 'energy'
+            X.energy = sum(LBP_hist.^2);
+        case 'entropy'
+            p = LBP_hist./sum(LBP_hist);
+            X.entropy = -sum(log2(p(p~=0)).*p(p~=0));
+        case 'none'
+            X = nan;
+        otherwise
+            error("Unknown feature input. ");
+    end
 end
