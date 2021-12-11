@@ -2,7 +2,7 @@ function X = GLCM_features(GLCM, features)
 %GLCM_FEATURES Compute multiple metrics from a GLCM matrix
 %
 %   X = GLCM_features(M)
-%   Detail explanation goes here
+%   Compute several features from GLCM matrix
 %
 %   Input arguments:
 %  
@@ -15,13 +15,21 @@ function X = GLCM_features(GLCM, features)
 %
 %   Output arguments:
 %  
-%   'X'              Structure with computed metrics.          
+%   'X'              Structure with computed features.          
 %  
 %
 %   
 %   Notes
 %   -----
+%   Some features assume GLCM matrix to be symmetric
+%   The naming convention of some parameters is messy in the literature. The 
+%   following issues are important:
+%   - Homogeneity: inverse difference and inverse difference moment.
+%   - Dissimilarity: equal to the difference average
+%   - Cluster tendency is equal to sum variance 
+%   - Intertia is equal to contrast
 %   
+%   Additional features not yet implemented: maximal correlation coefficient
 %
 %   References
 %   ----------
@@ -31,9 +39,8 @@ function X = GLCM_features(GLCM, features)
 %
 %   [2] Soh L. "Texture Analysis of SAR Sea Ice Imagery Using Gray Level
 %   Co-Ocurrence Matrices", IEEE Transations on Gegoscience and Remote Sensing,
-%   1999
-%   https://doi.org/10.1109/36.752194
-
+%   1999. https://doi.org/10.1109/36.752194
+%
 %   [3] Zwanenburg et al.The Image Biomarker Standardization Initiative: 
 %   Standardized Quantitative Radiomics for High-Throughput Image-based 
 %   Phenotyping, 2020,  Radiology, 
@@ -58,18 +65,17 @@ feature_list = {'autocorrelation',...
                 'cluster_shade',...
                 'contrast',...
                 'correlation',...
-                'dif_average',...
                 'dif_variance',...
                 'dif_entropy',...
+                'dissimilarity',...
                 'energy', ...
                 'entropy',...
-                'homogeneity',...
                 'IMC1',...
                 'IMC2',...
-                'inverse_difference',...
-                'inverse_difference_norm',...
-                'inverse_difference_moment',...
-                'inverse_difference_moment_norm',...
+                'ID',...
+                'IDN',...
+                'IDM',...
+                'IDMN',...
                 'joint_average',...
                 'joint_variance',...
                 'max_prob',...
@@ -96,8 +102,8 @@ Pij = GLCM./sum(GLCM(:));
 % Partial probability distributions (rows and columns)
 Pi = sum(Pij, 1);
 Pj = sum(Pij, 2)';
-mui = Pi * (1:N)';
-muj = Pj * (1:N)';
+mui = Pi * (1:N)'; % equal to sum(Pij(:) .* i(:))
+muj = Pj * (1:N)'; % equal to sum(Pij(:) .* j(:))
 sdi = sqrt(sum(Pij(:) .* (i(:) - mui).^2));
 sdj = sqrt(sum(Pij(:) .* (j(:) - muj).^2));
 
@@ -126,12 +132,12 @@ if any(ismember(features, {'IMC1', 'IMC2'}))
     [Pi_mat, Pj_mat] = meshgrid(Pi, Pj); % in matrix form for latter calculations
     P_prod = Pi_mat .* Pj_mat; % Product matrix
 
-    Hx = my_entropy(Pi);  % Hy is equal to Hx (symmetry)
-    Hxy = my_entropy(Pij);
-    Hxy2 = my_entropy(P_prod); 
+    Hx = entropy_safe(Pi);  
+    Hy = entropy_safe(Pj); % Hy is equal to Hx (symmetry)
+    Hxy = entropy_safe(Pij);
+    Hxy2 = entropy_safe(P_prod); 
     Hxy1 = Hxy2;
-%     Hxy1 = -sum(Pij(:) .* log(P_prod(:))); % equal to Hxy2, no need to
-%     compute    
+%   Hxy1 = -sum(Pij(:) .* log(P_prod(:))); % equal to Hxy2, no need to compute
 end
 
 % Compute features
@@ -139,70 +145,118 @@ n_feat = length(features);
 for i_feat=1:n_feat
     feature = features{i_feat};
     switch feature
-        case 'autocorrelation'
+        case 'autocorrelation' 
+            % See [2]
             X.autocorrelation = sum(Pij(:).*i(:).*j(:));
+            
         case 'cluster_prominence'
-            X.cluster_prominence = sum(Pij(:) .* (i(:)+j(:)-2*mui).^4);
+            % See [2]
+            X.cluster_prominence = sum(Pij(:) .* (i(:)+j(:)-mui-muj).^4); 
+            
         case 'cluster_shade'
-            X.cluster_shade = sum(Pij(:) .* (i(:)+j(:)-2*mui).^3);
+            % See [2]
+            X.cluster_shade = sum(Pij(:) .* (i(:)+j(:)-mui-muj).^3);            
+            
         case 'contrast'
-            X.contrast = sum((i(:) - j(:)).^2 .* Pij(:));  % See [1].
+            % See [1]
+            X.contrast = sum((i(:) - j(:)).^2 .* Pij(:)); 
+            
         case 'correlation'
             % See [1]
             X.correlation = (sum(Pij(:).* i(:).*j(:)) - mui*muj)/(sdi*sdj); 
-        case 'dif_average'
-            % Equal to dissimilarity = sum(Pij(:) .* abs(i(:) - j(:))); 
-            X.dif_average = sum(P_dif.*d);
+        
         case 'dif_variance'
-            X.dif_variance = sum(P_dif .* (d-X.dif_average).^2);  % See [1].
+            % See [1]
+            X.dif_average = sum(Pij(:) .* abs(i(:) - j(:))); % dissimilarity
+            X.dif_variance = sum(P_dif .* (d-X.dif_average).^2);
+        
         case 'dif_entropy'
-            X.dif_entropy = my_entropy(P_dif);  % See [1].
+            % See [1]
+            X.dif_entropy = entropy_safe(P_dif);  % See [1].
+        
+        case 'dissimilarity'
+            % See [2]. Equal to the difference average: sum(P_dif.*d)
+            X.dissimilarity = sum(Pij(:) .* abs(i(:) - j(:))); 
+        
         case 'energy'            
-            X.energy = sum(Pij(:).^2); % Named Angular Second Moment in [1]
+            % See [1] (named Angular Second moment)
+            X.energy = sum(Pij(:).^2); 
+        
         case 'entropy'
-            X.entropy = my_entropy(Pij);  % See [1].
-        case 'homogeneity'
-            X.homogeneity = graycoprops(GLCM, 'homogeneity').Homogeneity;                
+            % See [1]
+            X.entropy = entropy_safe(Pij); 
+          
         case 'IMC1'
-             X.IMC1 = (Hxy - Hxy1)/Hx;            
+            % See [1]
+            if isequal([Hx Hy],[0 0])
+                X.IMC1 = nan; % prevent division by 0
+                warning("Division by 0 encountered. IMC1 not computed.");
+            else
+                X.IMC1 = (Hxy - Hxy1)/max([Hx Hy]);
+            end
+            
         case 'IMC2'            
-            X.IMC2 = sqrt(1 - exp(-2*(Hxy2 - Hxy)));            
+            % See [1]  
+            X.IMC2 = sqrt(1 - exp(-2*(Hxy2 - Hxy))); 
             if ~isreal(X.IMC2)
                 % Prevent it from returning complex values
-                warning("Information measure of correlation 2 returned a complex value");
-                X.IMC2 = 0;
+                warning("IMC2 returned a complex value");
+                X.IMC2 = nan;
             end
-        case 'inverse_difference'
+            
+        case 'ID'
+            % Inverse Difference. See [3]
             X.inverse_difference = sum(Pij(:) ./ (1 +abs(i(:)-j(:))));
-        case 'inverse_difference_norm'
+        
+        case 'IDN'
+            % Inverse Difference Normalized
             X.inverse_difference_norm = sum(Pij(:) ./ (1 + abs(i(:)-j(:))/N));
-        case 'inverse_difference_moment'
-            X.inverse_difference_moment = sum(Pij(:) ./ (1 + (i(:)-j(:)).^2)); % See [1].            
-        case 'inverse_difference_moment_norm'
+        
+        case 'IDM'
+            % Inverse Different Moment. See [1].
+            X.inverse_difference_moment = sum(Pij(:) ./ (1 + (i(:)-j(:)).^2));           
+        
+        case 'IDMN'
+            % Inverse difference Moment Normalized. See [3]
             X.inverse_difference_moment_norm = sum(Pij(:) ./ (1 + (i(:)-j(:)).^2 ./ N^2));           
+        
         case 'joint_average'
+            % See [3]. Use it only when GLCM is symmetrical
             X.joint_average = sum(Pij(:) .* i(:) .* j(:));
+        
         case 'joint_variance'
             joint_average = sum(Pij(:) .* i(:) .* j(:));
             X.joint_variance = sum(Pij(:) .* (i(:) - joint_average).^2);             
+        
         case 'max_prob'
-             X.max_prob = max(Pij(:));
+            % See [2]
+            X.max_prob = max(Pij(:));
+        
         case 'sum_of_squares'
-            % It is actually a variance
-            X.sum_of_squares = sum(Pij(:) .* (i(:) - mui).^2); % See [1].
+            % See [1]. It is actually a variance
+            % As per [3] it should be only used with symmetrical GLCM
+            X.sum_of_squares = sum(Pij(:) .* (i(:) - mui).^2); 
+        
         case 'sum_average'
-            X.sum_average = sum(P_sum .* k);  % See [1].
+            % See [1]
+            X.sum_average = sum(P_sum .* k); 
+        
         case 'sum_variance'
-            X.sum_variance = sum(P_sum .* (k - X.sum_average).^2);  % See [1].
+            % See [1]
+            X.sum_variance = sum(P_sum .* (k - X.sum_average).^2);
+        
         case 'sum_entropy'
-            X.sum_entropy = my_entropy(P_sum); % See [1].    
+            % See [1]
+            X.sum_entropy = entropy_safe(P_sum);
+        
         otherwise
             warning(['Unknown feature:' feature]);
     end
 end
 end
 
-function H = my_entropy(p)
+function H = entropy_safe(p)
+% Function to compute entropies in a safe way
 if abs(sum(p(:)) - 1) > 1e-4
     warning('Probabilities do not add to 1. Unable to compute entropy');
     H = nan;

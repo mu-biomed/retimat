@@ -16,9 +16,10 @@ subplot(122);plot(rho',TRT_radial');
 %% GLCM features
 close all;clc;clearvars;
 
-I = randn(200, 200);
+% I = randn(200, 200);
+I = imread('cameraman.tif');
 GLCM = graycomatrix(I,'NumLevels',250);
-X = compute_glcm_metrics(GLCM);
+X = GLCM_features(GLCM);
 
 %% Lacunarity
 close all;clc;clearvars;
