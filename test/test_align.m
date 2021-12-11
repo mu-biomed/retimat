@@ -18,6 +18,7 @@ Thickness = compute_thickness(seg, 'TRT', header.scale_z);
 
 % Sectorization
 [Z, G] = sectorize_map(X, Y, TRT, 'mean', 'ring', [1.5 2 2.5 3]);
+[Z, G] = sectorize_map(X, Y, TRT, 'mean', 'etdrs');
 
 % Visualization
 

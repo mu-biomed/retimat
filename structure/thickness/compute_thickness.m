@@ -29,7 +29,7 @@ function Thickness = compute_thickness(seg, layers, scale_z)
 %   scan to the other. This function assumes the convention specified below.
 %
 %
-%   Example 1
+%   Example
 %   ---------      
 %   % Compute thickness for the NFL and GCL layers
 %
@@ -60,7 +60,7 @@ layer_top_bottom = {'TRT','ILM','BM';
 if nargin == 1
     error("At least 2 input arguments must be provided");
 elseif nargin == 2
-    scale_z = 1; 
+    scale_z = 1;  % if not provided --> in pixels
 end
 
 if ischar(layers)
