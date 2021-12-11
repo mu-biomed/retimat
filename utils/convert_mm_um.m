@@ -19,11 +19,11 @@ function [Z, unit_in] = convert_mm_um(Z, unit)
 %   'unit_in'        Unit of the provided inpyt Z. 'mm' or 'um'
 %
 %
-%   Example 1
+%   Example
 %   ---------      
 %   % Convert thickness from mm to um
 %
-%   [header, seg, ~, ~] = read_vol(file, 'coordinates');
+%   [header, seg, ~, ~] = read_vol(file);
 %   Thickness_mm = compute_thickness(seg, 'TRT', header.scale_z);
 %   Thickness_um = convert_mm_um(Thickness_mm, 'um');
 %

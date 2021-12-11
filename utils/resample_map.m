@@ -98,7 +98,7 @@ for i=1:2:length(varargin)-1
 end
 
 if isnan(n_point)
-    error("You must provide a valid value for 'n_step'");
+    error("You must provide a valid value for 'n_point'");
 end
 if isnan(max_d)
     error("You must provide a valid value for 'max_d'");

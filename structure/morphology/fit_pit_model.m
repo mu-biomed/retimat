@@ -1,18 +1,43 @@
-function [Z_fit, fit_coeff] = fit_pit_model(theta, rho, Z, pit_model, varargin)
-% fitPitModel - Adjust a mathematical foveal pit model to foveal pit surface
+function [Z_fit, Fit_coeff] = fit_pit_model(theta, rho, Z, pit_model, varargin)
+%   [Z_fit, Fit_coeff] = fit_pit_model(theta, rho, Z, pit_model, varargin)
+%   Detail explanation goes here
 %
-% [layerFit,fitCoeff] = fit_pit_model(theta,rho,TRT,pitModel)
+%   Input arguments:
+%  
+%   'ARG1'           Description of the argument. Type and purpose.          
+%  
+%                    Accepted values
 %
-% Input arguments:
-%   theta, rho: matrixes with radial coordinates of TRT curve points
-%   TRT: matrix with TRT curve points
-%   pitModel: string defining the model to be used
+%                    Default: 
+%            
+%  
+%  
+%   Output arguments:
+%  
+%   'ARG1'           Description of the argument. Type and purpose.          
+%  
 %
-% Output arguments:
-%   layerFit: matrix with fitted TRT curves
-%   fitCoeff: struct with fitted coefficients of the model
+%   
+%   Notes
+%   -----
+%   Yadav model does not work yet.
 %
-%  2021, Mondragon Unibertsitatea, Biomedical Engineering Department
+%
+%   References
+%   ----------
+%   [1] 
+%
+%   Example 1
+%   ---------      
+%   % Example description
+%
+%     I = [1 1 5 6 8 8;2 3 5 7 0 2; 0 2 3 5 6 7];
+%     [GLCMS,SI] = graycomatrix(I,'NumLevels',9,'G',[])
+%     
+%
+%  
+%   David Romero-Bascones, dromero@mondragon.edu
+%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
 
 if nargin < 4
     error("At least 4 input arguments are expected");
@@ -20,7 +45,7 @@ end
 
 % Check the presence of nan values
 if sum(isnan(Z(:))) > 0
-    warning('NaN values in layer');
+    warning('NaN values in layer. Fitting might result in errors.');
 end
 
 [n_angle, n_point] = size(Z);
@@ -28,143 +53,68 @@ n_bscan = n_angle/2;
 
 Z_fit = nan(n_angle, n_point);
 
-switch pit_model
-   
-    case 'Ding'
-        [X,Y] = pol2cart(theta,rho);
-        
-        % Remove pit value (repeated in all radial scans)
-        Z = Z(:);
-        Xf = X;
-        Yf = Y;
-        
-        for n=2:n_angle
-            Z(n,1) = nan;
-            Xf(n,1) = nan;
-            Yf(n,1) = nan;
-        end
-        
-        Z = Z(~isnan(Z)); 
-        Xf = Xf(~isnan(Xf));
-        Yf = Yf(~isnan(Yf)); 
-        
-        % Define fitting configuration
-        x0 = [360 8 -10 1.5 -8 -130 0.5*1e3 0.5*1e3]./1000;
-        
-        fun = fittype( @(A0, A11, A12, A21, A22, K, s1, s2, x, y) ...
-            A0 + A11*x + A21*y +A12*x.^2 +A22*y.^2 + ...
-            K * exp(-x.^2/(2*s1^2) - y.^2/(2*s2^2)), ...
-            'independent', {'x', 'y'}, 'dependent', 'z' );        
-        
-        opt_int = fitoptions('Method','NonlinearLeastSquares',...
-            'StartPoint',x0,...
-            'TolFun',1e-6,...
-            'TolX',1e-6,...
-            'MaxIter',1000,...
-            'Display','off');
-        
-        % Fit the model
-        fitted = fit([Xf Yf], Z, fun, opt_int);
-        
-        % Reconstruct radially
-        for n=1:n_angle
-            Z_fit(n,:) = fitted([X(n,:)' Y(n,:)'])';
-        end
-        
-        fit_coeff = [fitted.A0 fitted.A11 fitted.A12 fitted.A21 fitted.A22 ...
-            fitted.K fitted.s1 fitted.s2];
-
+switch pit_model   
     case 'Breher'                
-        fit_coeff = nan(n_bscan, 9);
-        
-        % Fitting configuration
+        params = {'a1', 'a2', 'a3', 'b1', 'b2', 'b3', 'c1', 'c2', 'c3'};
+        fit_type = 'bscan';
+        fit_unit = 'mm';                
+        fun = fittype(@(a1, a2, a3, b1, b2, b3, c1, c2, c3,x) ...
+            a1.*exp(-((x-b1)./c1).^2) + ...
+            a2.*exp(-((x-b2)./c2).^2) + ...
+            a3.*exp(-((x-b3)./c3).^2));
+                        
         x0 = [0.3 -0.05 -0.02 0.3 0.04 -0.47 4.8 0.4 0.6];        
         lower = [0 -Inf -Inf -0.5 -0.5 -1 -Inf -Inf -Inf];
         upper = [1 Inf Inf    0.5  0.5  3 Inf Inf Inf];
         
-        fun_int = fittype(@(a1, a2, a3, b1, b2, b3, c1, c2, c3,x) ...
-            a1.*exp(-((x-b1)./c1).^2) + ...
-            a2.*exp(-((x-b2)./c2).^2) + ...
-            a3.*exp(-((x-b3)./c3).^2));
+   case 'Ding'   
+        params = {'A0', 'A11', 'A12', 'A21', 'A22', 'K', 's1', 's2'};
+        fit_type = '3d';
+        fit_unit = 'mm';                        
+        fun = fittype( @(A0, A11, A12, A21, A22, K, s1, s2, x, y) ...
+            A0 + A11*x + A21*y +A12*x.^2 +A22*y.^2 + ...
+            K * exp(-x.^2/(2*s1^2) - y.^2/(2*s2^2)), ...
+            'independent', {'x', 'y'}, 'dependent', 'z' );         
+       
+        x0 = [360 8 -10 1.5 -8 -130 0.5*1e3 0.5*1e3]./1000;
+        lower = -inf(1, length(params));
+        upper = inf(1, length(params));
         
-        opt_int = fitoptions('Method', 'NonlinearLeastSquares', ...
-            'StartPoint', x0, ...
-            'Lower', lower, ...
-            'Upper', upper, ...
-            'TolFun', 1e-6, ...
-            'TolX',1e-6, ...
-            'MaxIter',1000, ...
-            'Display','off');
-                
-        for n=1:n_bscan            
-            x = [-fliplr(rho(n+n_bscan,:)) rho(n, 2:end)];
-            y = [fliplr(Z(n+n_bscan,:)) Z(n, 2:end)]; % Dont get center two times
-            
-            % Fit the model
-            fitted = fit(x',y',fun_int,opt_int);
-            
-            % Reconstruct fitted curve
-            y_fit = fitted(x)';
-            
-            % From fitted B-Scan to radial again
-            Z_fit(n,:) = y_fit((end-n_point+1):end);% Right part of the B-Scan
-            Z_fit(n+nBScans,:) = y_fit(n_point:-1:1);
-            
-            % Store Coefficients
-            fit_coeff(n, :) = [fitted.a1 fitted.a2 fitted.a3 fitted.b1 ...
-                fitted.b2 fitted.b3 fitted.c1 fitted.c2 fitted.c3];
-        end
     case 'Dubis'
-        error('Not supported yet');
+        params = {'a1', 'a2', 'b1', 'b2', 'c1', 'c2'};
+        fit_type = 'bscan';
+        fit_unit = 'mm';                        
+        fun = fittype(@(a1,a2,b1,b2,c1,c2,z,x) ...
+            a1.*exp((x-b1).^2./(-2*c1)) - a2.*exp((x-b2).^2./(-2*c2)) + z);
+        
+        x0 = [  0.2 0.14 0    0   5  0.09 0.8];
+        lower = [0   0  -0.3 -0.3 0 0 0];
+        upper = [1 0.3 0.3  0.1 30 10  2];
+              
     case 'Liu'
-        error('Not supported yet');         
+        params = {'a', 'f', 'g', 'lambda', 'mu', 'sigma'};
+        fit_type = 'bscan';
+        fit_unit = 'mm';                        
+        myfun = @(a, f, g, lambda, mu, sigma, x)  equation_liu(x,a,f,g,lambda,mu,sigma);
+        fun = fittype(myfun);
+        x0 = [80 0 320 0 0 0.5];
+        lower = [10 -10 200 0 -1 0.1];
+        upper = [200 10 450 5 1 1];                
+
     case 'Scheibe'
-        Z = 1e-3*Z;
-        x0 = [1 0.5 1.5 0.1];
-        lower = [0 0.1 0 0];
-        upper = [40 10 40 10];
-
-        fit_coeff = nan(n_angle, 4);
-
+        params = {'mu', 'sigma', 'gamma', 'alfa'};
+        fit_type = 'radial';
+        fit_unit = 'mm';
         fun = fittype(@(mu, sigma, gamma, alfa,x) ...
             mu * sigma^2 .* x.^gamma .* exp(-mu.*x.^gamma) + ...
             alfa .* (1 - exp(-mu.*x.^gamma)));
         
-        opt_int = fitoptions('Method','NonlinearLeastSquares',...
-            'StartPoint',x0,...
-            'Lower',lower,...
-            'Upper',upper,...
-            'TolFun',1e-6,...
-            'TolX',1e-6,...
-            'MaxIter',1000,...
-            'Display','off');
-
-        % Get value at the centre
-        pit_val = Z(1,1);
-
-        % Fit the model in a radial fashion
-        for i_angle = 1:n_angle
-            
-            x = rho(i_angle,:);
-            y = Z(i_angle,:);
-            
-            % Normalize all points to that centre value setting the pit to 0
-            y = y - pit_val;
-            
-            % Fit
-            [fitted,~] = fit(x',y',fun, opt_int);
-            fit_coeff(i_angle,:) = [fitted.mu fitted.sigma fitted.gamma fitted.alfa];
-            
-            % Reconstruct curve
-            y_fit = fitted(x)';
-            
-            % Add pit thickness
-            Z_fit(i_angle,:) = y_fit + pit_val;
-        end
-        Z_fit = 1e3*Z_fit;
-    case 'Yadav'
-        fit_coeff = nan(n_angle, 7);
+        x0 = [1 0.5 1.5 0.1];
+        lower = [0 0.1 0 0];
+        upper = [40 10 40 10];        
         
+    case 'Yadav'
+        [Z, unit_in] = convert_mm_um(Z, 'mm');
         % Interior segment equation
 %         fun_int = fittype('equation_yadav_int(x, alfa, beta, P0, P3)',...
 %             'coefficients', {'alfa', 'beta'},...
@@ -207,16 +157,16 @@ switch pit_model
             lower = [0 0];
             upper = [2 2];
             
-            opt_int = fitoptions('Method','NonlinearLeastSquares',...
-                'StartPoint',x0,...
-                'Lower',lower,...
-                'Upper',upper,...
-                'TolFun',1e-6,...
-                'TolX',1e-6,...
-                'MaxIter',1000,...
-                'Display','off');
-            
-            fitted = fit(x_int', y_int', fun_int, opt_int, 'problem', {P0, P3});
+            opt = fitoptions('Method','NonlinearLeastSquares',...
+                                 'StartPoint',x0,...
+                                 'Lower',lower,...
+                                 'Upper',upper,...
+                                 'TolFun',1e-6,...
+                                 'TolX',1e-6,...
+                                 'MaxIter',1000,...
+                                 'Display','off');
+             
+            fitted = fit(x_int', y_int', fun_int, opt, 'problem', {P0, P3});
             y_int_fit = fitted(x_int)';
             
             % Fit exterior
@@ -234,14 +184,14 @@ switch pit_model
             upper = [2 3 0.400];
             
             opt_ext = fitoptions('Method','NonlinearLeastSquares',...
-                'StartPoint',x0,...
-                'Lower',lower,...
-                'Upper',upper,...
-                'TolFun',1e-6,...
-                'TolX',1e-6,...
-                'MaxIter',1000,...
-                'Display','off');
-            
+                                 'StartPoint',x0,...
+                                 'Lower',lower,...
+                                 'Upper',upper,...
+                                 'TolFun',1e-6,...
+                                 'TolX',1e-6,...
+                                 'MaxIter',1000,...
+                                 'Display','off');
+
             fitted = fit(x_ext',y_ext', fun_ext, opt_ext, 'problem', {P0, P3});
             y_ext_fit = fitted(x_ext)';
             
@@ -251,12 +201,115 @@ switch pit_model
             % Recombine segments            
             Z_fit(i_angle, :) = [y_int_fit(1:end-1) y_ext_fit];            
         end
+        Z_fit = convert_mm_um(Z, unit_in);
+
+        return
     case 'none'
         Z_fit = Z;
-        fit_coeff = nan;
+        Fit_coeff = nan;
+        return
     case 'otherwise'
         error('Wrong model name');
 end
+
+opt = fitoptions('Method','NonlinearLeastSquares',...
+    'StartPoint',x0,...
+    'Lower',lower,...
+    'Upper',upper,...
+    'TolFun',1e-6,...
+    'TolX',1e-6,...
+    'MaxIter',1000,...
+    'Display','off');
+
+[Z, unit_in] = convert_mm_um(Z, fit_unit);
+
+% Fit the model
+switch fit_type
+    case 'radial'
+       
+        % Get value at the centre
+        pit_val = Z(1,1);
+
+        % Fit the model in a radial fashion
+        for i_angle = 1:n_angle
+            
+            x = rho(i_angle,:);
+            y = Z(i_angle,:);
+            
+            % Normalize all points to that centre value setting the pit to 0
+            y = y - pit_val;
+            
+            % Fit
+            [fitted,~] = fit(x',y',fun, opt);
+            
+            % Reconstruct curve
+            y_fit = fitted(x)';
+            
+            % Add pit thickness
+            Z_fit(i_angle,:) = y_fit + pit_val;
+            
+            for i=1:length(params)
+                Fit_coeff.(params{i})(i_angle) = fitted.(params{i});
+            end
+        end
+        
+    case 'bscan'                
+        for n=1:n_bscan            
+            x = [-fliplr(rho(n+n_bscan,:)) rho(n, 2:end)];
+            y = [fliplr(Z(n+n_bscan,:)) Z(n, 2:end)]; % Dont get center two times
+            
+            % Fit the model
+            fitted = fit(x',y',fun,opt);
+            
+            % Reconstruct fitted curve
+            y_fit = fitted(x)';
+            
+            % From fitted B-Scan to radial again
+            Z_fit(n,:) = y_fit((end-n_point+1):end);% Right part of the B-Scan
+            Z_fit(n+n_bscan,:) = y_fit(n_point:-1:1);
+            
+            % Store Coefficients
+            for i=1:length(params)
+                Fit_coeff.(params{i})(n,:) = fitted.(params{i});
+            end
+
+        end     
+        
+    case '3d'       
+        [X, Y] = pol2cart(theta, rho);
+        
+        % Remove pit value (repeated in all radial scans)
+        Z = Z(:);
+        Xf = X;
+        Yf = Y;
+        
+        for n=2:n_angle
+            Z(n,1) = nan;
+            Xf(n,1) = nan;
+            Yf(n,1) = nan;
+        end
+        
+        Z = Z(~isnan(Z)); 
+        Xf = Xf(~isnan(Xf));
+        Yf = Yf(~isnan(Yf)); 
+   
+        % Fit the model
+        fitted = fit([Xf Yf], Z, fun, opt);
+        
+        % Reconstruct radially
+        for n=1:n_angle
+            Z_fit(n,:) = fitted([X(n,:)' Y(n,:)'])';
+        end
+        
+        for i=1:length(params)
+            Fit_coeff.(params{i}) = fitted.(params{i});
+        end
+    otherwise
+        error("Unknown fit type");
+end
+
+Z_fit = convert_mm_um(Z_fit, unit_in);
+
 end
 
 function y = equation_yadav_int(x, alfa, beta, P0, P3)
@@ -326,4 +379,25 @@ switch i
     case 3
         B = t.^3;
 end
+end
+
+function y = equation_liu(x,a,f,g,lambda,mu,sigma)
+%
+% y = equationLiu(x,a,f,g,lambda,mu,sigma)
+%
+% Input arguments:
+%   a,f,g,lambda,mu,sigma: model coefficients
+%   x: evaluating point
+%
+% Output arguments:
+%   y: evaluated value
+
+G = exp(-(x-mu).^2/sigma^2);
+centre = (x>=(mu-lambda/2) & x<=(mu+lambda/2));
+
+G1 = G;
+G1(centre) = max(G);
+G2 = g - (a*G1+f*x); 
+
+y = G2;
 end

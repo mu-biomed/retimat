@@ -88,10 +88,8 @@ n_angle = size(Z, 1);
 step = rho(1,2) - rho(1,1);
 
 % Check both axis in mm
-if max(Z(1))>1
-   Z = 1e-3*Z;
-   warning("Input thickness seems to be in um. Converting to mm during computation");
-end
+Z = convert_mm_um(Z, 'mm');
+rho = convert_mm_um(rho, 'mm');
 
 % Common computations
 % if intersect(features, {'height_rim', 'height_max_slope', 'pit_depth',...}
