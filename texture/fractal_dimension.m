@@ -79,7 +79,7 @@ elseif isequal(class(I), 'uint16')
     n_lev = 2^16;
 else
     warning(['Input image is of type ', class(I), '. Converting to uint8.']);
-    I = im2uint8(I);
+    I = uint8(255*(I - min(I(:)))./(max(I(:)) - min(I(:))));
     n_lev = 2^8;
 end
 

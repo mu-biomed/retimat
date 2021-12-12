@@ -94,7 +94,7 @@ rho = convert_mm_um(rho, 'mm');
 % Common computations
 % if intersect(features, {'height_rim', 'height_max_slope', 'pit_depth',...}
         
-cft = 1e3*Z(:, 1);
+cft = Z(:, 1);
 [Z_max, ind_max] = max(Z, [], 2);  % find rim height to limit search roi
 Zd = diff(Z, [], 2)./step;  % 1st derivative
 
@@ -102,7 +102,7 @@ for i=1:length(features)
     switch features{i}
         case 'cft'
             % Central foveal thickness. Should be equal for all directions
-            X.cft = cft;
+            X.cft = 1e3*cft;
             
         case 'height_rim'
             % Rim height
@@ -117,11 +117,11 @@ for i=1:length(features)
                 [~, ind_maxd] = max(Zd(n, 1:ind_max(n)));  % Steepest point
                 ind_maxd = ind_maxd(1);  % In case there are two maxima
                 % when computing the derivative we lose one unit (ind_maxd + 1)
-                X.max_slope_height(n) = 1e3*Z(n, ind_maxd + 1);                
+                X.height_maxslope(n) = 1e3*Z(n, ind_maxd + 1);                
             end
             
         case 'pit_depth'
-            X.pit_depth = Z_max - cft;
+            X.pit_depth = 1e3*(Z_max - cft);
             
         case 'pit_area'           
             area_square = step * Z_max .* (ind_max - 2);
@@ -136,9 +136,9 @@ for i=1:length(features)
         case 'radius_maxslope'
             for n=1:n_angle
                 [~, ind_maxd] = max(Zd(n, 1:ind_max(n)));  % Steepest point
-                ind_max = ind_maxd(1);  % In case there are two maxima
+                ind_maxd = ind_maxd(1);  % In case there are two maxima
                 % when computing the derivative we lose one unit (ind_maxd + 1)
-                X.max_slope_radius(n) = rho(n, ind_maxd + 1);
+                X.radius_maxslope(n) = rho(n, ind_maxd + 1);
             end   
             
         case 'slope_max'

@@ -1,7 +1,7 @@
 function [L, r] = lacunarity(I, method, r, visu)
 %lacunarity Compute lacunarity of a gray-scale image
 %
-%   [L, r] = lacunarity(I, method)
+%   [L, r] = lacunarity(I, method, r, visu)
 %   Compute lacunarity of a grayscale/binary image for a set of window sizes r.
 %   Lacunarity is a measure of how an image covers the space. Images/masks with
 %   bigger gaps will show a higher lacunarity values. Instead of a single value

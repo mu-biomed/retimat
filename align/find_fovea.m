@@ -75,6 +75,6 @@ switch method
         x_fovea = Xg(indx,indy);
         y_fovea = Yg(indx,indy);
 
-    case 'otherwise'
+    otherwise
         error('Unsupported alignment method');
 end
