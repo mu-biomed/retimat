@@ -114,7 +114,7 @@ for i=1:length(features)
             
         case 'height_maxslope'
             for n=1:n_angle
-                [~, ind_maxd] = max(Zd(n, 1:ind_max(n)));  % Steepest point
+                [~, ind_maxd] = max(Zd(n, 1:ind_max(n)-1));  % Steepest point
                 ind_maxd = ind_maxd(1);  % In case there are two maxima
                 % when computing the derivative we lose one unit (ind_maxd + 1)
                 X.height_maxslope(n) = 1e3*Z(n, ind_maxd + 1);                
@@ -135,7 +135,7 @@ for i=1:length(features)
             
         case 'radius_maxslope'
             for n=1:n_angle
-                [~, ind_maxd] = max(Zd(n, 1:ind_max(n)));  % Steepest point
+                [~, ind_maxd] = max(Zd(n, 1:ind_max(n)-1));  % Steepest point
                 ind_maxd = ind_maxd(1);  % In case there are two maxima
                 % when computing the derivative we lose one unit (ind_maxd + 1)
                 X.radius_maxslope(n) = rho(n, ind_maxd + 1);
@@ -143,14 +143,14 @@ for i=1:length(features)
             
         case 'slope_max'
             for n=1:n_angle
-                max_Zd = max(Zd(n, 1:ind_max(n)));  % Steepest point
+                max_Zd = max(Zd(n, 1:ind_max(n)-1));  % Steepest point
                 max_Zd = max_Zd(1);  % In case there are two maxima
                 X.slope_max(n) = rad2deg(atan(max_Zd));
             end
             
         case 'slope_mean'
             for n=1:n_angle
-                slope = rad2deg(atan(Zd(n,1:ind_max(n)))); % In degrees
+                slope = rad2deg(atan(Zd(n,1:ind_max(n)-1))); % In degrees
                 X.slope_mean(n) = mean(slope);
             end          
 %                 X.slope_mean(n) = 180*atan(mean(slope))/pi;            

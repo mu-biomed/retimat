@@ -4,17 +4,23 @@ function [Z_fit, Fit_coeff] = fit_pit_model(theta, rho, Z, pit_model, varargin)
 %
 %   Input arguments:
 %  
-%   'ARG1'           Description of the argument. Type and purpose.          
-%  
-%                    Accepted values
+%   'theta'          Matrix with theta coordinates (polar).
 %
-%                    Default: 
-%            
+%   'rho'            Matrix with rho value of polar coordinates.
+%
+%   'Z'              Thickness map.
+%
+%   'pit_model'      String defining the mathematical model to be used.
+%                    Options:['Breher','Ding','Dubis','Liu','Scheibe','Yadav']
 %  
-%  
+%   'varargin'       Extra arguments.
+%
+%
 %   Output arguments:
 %  
-%   'ARG1'           Description of the argument. Type and purpose.          
+%   'Z_fit'          Matrix with fitted values
+%
+%   'Fit_Coeff'      Struct with estimated model coefficients
 %  
 %
 %   
