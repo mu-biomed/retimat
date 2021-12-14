@@ -1,0 +1,40 @@
+
+1. Instalación
+	Ejecutar WebInstaller/MyAppInstaller_web y seguir proceso de instalación que puede tardar un rato.
+
+
+2. Arranque de la aplicación
+	Ejecutamos Annotation_Tool.exe y nos preguntará si queremos cargar o crear una nueva sesión.
+	Si es la primera vez escogemos crear sesión y le asignamos un nombre. Una vez creada se genera una carpeta con el nombre de la session dentro de la carpeta Sessions/
+
+	Cada sesión debería corresponder a un set de imágenes que queremos anotar. 
+	Así, si quisiéramos anotar dos veces las mismas imágenes para evaluar intra-rater reliability usaríamos dos sesiones distintas.
+
+	La aplicación guarda de forma interna todas las anotaciones realizadas en cada sesión de forma independiente.
+	Las sesiones se pueden cargar al arrancar la aplicación para seguir con el proceso de anotación.
+
+
+
+3. Proceso de anotación
+
+-- Cómo cargar una imagen --
+Hacemos click en Load Image y escogemos el fichero. Admite tanto .vol como .jpg/.png. Si cargamos .vol podemos cambiar de B-Scan usando las flechas en el aldo inferior derecho.
+
+-- Cómo realizar una anotación --
+Escogemos el tipo de anotación (PHR,DDS,Hiporreflectivos o drusas). Si vamos a anotar PHR escogemos también la capa en la que vamos a realizar la anotación de la lista en la parte inferior derecha de la pantalla.
+Hacemos click en el punto donde queramos anotar. La anotación se muestrará como un punto de diferentes colores y formas dependiendo del tipo de anotación.
+
+-- Cómo eliminar una anotación --
+Activamos el modo de borrado haciendo Click en Delete.
+Clickamos sobre los puntos que queramos eliminar.
+Volvemos a clickar en Delete para volver al modo de anotación normal.
+
+-- Cómo hacer zoom --
+Hacemos click en el icono de la lupa en la esquina superior izquierda para activar el zoom.
+Seleccionamos región sobre la que queremos hacer zoom.
+Para volver a la vista original hacemos doble click.
+Es importante tener en cuenta que para anotar el icóno de zoom debe estar desclickado.
+
+-- Cómo exportar los datos a excel --
+Hacemos click en el botón Export
+Se genera un archivo .xls con las anotaciones dentro de la carpeta de la sesión (Sessions/#nuestrasesión/Export/).
