@@ -1,13 +1,15 @@
-function X = GLCM_features(GLCM, features)
+function X = GLCM_features(GLCM, varargin)
 %GLCM_FEATURES Compute multiple metrics from a GLCM matrix
 %
 %   X = GLCM_features(M)
 %   Compute several features from GLCM matrix
 %
-%   Input arguments:
+%   Input arguments (required):
 %  
 %   'GLCM'           2D GLCM matrix obtained by graycomatrix()
 %  
+%   Input arguments (optional):
+%
 %   'features'       Cell array of strings with the lisst of features to be 
 %                    computed. By default the full set of features will be
 %                    computed.
@@ -41,7 +43,7 @@ function X = GLCM_features(GLCM, features)
 %   Co-Ocurrence Matrices", IEEE Transations on Gegoscience and Remote Sensing,
 %   1999. https://doi.org/10.1109/36.752194
 %
-%   [3] Zwanenburg et al.The Image Biomarker Standardization Initiative: 
+%   [3] Zwanenburg et al. The Image Biomarker Standardization Initiative: 
 %   Standardized Quantitative Radiomics for High-Throughput Image-based 
 %   Phenotyping, 2020,  Radiology, 
 %   https://pubs.rsna.org/doi/full/10.1148/radiol.2020191145
@@ -84,13 +86,8 @@ feature_list = {'autocorrelation',...
                 'sum_variance',...
                 'sum_entropy'};
     
-if nargin==1
-    features = feature_list;
-end
 
-if ~isnumeric(GLCM)
-    error(['Provided GLCM matrix must be numeric but is ' class(GLCM)]); 
-end
+[GLCM, features] = parse_inputs(GLCM, varargin, feature_list);
 
 % Get GLCM matrix size and indexes
 N = size(GLCM, 1);
@@ -263,5 +260,41 @@ if abs(sum(p(:)) - 1) > 1e-4
 else
     p = p(p~=0); % avoid log(0) = -Inf
     H = -sum(p .* log2(p));
+end
+end
+
+function [GLCM, features] = parse_inputs(GLCM, extra_args, feature_list)
+
+if length(extra_args)> 2
+    error("Function expects a maximum of 2 input arguments"); 
+end
+
+% Check GLCM
+if ~isnumeric(GLCM)
+    error(["GLCM matrix is expected to be numeric but is " class(GLCM)]); 
+end
+has_nan = sum(isnan(GLCM(:))) > 0;
+has_neg = sum(GLCM(:) < 0);
+has_inf = sum(isinf(GLCM(:))) > 0;
+if has_nan | has_neg | has_inf
+    error("GLCM cannot have NaN, Inf or negative values");
+end
+
+% Check features
+if isempty(extra_args)
+    features = feature_list;
+else
+    features = extra_args{1};    
+    if ischar(features)
+        return;
+    elseif iscell(features)
+        cell_is_char = cellfun(@(x) class(x), a, 'UniformOutput', false);
+        if any(~cell_is_char)
+            error("At least one of the features is not of type char"); 
+        end
+    else
+        error(["features is expected to be char or cell array of chars but is ",...
+            class(features)];
+    end
 end
 end
