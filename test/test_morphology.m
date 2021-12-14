@@ -11,4 +11,6 @@ Thickness = compute_thickness(seg, 'TRT', header.scale_z);
     'star', 'n_angle', 24, 'max_d', 2.5, 'n_point', 100);
 [theta, rho] = cart2pol(X, Y);
 
-[Z, fit_c] = fit_pit_model(theta, rho, TRT, 'Yadav');
+[Z, fit_c] = fit_pit_model(theta, rho, TRT, 'Breher');
+
+plot(Z');

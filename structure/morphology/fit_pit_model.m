@@ -1,20 +1,30 @@
 function [Z_fit, Fit_coeff] = fit_pit_model(theta, rho, Z, pit_model, varargin)
-%   [Z_fit, Fit_coeff] = fit_pit_model(theta, rho, Z, pit_model, varargin)
+%   [Z_fit, Fit_coeff] = fit_pit_model(theta, rho, Z, pit_model)
 %   Detail explanation goes here
 %
-%   Input arguments:
+%   Input arguments (required):
 %  
-%   'theta'          Matrix with theta coordinates (polar).
+%   'theta'          Matrix with theta coordinates (polar). It expects data in
+%                    format n_directions x n_points/direction.
 %
-%   'rho'            Matrix with rho value of polar coordinates.
+%   'rho'            Matrix with rho value of polar coordinates.It expects data in
+%                    format n_directions x n_points/direction.
 %
 %   'Z'              Thickness map.
 %
 %   'pit_model'      String defining the mathematical model to be used.
 %                    Options:['Breher','Ding','Dubis','Liu','Scheibe','Yadav']
 %  
-%   'varargin'       Extra arguments.
+%   Input arguments (name-value pairs):
 %
+%   'max_iter'       Maximum number of iterations for each fitting.
+%                    Default: 1000
+%
+%   'tol_x'          Tolerance of the errors during fitting.
+%                    Default: 1e-6
+%
+%   'tol_fun'        Tolerance of the function during fitting.
+%                    Default: 1e-6
 %
 %   Output arguments:
 %  
@@ -31,7 +41,24 @@ function [Z_fit, Fit_coeff] = fit_pit_model(theta, rho, Z, pit_model, varargin)
 %
 %   References
 %   ----------
-%   [1] 
+%   [1] Breher K. et al., Direct Modeling of Foveal Pit Morphology from 
+%   Distortion-Corrected OCT Images, Biomedical Optics Express, 2019.
+%
+%   [2] Ding Y. et al., Application of an OCT Data-Based Mathematical Model of  
+%   the Foveal Pit in Parkinson Disease, Journal fo Neural Transmission, 2014.
+%
+%   [3] Dubis A.M. et al., "Reconstructing Foveal Pit Morphology from Optical 
+%   Coherence Tomography Imaging", British Journal of Ophthalmology, 2009.
+%
+%   [4] Liu L. et al., Sloped Piecemeal Gaussian Model for Characterising 
+%   Foveal Pit Shape, Ophthalmic Physiological Optics, 2016.
+%
+%   [5] Scheibe P. et al., Parametric Model for the 3D Reconstruction of
+%   Individual Fovea Shape from OCT Data, Experimental Eye Research, 2014.
+%
+%   [6] Yadav S. et al., CuBe: Parametric Modeling of 3D Foveal Shape Using 
+%   Cubic Bézier, Biomedical Optics Express, 2017.
+%
 %
 %   Example 1
 %   ---------      
@@ -45,9 +72,20 @@ function [Z_fit, Fit_coeff] = fit_pit_model(theta, rho, Z, pit_model, varargin)
 %   David Romero-Bascones, dromero@mondragon.edu
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
 
-if nargin < 4
-    error("At least 4 input arguments are expected");
-end
+
+% Parse inputs
+p = inputParser;
+addRequired(p, 'theta', @(x)validateattributes(x,{'double'}, {'nonnan','nonempty'}));
+addRequired(p, 'rho', @(x)validateattributes(x,{'double'}, {'nonnan', 'nonempty','nonnegative'}));
+addRequired(p, 'Z', @(x)validateattributes(x,{'double'}, {'nonempty','positive'}));
+addRequired(p, 'pit_model', @(x)validateattributes(x,{'char'}, {'scalartext'}));
+addParameter(p, 'max_iter', 1000, @(x)validateattributes(x,{'double'}, {'integer','scalar'}));
+addParameter(p, 'tol_x', 1e-6, @(x)validateattributes(x,{'double'}, {'positive','real','scalar'}));
+addParameter(p, 'tol_fun', 1e-6, @(x)validateattributes(x,{'double'}, {'positive','real','scalar'}));
+parse(p,theta, rho, Z, pit_model, varargin{:})
+max_iter = p.Results.max_iter;
+tol_x = p.Results.tol_x;
+tol_fun = p.Results.tol_fun;
 
 % Check the presence of nan values
 if sum(isnan(Z(:))) > 0
@@ -167,9 +205,9 @@ switch pit_model
                                  'StartPoint',x0,...
                                  'Lower',lower,...
                                  'Upper',upper,...
-                                 'TolFun',1e-6,...
-                                 'TolX',1e-6,...
-                                 'MaxIter',1000,...
+                                 'TolFun',tol_fun,...
+                                 'TolX',tol_x,...
+                                 'MaxIter',max_iter,...
                                  'Display','off');
              
             fitted = fit(x_int', y_int', fun_int, opt, 'problem', {P0, P3});
@@ -193,9 +231,9 @@ switch pit_model
                                  'StartPoint',x0,...
                                  'Lower',lower,...
                                  'Upper',upper,...
-                                 'TolFun',1e-6,...
-                                 'TolX',1e-6,...
-                                 'MaxIter',1000,...
+                                 'TolFun',tol_fun,...
+                                 'TolX',tol_x,...
+                                 'MaxIter',max_iter,...
                                  'Display','off');
 
             fitted = fit(x_ext',y_ext', fun_ext, opt_ext, 'problem', {P0, P3});
@@ -222,9 +260,9 @@ opt = fitoptions('Method','NonlinearLeastSquares',...
     'StartPoint',x0,...
     'Lower',lower,...
     'Upper',upper,...
-    'TolFun',1e-6,...
-    'TolX',1e-6,...
-    'MaxIter',1000,...
+    'TolFun',tol_fun,...
+    'TolX',tol_x,...
+    'MaxIter',max_iter,...
     'Display','off');
 
 [Z, unit_in] = convert_mm_um(Z, fit_unit);
