@@ -79,18 +79,9 @@ switch method
             for s=1:length(start)
                 mask = false(size(I));
                 endpoint = min([size(I,1) start(s)+window(w)]);
-                mask(start(s):endpoint,:) = true;
+                mask(start(s):endpoint,:) = true;                
                 
-                I_in = I(mask);
-                I_out = I(~mask);
-                
-                p_in = sum(mask(:))/numel(mask);
-                p_out = sum(~mask(:))/numel(mask);
-                
-                var_in = var(I_in);
-                var_out = var(I_out);
-                
-                ICV(w, s) = p_in*var_in + p_out*var_out;                
+                ICV(w, s) = intraclass_var(I(mask), I(~mask));                
             end
         end
 
@@ -127,6 +118,58 @@ switch method
             set(gca,'FontSize',14);
             colormap(gca, 'turbo');
         end
+        
+    case 'otsu_ascan'
+        scale_z = 3.9;
+        
+        % Define search space
+        n_start = 100;
+        window = round(500/scale_z);
+        start = round(linspace(1, N-window, n_start));
+        ICV = nan(1, n_start); % Inter-class variability
+        
+        % Brute force search
+        mask = false(N, M);
+        for i_ascan=1:M
+            for s=1:n_start
+                                
+                s_in = I(start(s) + (0:window-1), i_ascan);
+                s_out = I([1:start(s)-1 (start(s)+window):N], i_ascan);
+                
+%                 ICV(s) = intraclass_var(s_in, s_out);  
+                ICV(s) = 1/mean(s_in);
+            end
+            
+            [~, ind] = min(ICV);
+            mask(start(ind) + (0:window-1), i_ascan) = true;
+        end
+
+        if visu
+            imshow(I, 'InitialMag', 'fit'); hold on;            
+            green = cat(3, zeros(size(I)), ones(size(I)), zeros(size(I)));
+            h = imshow(green);
+            set(h, 'AlphaData', mask*0.3)             
+        end
+        
+        
     otherwise
         error("Unsupported method");
+end
+
+end
+
+function ICV = intraclass_var(x, y)
+                
+n_x = numel(x);
+n_y = numel(y);
+n_all = n_x + n_y;
+
+p_x = n_x/n_all;
+p_y = n_y/n_all;
+
+var_x = var(x(:));
+var_y = var(y(:));
+
+ICV = p_x*var_x + p_y*var_y;
+
 end
