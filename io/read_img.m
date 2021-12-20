@@ -1,9 +1,14 @@
-function [vol_data,vol_info] = read_img(file, cube_size)
+function [bscan, header] = read_img(file, cube_size)
 % hidef scan consists of 2 orthogonal bscans intersecting in the center of
 % the volume. The first is in the y direction (across B-scans), the second
 % is in the x direction (aligned with the center B-scan). Unfortunately,
 % they are not in good alignment with the volumetric data
-
+%
+%      [n_ascan x n_ascan x n_axial]
+% Cube: [200 x 200 x 1024] : 40960000
+% Cube: [512 x 128 x 1024] : 67108864
+% Line 5: [512 x 5 x 1024]
+% Hidef: [512 x 2 x 1024]
 
 if nargin < 2 || isempty(cube_size)
     % assume 6mm x 6mm x 2mm cube size
@@ -34,15 +39,15 @@ end
                   
 
 % patient ID
-vol_info.pid = C{1}{1}; 
+header.pid = C{1}{1}; 
 % Macular or Optic Disc
-vol_info.scan_type = C2{1}{1}; 
+header.scan_type = C2{1}{1}; 
 % Volume size - '512x128' or '200x200' probably
 vol_size = C2{3};
 % Scan date - 'm-dd-yyyy'
-vol_info.scan_date = datenum([C{3}{1} ' ' C{4}{1}],'mm-dd-yyyy HH-MM-SS');
+header.scan_date = datenum([C{3}{1} ' ' C{4}{1}],'mm-dd-yyyy HH-MM-SS');
 % Eye side - 'OD' or 'OS' for right and left eye
-vol_info.eye_side = C{5}{1};
+header.eye_side = C{5}{1};
 % % Other not useful stuff     
 % sn = C{6}; % 'snXXXX'
 cube = C{7}; % 'cube'
@@ -53,8 +58,8 @@ if ~strcmp(cube,'cube') && ~strcmp(cube,'hidef')
            '. Filename must end in cube_z or cube_raw.'])
 end
 
-if ~strcmp(vol_info.scan_type,'Macular') && ...
-   ~strcmp(vol_info.scan_type,'Optic Disc')
+if ~strcmp(header.scan_type,'Macular') && ...
+   ~strcmp(header.scan_type,'Optic Disc')
 
     error(['Cannot read Cirrus file ' file... 
            '. Must be Macular Cube or Optic Disc scan.'])
@@ -68,9 +73,9 @@ n_bscan = vol_size(2);
 
 if strcmp(cube,'hidef')
     n_bscan = 2;
-    if strcmp(vol_info.scan_type,'Macular')
+    if strcmp(header.scan_type,'Macular')
         n_ascan = 1024;
-    elseif strcmp(vol_info.scan_type,'Optic Disc')
+    elseif strcmp(header.scan_type,'Optic Disc')
         n_ascan = 1000;
     end
 end
@@ -91,14 +96,14 @@ if rem(n_axial,1) ~= 0
     error(['Problem reading file' file])
 end
 
-vol_data = reshape(A,n_ascan,n_axial,n_bscan);
+bscan = reshape(A,n_ascan,n_axial,n_bscan);
 
 % Reshape - bscans are rotated
-vol_data = permute(vol_data,[2 1 3]);
-vol_data = flipdim(vol_data,1); % upside down
-vol_data = flipdim(vol_data,2); % flip left and right
-vol_data = flipdim(vol_data,3); % flip front to back
+bscan = permute(bscan,[2 1 3]);
+bscan = flipdim(bscan,1); % upside down
+bscan = flipdim(bscan,2); % flip left and right
+bscan = flipdim(bscan,3); % flip front to back
 
 % Resolution in each direction - assume cube begins and ends at voxel
 %   center
-vol_info.vol_res = [cube_size(3)/(n_axial-1),cube_size(1)/(n_ascan-1),cube_size(2)/(n_bscan-1)];
+header.vol_res = [cube_size(3)/(n_axial-1),cube_size(1)/(n_ascan-1),cube_size(2)/(n_bscan-1)];

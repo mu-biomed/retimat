@@ -34,3 +34,9 @@ scatter3(0, 0, max(slo(:))+1,'r','filled');
 scatter3(header.X_oct, header.Y_oct, repmat(max(slo(:))+1, 1, length(header.X_oct)),5,'b','filled');
 scatter3(header.X_oct(1), header.Y_oct(1), max(slo(:))+1,'g','filled');
 daspect([1 1 1]);
+
+%% read cube img
+clc;close all;
+file = '/home/david/Desktop/PNYU061E_Macular Cube 512x128_1-17-2018_10-27-10_OD_sn14547_cube_raw.img';
+
+[bscan, header] = read_img(file);
