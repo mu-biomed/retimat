@@ -2,6 +2,25 @@ close all;clc;clearvars;
 
 addpath(genpath('../'));
 
+%% Test find fovea
+file = '../data/star.vol';
+[header, seg, ~, ~] = read_vol(file, 'coordinates');
+Thickness = compute_thickness(seg, 'TRT', header.scale_z);
+TRT = Thickness.TRT;
+
+X = header.X_oct;
+Y = header.Y_oct;
+
+methods = {'min','resample_min','smooth_min'};
+for m=1:3
+    [x_fovea, y_fovea] = find_fovea(X, Y, TRT, methods{m});
+    
+    subplot(1,3,m);
+    surf(X, Y, TRT, 'EdgeColor', 'none');view(0,90);
+    hold on;
+    scatter3(x_fovea, y_fovea, max(TRT(:)), 'r', 'filled');
+    title(methods{m});
+end
 %% Test sectorization
 
 % Read vol

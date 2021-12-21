@@ -1,80 +1,94 @@
-function [x_fovea,y_fovea] = find_fovea(X,Y,TRT,interpMethod,method)
-% find_fovea - Align the TRT thickness map by locating the foveal center
-% 
-% [x_fovea,y_fovea] = find_fovea(X,Y,TRT,interpMethod,alignMethod)
+function [x_fovea, y_fovea] = find_fovea(X, Y, TRT, method)
+%FIND_FOVEA Find foveal center based on total retinal thickness (TRT) map
 %
-% Input arguments:
-%   X: matrix of A-Scan x coordinates
-%   Y: matrix of A-Scan y coordinates
-%   TRT: matrix of TRT values corresponding to each coordinate
-%   interpMethod: method used for interpolating in resample + min and 
-% smooth + min
-%   alignMethod: method used to locate the foveal center
+%   [x_fovea, y_fovea] = template(X, Y, TRT, method)
+%   Returns x and y coordinates of the foveal center
 %
-% Output arguments:
-%   x_fovea: x coordinate of the located foveal center
-%   y_fovea: y coordinate of the located foveal center
+%   Input arguments:
+%  
+%   'X'              Matrix with X coordinates of each A-Scan.
 %
-%  IMPORTANT: the smooth+min method is based on the foveafinder.m function
-%  of AURA Tools. If you use it, please provide appropriate credit to the
-%  original work (https://www.nitrc.org/projects/aura_tools/).
+%   'Y'              Matrix with Y coordinates of each A-Scan.
 %
-%  2021, Mondragon Unibertsitatea, Biomedical Engineering Department
-
+%   'TRT'            Matrix with total retinal thickness values.            
+%  
+%   'method'         Method used to find the foveal center.
+%                    Default is: 'smooth_min'
+%                    Options: ['none', 'min', 'resample_min', 'smooth_min']
+%
+%
+%   Output arguments:
+%  
+%   'x_fovea'        X coordinate of the foveal center.          
+%  
+%   'y_fovea'        Y coordinate of the foveal center.
+%   
+%
+%   Notes
+%   -----
+%   The smooth+min method is based on the foveafinder.m function
+%   of AURA Tools. If you use it, please provide appropriate credit to the
+%   original work (https://www.nitrc.org/projects/aura_tools/).
+%
+%
+%   References
+%   ----------
+%   [1] Romero-Bascones et al., 'Foveal pit characterization: a 
+%   quantitative analysis of the key methodological steps', Entropy, 2021
+%   
+%   
+%   Example 
+%   ---------      
+%   % Example description
+%
+%     file = '../data/raster.vol';
+%     [header, seg, ~, ~] = read_vol(file, 'coordinates');
+%     Thickness = compute_thickness(seg, 'TRT', header.scale_z);
+%     [x_fovea, y_fovea] = find_fovea(header.X, header.Y, Thickness.TRT)
+%  
+%
+%   David Romero-Bascones, dromero@mondragon.edu
+%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
 
 switch method
-    case 'none'     % default (without any alignemnt)
+    case 'none'
         x_fovea = 0;
         y_fovea = 0;
     
     case 'min'
         % Search only in the central region
-        maxR = 0.85; 
-        R = sqrt(X.^2+Y.^2);
-        maskCentral = R <= maxR;
-        TRT_aux = TRT;
-        TRT_aux(~maskCentral) = nan;
+        roi_radius = 0.85; 
+        [~, rho] = cart2pol(X, Y);
+        TRT(rho > roi_radius) = Inf;        
+        [x_fovea, y_fovea] = find_min(X, Y, TRT);
         
-        % get min
-        [~,indmin] = min(TRT_aux(:));
-        [indx,indy] = ind2sub(size(X),indmin);        
-        x_fovea = X(indx,indy);
-        y_fovea = Y(indx,indy);        
      case 'resample_min'
+        % Interpolate to a small regular grid 
+        [X, Y, TRT] = resample_map(X, Y, TRT, 'regular', 'max_d', 0.85, ...
+                                   'n_point', 50);        
+        [x_fovea, y_fovea] = find_min(X, Y, TRT);
+         
+    case 'smooth_min'        
         % Interpolate to small regular grid 
-        maxD = 0.85; 
-        step = 0.02; 
-        [Xg,Yg] =meshgrid(-maxD:step:maxD,-maxD:step:maxD);        
-                
-        TRT_grid = reshape(griddata(X(:),Y(:),TRT(:),Xg(:),Yg(:),...
-            interpMethod),size(Xg));
-  
-        [~,indmin] = min(TRT_grid(:));
-        [indx, indy] = ind2sub(size(TRT_grid),indmin);
-        x_fovea = Xg(indx,indy);
-        y_fovea = Yg(indx,indy);   
-    case 'smooth_min'
-        % Based on AURA foveaFinder.m function
+        [X, Y, TRT] = resample_map(X, Y, TRT, 'regular', 'max_d', 0.85, ...
+                                   'n_point', 50);
         
-        % Interpolate to small regular grid 
-        maxD = 0.85; % 
-        step = 0.02; 
-        [Xg,Yg] =meshgrid(-maxD:step:maxD,-maxD:step:maxD);        
-                
-        TRT_grid = reshape(griddata(X(:),Y(:),TRT(:),Xg(:),Yg(:),...
-            interpMethod),size(Xg));
+        % Smooth the TRT map with a circular kernel of 0.25 mm radius 
+        kernel_rad = 0.25;
+        [~, rho] = cart2pol(X, Y);
+        kernel = rho < kernel_rad;
+        TRT_filt = imfilter(TRT, double(kernel)/sum(kernel(:)),'replicate');
+
+        [x_fovea, y_fovea] = find_min(X, Y, TRT_filt);
         
-        % Minimum thickness average in 0.05 mm radius circle
-        maxR = 0.05;
-        R = Xg.^2+Yg.^2;
-        m = R < maxR;
-        TRT_filt = imfilter(TRT_grid,double(m)/sum(m(:)),'replicate');
-
-        [~,indmin] = min(TRT_filt(:));
-        [indx, indy] = ind2sub(size(TRT_filt),indmin);
-        x_fovea = Xg(indx,indy);
-        y_fovea = Yg(indx,indy);
-
     otherwise
-        error('Unsupported alignment method');
+        error('Unsupported fovea location method');
+end
+end
+
+function [x_min, y_min] = find_min(X, Y, Z)
+[~, ind_min] = min(Z(:));
+[ind_x, ind_y] = ind2sub(size(X), ind_min);        
+x_min = X(ind_x, ind_y);
+y_min = Y(ind_x, ind_y);        
 end
