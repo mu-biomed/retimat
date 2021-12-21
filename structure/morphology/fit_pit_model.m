@@ -26,11 +26,19 @@ function [Z_fit, Fit_coeff] = fit_pit_model(theta, rho, Z, pit_model, varargin)
 %   'tol_fun'        Tolerance of the function during fitting.
 %                    Default: 1e-6
 %
+%   'x0'             Initial iteration coefficient values. By default 
+%                    specific values related to the model are used.
+%   
+%   'x_low'          Inferior limits of model coefficients
+%   
+%   'x_sup'          Superior limits of model coefficients
+%
+%
 %   Output arguments:
 %  
 %   'Z_fit'          Matrix with fitted values
 %
-%   'Fit_Coeff'      Struct with estimated model coefficients
+%   'Fit_coeff'      Struct with estimated model coefficients
 %  
 %
 %   
@@ -41,6 +49,10 @@ function [Z_fit, Fit_coeff] = fit_pit_model(theta, rho, Z, pit_model, varargin)
 %
 %   References
 %   ----------
+%   [1] Romero-Bascones et al., Foveal Pit Morphology Characterization: A 
+%   Quantitative Analysis of the Key Methodological Steps, Entropy, 2021
+%   https://doi.org/10.3390/e23060699
+%
 %   [1] Breher K. et al., Direct Modeling of Foveal Pit Morphology from 
 %   Distortion-Corrected OCT Images, Biomedical Optics Express, 2019.
 %
@@ -107,9 +119,9 @@ switch pit_model
             a2.*exp(-((x-b2)./c2).^2) + ...
             a3.*exp(-((x-b3)./c3).^2));
                         
-        x0 = [0.3 -0.05 -0.02 0.3 0.04 -0.47 4.8 0.4 0.6];        
-        lower = [0 -Inf -Inf -0.5 -0.5 -1 -Inf -Inf -Inf];
-        upper = [1 Inf Inf    0.5  0.5  3 Inf Inf Inf];
+        x_low = [0   -Inf  -Inf  -0.5 -0.5   -1   -Inf -Inf -Inf];
+        x0 =    [0.3 -0.05 -0.02  0.3  0.04 -0.47  4.8  0.4  0.6];        
+        x_up =  [1    Inf   Inf   0.5  0.5    3    Inf  Inf  Inf];
         
    case 'Ding'   
         params = {'A0', 'A11', 'A12', 'A21', 'A22', 'K', 's1', 's2'};
@@ -120,63 +132,53 @@ switch pit_model
             K * exp(-x.^2/(2*s1^2) - y.^2/(2*s2^2)), ...
             'independent', {'x', 'y'}, 'dependent', 'z' );         
        
-        x0 = [360 8 -10 1.5 -8 -130 0.5*1e3 0.5*1e3]./1000;
-        lower = -inf(1, length(params));
-        upper = inf(1, length(params));
+        x_low = -inf(1, length(params));
+        x0 = [360 8 -10 1.5 -8 -130 500 500]/1000;
+        x_up = inf(1, length(params));
         
     case 'Dubis'
         params = {'a1', 'a2', 'b1', 'b2', 'c1', 'c2'};
         fit_type = 'bscan';
         fit_unit = 'mm';                        
         fun = fittype(@(a1,a2,b1,b2,c1,c2,z,x) ...
-            a1.*exp((x-b1).^2./(-2*c1)) - a2.*exp((x-b2).^2./(-2*c2)) + z);
-        
-        x0 = [  0.2 0.14 0    0   5  0.09 0.8];
-        lower = [0   0  -0.3 -0.3 0 0 0];
-        upper = [1 0.3 0.3  0.1 30 10  2];
+            a1.*exp((x-b1).^2./(-2*c1)) - a2.*exp((x-b2).^2./(-2*c2)) + z);       
+        x_low = [ 0   0   -0.3 -0.3 0   0    0];
+        x0 =    [0.2 0.14   0    0  5  0.09 0.8];
+        x_up =  [ 1  0.3   0.3  0.1 30  10   2];
               
     case 'Liu'
         params = {'a', 'f', 'g', 'lambda', 'mu', 'sigma'};
         fit_type = 'bscan';
-        fit_unit = 'mm';                        
+        fit_unit = 'um';                        
         myfun = @(a, f, g, lambda, mu, sigma, x)  equation_liu(x,a,f,g,lambda,mu,sigma);
         fun = fittype(myfun);
-        x0 = [80 0 320 0 0 0.5];
-        lower = [10 -10 200 0 -1 0.1];
-        upper = [200 10 450 5 1 1];                
+        x_low = [10 -10 200 0 -1 0.1];
+        x0 =    [80   0 320 0  0 0.5];
+        x_up =  [200 10 450 5  1 1.0];                
 
     case 'Scheibe'
-        params = {'mu', 'sigma', 'gamma', 'alfa'};
+        params = {'mu', 'sigma', 'gamma', 'alpha'};
         fit_type = 'radial';
         fit_unit = 'mm';
-        fun = fittype(@(mu, sigma, gamma, alfa,x) ...
+        fun = fittype(@(mu, sigma, gamma, alpha,x) ...
             mu * sigma^2 .* x.^gamma .* exp(-mu.*x.^gamma) + ...
-            alfa .* (1 - exp(-mu.*x.^gamma)));
+            alpha .* (1 - exp(-mu.*x.^gamma)));
         
-        x0 = [1 0.5 1.5 0.1];
-        lower = [0 0.1 0 0];
-        upper = [40 10 40 10];        
+        x_low = [0  0.1  0    0  ];
+        x0 =    [1  0.5  1.5  0.1];
+        x_up =  [40  10  40   10 ];        
         
     case 'Yadav'
         [Z, unit_in] = convert_mm_um(Z, 'mm');
-        % Interior segment equation
-%         fun_int = fittype('equation_yadav_int(x, alfa, beta, P0, P3)',...
-%             'coefficients', {'alfa', 'beta'},...
-%             'problem', {'P0', 'P3'});
         
-        fun = @(alfa, beta, P0, P3,x) equation_yadav_int(x, alfa, beta, P0, P3);
-        fun_int = fittype(fun,...
-            'coefficients', {'alfa', 'beta'},...
-            'problem', {'P0', 'P3'});
+        % Interior/exterior segment equations        
+        fun = @(alpha, beta, P0, P3,x) equation_yadav_int(x, alpha, beta, P0, P3);
+        fun_int = fittype(fun, 'coefficients', {'alpha', 'beta'},...
+                               'problem', {'P0', 'P3'});
         
-        % Exterior segment fitting configuration
-%         fun_ext = fittype('equation_yadav_ext(x, alfa, P2x, P2y, P0, P3)',...
-%             'coefficients', {'alfa', 'P2x', 'P2y'},...
-%             'problem', {'P0', 'P3'});
-        fun = @(alfa, beta, P2x, P2y, P0, P3, x) equation_yadav_ext(x, alfa, beta, P2x, P2y, P0, P3);
-        fun_ext = fittype(fun, ...
-            'coefficients', {'alfa', 'P2x', 'P2y'},...
-            'problem', {'P0', 'P3'});
+        fun = @(alpha, P2x, P2y, P0, P3, x) equation_yadav_ext(x, alpha, P2x, P2y, P0, P3);
+        fun_ext = fittype(fun, 'coefficients', {'alpha', 'P2x', 'P2y'},...
+                               'problem', {'P0', 'P3'});
 
         for i_angle=1:n_angle
             
@@ -184,7 +186,7 @@ switch pit_model
             y = Z(i_angle,:);
             
             % Get Max
-            [~,ind_max] = max(y);
+            [~, ind_max] = max(y);
             ind_max = ind_max(1);
             
             % Fit interior
@@ -194,24 +196,27 @@ switch pit_model
             P0 = [x_int(1) ;y_int(1)];
             P3 = [x_int(end) ;y_int(end)];
             
-            % initialize alfa,beta to half width
-            alfa0 = (P3(1) - P0(1))/2;
+            % initialize alpha,beta to half width
+            alpha0 = (P3(1) - P0(1))/2;
             beta0 = (P3(1) - P0(1))/2;
-            x0 = [alfa0 beta0];
-            lower = [0 0];
-            upper = [2 2];
+            x0 = [alpha0 beta0];
+            x_low = [0 0];
+            x_up = [2 2];
             
             opt = fitoptions('Method','NonlinearLeastSquares',...
-                                 'StartPoint',x0,...
-                                 'Lower',lower,...
-                                 'Upper',upper,...
-                                 'TolFun',tol_fun,...
-                                 'TolX',tol_x,...
-                                 'MaxIter',max_iter,...
-                                 'Display','off');
+                             'StartPoint',x0,...
+                             'Lower',x_low,...
+                             'Upper',x_up,...
+                             'TolFun',tol_fun,...
+                             'TolX',tol_x,...
+                             'MaxIter',max_iter,...
+                             'Display','off');
              
             fitted = fit(x_int', y_int', fun_int, opt, 'problem', {P0, P3});
             y_int_fit = fitted(x_int)';
+            
+            Fit_coeff.alpha_int(i_angle) = fitted.alpha;
+            Fit_coeff.beta(i_angle) = fitted.beta;
             
             % Fit exterior
             x_ext = x(ind_max:end);
@@ -220,17 +225,17 @@ switch pit_model
             P0 = [x_ext(1) ;y_ext(1)];
             P3 = [x_ext(end) ;y_ext(end)];
             
-            alfa0 = (P3(1)-P0(1))/2; % half width of the exterior segment
+            alpha0 = (P3(1)-P0(1))/2; % half width of the exterior segment
             P2x0 = P3(1)-(P3(1)-P0(1))/2; % P3 - half width
             P2y0 = (P0(2)+P3(2))/2; % in the middle between P0y and P3y
-            x0 = [alfa0  P2x0 P2y0];
-            lower = [0 0 0.200];
-            upper = [2 3 0.400];
+            x0 = [alpha0  P2x0 P2y0];
+            x_low = [0 0 0.200];
+            x_up = [2 3 0.400];
             
             opt_ext = fitoptions('Method','NonlinearLeastSquares',...
                                  'StartPoint',x0,...
-                                 'Lower',lower,...
-                                 'Upper',upper,...
+                                 'Lower',x_low,...
+                                 'Upper',x_up,...
                                  'TolFun',tol_fun,...
                                  'TolX',tol_x,...
                                  'MaxIter',max_iter,...
@@ -239,31 +244,36 @@ switch pit_model
             fitted = fit(x_ext',y_ext', fun_ext, opt_ext, 'problem', {P0, P3});
             y_ext_fit = fitted(x_ext)';
             
+            Fit_coeff.alpha_ext(i_angle) = fitted.alpha;
+            Fit_coeff.P2x(i_angle) = fitted.P2x;
+            Fit_coeff.P2y(i_angle) = fitted.P2y;
+
             % Force first point to have the highest thickness
-            y_ext_fit(y_ext_fit>y_ext_fit(1)) = y_ext_fit(1);
+            y_ext_fit(y_ext_fit > y_ext_fit(1)) = y_ext_fit(1);
             
             % Recombine segments            
             Z_fit(i_angle, :) = [y_int_fit(1:end-1) y_ext_fit];            
         end
-        Z_fit = convert_mm_um(Z, unit_in);
+        Z_fit = convert_mm_um(Z_fit, unit_in);
 
         return
     case 'none'
         Z_fit = Z;
         Fit_coeff = nan;
         return
-    case 'otherwise'
-        error('Wrong model name');
+    otherwise
+        error('Unknown model name');
 end
 
+
 opt = fitoptions('Method','NonlinearLeastSquares',...
-    'StartPoint',x0,...
-    'Lower',lower,...
-    'Upper',upper,...
-    'TolFun',tol_fun,...
-    'TolX',tol_x,...
-    'MaxIter',max_iter,...
-    'Display','off');
+                 'StartPoint',x0,...
+                 'Lower',x_low,...
+                 'Upper',x_up,...
+                 'TolFun',tol_fun,...
+                 'TolX',tol_x,...
+                 'MaxIter',max_iter,...
+                 'Display','off');
 
 [Z, unit_in] = convert_mm_um(Z, fit_unit);
 
@@ -283,7 +293,6 @@ switch fit_type
             % Normalize all points to that centre value setting the pit to 0
             y = y - pit_val;
             
-            % Fit
             [fitted,~] = fit(x',y',fun, opt);
             
             % Reconstruct curve
@@ -356,14 +365,14 @@ Z_fit = convert_mm_um(Z_fit, unit_in);
 
 end
 
-function y = equation_yadav_int(x, alfa, beta, P0, P3)
+function y = equation_yadav_int(x, alpha, beta, P0, P3)
 % equationYadavInt - evaluate the model presented by Yadav et al. (2017)
 % to model de inner part of the B-Scan (foveal center to rim)
 %
-% yf = equationYadavInt(x,alfa,beta,P0,P3)
+% yf = equationYadavInt(x,alpha,beta,P0,P3)
 %
 % Input arguments:
-%   alfa,beta,P0,P3: model coefficients (defining Bezier curves)
+%   alpha,beta,P0,P3: model coefficients (defining Bezier curves)
 %   x: evaluating point
 %
 % Output arguments:
@@ -373,7 +382,7 @@ t = linspace(0,1,length(x));
 
 T = [1;0];
 
-P1 = P0 + alfa*T;
+P1 = P0 + alpha*T;
 P2 = P3 - beta*T;
 
 Q = P0*Be(t,0) + P1*Be(t,1) + P2*Be(t,2) + P3*Be(t,3);
@@ -381,20 +390,20 @@ Q = P0*Be(t,0) + P1*Be(t,1) + P2*Be(t,2) + P3*Be(t,3);
 y = interp1(Q(1,:),Q(2,:),x);
 end
 
-function y = equation_yadav_ext(x, alfa, P2x, P2y, P0, P3)
+function y = equation_yadav_ext(x, alpha, P2x, P2y, P0, P3)
 % equationYadavExt - evaluate the model presented by Yadav et al. (2017)
 % to model de external part of the B-Scan (beyond rim)
 %
 %
 % Input arguments:
-%   alfa,P2x,P2Y,P0,P3: model coefficients (defining Bezier curves)
+%   alpha,P2x,P2Y,P0,P3: model coefficients (defining Bezier curves)
 %   x: evaluating point
 
 t = linspace(0,1,length(x));
 
 T = [1;0];
 
-P1 = P0 + alfa*T;
+P1 = P0 + alpha*T;
 P2 = [P2x;P2y];
 
 Q = P0*Be(t,0) + P1*Be(t,1) + P2*Be(t,2) + P3*Be(t,3);
