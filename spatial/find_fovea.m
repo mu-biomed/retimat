@@ -33,9 +33,9 @@ function [x_fovea, y_fovea] = find_fovea(X, Y, TRT, method)
 %
 %   References
 %   ----------
-%   [1] Romero-Bascones et al., 'Foveal pit characterization: a 
-%   quantitative analysis of the key methodological steps', Entropy, 2021
-%   
+%   [1] Romero-Bascones et al., Foveal Pit Morphology Characterization: A 
+%   Quantitative Analysis of the Key Methodological Steps, Entropy, 2021
+%   https://doi.org/10.3390/e23060699
 %   
 %   Example 
 %   ---------      
