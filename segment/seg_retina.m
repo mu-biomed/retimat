@@ -1,34 +1,37 @@
-function mask = seg_retina(I, method, visu)
-%SEG_RETIN Summary of this function goes here
+function mask = seg_retina(I, scale_z, n_win, metric, visu)
+%SEG_RETINA Rough segmentation of the region covering the retina
 %
-%   Usage example OUT = template(IN1)
-%   Detail explanation goes here
+%   mask = seg_retina(I, method, visu)
+%   Returns a mask covering the retina. 
 %
 %   Input arguments:
 %  
-%   'ARG1'           Description of the argument. Type and purpose.          
-%  
-%                    Accepted values
+%   'I'              B-Scan image
 %
-%                    Default: 
-%            
+%   'scale_z'        Depth (axial) resolution of the image. Used to limit
+%                    leverage known retinal thickness values
+%
+%   'n_win'          Optional. Number of segmentation windows.
+%                    It must be an integer in range [1, n_ascan]
+%
+%   'metric'         Metric used to segment the retina.
+%                    Default: 'mean'
+%                    Options: ['mean','otsu']
+%
+%   'visu'           If true mask is visualized.
 %  
-%  
+%
 %   Output arguments:
 %  
-%   'ARG1'           Description of the argument. Type and purpose.          
-%  
+%   'mask'           Binary mask of the region containing the retina.
 %
 %   
 %   Notes
 %   -----
-%   Important usage informationAnother name for a gray-level co-occurrence matrix is a gray-level
-%   spatial dependence matrix.
+%   Returned mask is intended for rough location and reducing the
+%   search space of actual retina layer segmentation process.
 %
 %
-%   References
-%   ----------
-%   [1] 
 %
 %   Example 1
 %   ---------      
@@ -42,122 +45,63 @@ function mask = seg_retina(I, method, visu)
 %   David Romero-Bascones, dromero@mondragon.edu
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
 
-if nargin == 2
+if nargin < 5
     visu = false;
+end
+if nargin < 3
+    n_win = 3; 
+end
+if nargin < 4
+    metric = 'mean'; 
 end
 
 [N, M] = size(I);
 
-
-switch method
-    case 'k_means'
-        mask = zeros(N, M);
-        for n=1:M
-            X1 = I(:,n);
-            X2 = (1:N)';
-            X = [X1 X2];
-            X = (X - mean(X))./std(X);
-            mask(:,n) = kmeans(X, 3);
-        end
-    case 'otsu'
-        mask = zeros(N, M);
-        T = graythresh(I);
-        mask(I<=T) = 1;
-    case 'otsu_rect'         
-        % Get scaling
-        scale_z = 3.9;
-        
-        % Define search space
-        n_window = 50;
-        n_start = 40;
-        window = round(linspace(200, 1500, n_window)./scale_z);
-        start = round(linspace(1,350, n_start));
-        ICV = nan(n_window, n_start); % Inter-class variability
-        
-        % Brute force search
-        for w=1:length(window)
-            for s=1:length(start)
-                mask = false(size(I));
-                endpoint = min([size(I,1) start(s)+window(w)]);
-                mask(start(s):endpoint,:) = true;                
-                
-                ICV(w, s) = intraclass_var(I(mask), I(~mask));                
-            end
-        end
-
-        % Get minimum
-        [~, ind] = min(ICV(:));
-        [i, j] = ind2sub(size(ICV),ind);        
-        wmin = window(i);
-        smin = start(j);
-        
-        % Build mask
-        mask = false(N,M);
-        mask(smin:smin+wmin-1,:) = true;
-        
-        % Plotting
-        if visu
-            subplot(121); hold on;
-            imagesc(I);
-            x = [1 1 size(I,2) size(I,2)];
-            y = [smin smin+wmin-1 smin+wmin-1 smin];
-            p = patch(x,y,1);
-            alpha(p, 0.3);
-            p.FaceColor = 'green';
-            set(gca,'YDir','reverse');
-            colormap(gca, 'gray');
-            axis off;
-            
-            subplot(122); hold on;
-            imagesc(start, window*scale_z, ICV);
-            scatter(smin, wmin*scale_z, 150,'p','filled','MarkerEdgeColor','red','MarkerFaceColor','white','LineWidth',1);
-            xlim([start(1) start(end)]);
-            ylim(scale_z*[window(1) window(end)]);
-            xlabel('start point');
-            ylabel('window size');
-            set(gca,'FontSize',14);
-            colormap(gca, 'turbo');
-        end
-        
-    case 'otsu_ascan'
-        scale_z = 3.9;
-        
-        % Define search space
-        n_start = 100;
-        window = round(500/scale_z);
-        start = round(linspace(1, N-window, n_start));
-        ICV = nan(1, n_start); % Inter-class variability
-        
-        % Brute force search
-        mask = false(N, M);
-        for i_ascan=1:M
-            for s=1:n_start
-                                
-                s_in = I(start(s) + (0:window-1), i_ascan);
-                s_out = I([1:start(s)-1 (start(s)+window):N], i_ascan);
-                
-%                 ICV(s) = intraclass_var(s_in, s_out);  
-                ICV(s) = 1/mean(s_in);
-            end
-            
-            [~, ind] = min(ICV);
-            mask(start(ind) + (0:window-1), i_ascan) = true;
-        end
-
-        if visu
-            imshow(I, 'InitialMag', 'fit'); hold on;            
-            green = cat(3, zeros(size(I)), ones(size(I)), zeros(size(I)));
-            h = imshow(green);
-            set(h, 'AlphaData', mask*0.3)             
-        end
-        
-        
-    otherwise
-        error("Unsupported method");
+if n_win < 1 | n_win > M
+    error(['Number of windows must be in range [1,' num2str(M) ']']); 
 end
 
+win_id = discretize(1:M, n_win);
+n_pixel = round(0.4/scale_z);  %  number of pixels in window
+mask = false(N, M);
+
+% [~, start_col] = unique(win_id);
+start_row = 1:N-n_pixel;
+
+if strcmp(metric, 'mean')
+    met_fun = @(x, y) 1/mean(x(:));
+elseif strcmp(metric, 'otsu')
+    met_fun = @(x, y) intraclass_var(x, y);  
+else
+    error("Unknown metric");    
 end
 
+for i_win=1:n_win    
+    win_cols = win_id == i_win;
+    
+    ICV = nan(1, length(start_row));
+    for s=1:length(start_row)            
+        win_rows = start_row(s) + (0:n_pixel-1);
+        s_in = I(win_rows, win_cols);
+        s_out = I([1:start_row(s)-1 win_rows(end)+1:N], win_cols);
+%         ICV(s) = intraclass_var(s_in, s_out);  
+        ICV(s) = met_fun(s_in, s_out);
+%         ICV(s) = 1/mean(s_in(:));
+    end
+
+    [~, ind] = min(ICV);
+    mask(start_row(ind) + (0:n_pixel-1), win_cols) = true;
+end
+
+
+if visu
+    imshow(I, 'InitialMag', 'fit'); hold on;            
+    green = cat(3, zeros(size(I)), ones(size(I)), zeros(size(I)));
+    h = imshow(green);
+    set(h, 'AlphaData', mask*0.3)             
+end
+        
+end
 function ICV = intraclass_var(x, y)
                 
 n_x = numel(x);

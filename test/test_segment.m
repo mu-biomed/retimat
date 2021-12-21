@@ -6,4 +6,4 @@ file = '../data/raster.vol';
 
 I = bscan(:,:,1);
 
-mask = seg_retina(I, 'otsu_ascan', true);
+mask = seg_retina(I, header.scale_z, 100, 'otsu', true);
