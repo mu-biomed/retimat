@@ -180,15 +180,15 @@ off_seg = zeros(1, n_ascan, 'single');
 if read_seg
     ILM = zeros(n_bscan, n_ascan, 'single');
     BM = zeros(n_bscan, n_ascan, 'single');
-    NFL_GCL = zeros(n_bscan, n_ascan, 'single');
+    RNFL_GCL = zeros(n_bscan, n_ascan, 'single');
     GCL_IPL = zeros(n_bscan, n_ascan, 'single');
     IPL_INL = zeros(n_bscan, n_ascan, 'single');
     INL_OPL = zeros(n_bscan, n_ascan, 'single');
     OPL_ONL = zeros(n_bscan, n_ascan, 'single');
     ELM = zeros(n_bscan, n_ascan, 'single');
     MZ_EZ = zeros(n_bscan, n_ascan, 'single');
-    PHROS_IDZ = zeros(n_bscan, n_ascan, 'single');
-    IDZ_RPE = zeros(n_bscan, n_ascan, 'single');
+    OSP_IZ = zeros(n_bscan, n_ascan, 'single');
+    IZ_RPE = zeros(n_bscan, n_ascan, 'single');
 end
 
 for i_bscan = 1:n_bscan
@@ -225,7 +225,7 @@ for i_bscan = 1:n_bscan
         
         ILM(i_bscan,:) = seg(1:n_ascan);
         BM(i_bscan,:) = seg((1:n_ascan) + n_ascan);
-        NFL_GCL(i_bscan,:) = seg((1:n_ascan) + 2*n_ascan);
+        RNFL_GCL(i_bscan,:) = seg((1:n_ascan) + 2*n_ascan);
         
         if n_seg(i_bscan) > 3
             GCL_IPL(i_bscan,:) = seg((1:n_ascan) + 3*n_ascan);
@@ -236,8 +236,8 @@ for i_bscan = 1:n_bscan
             ELM(i_bscan,:) = seg((1:n_ascan) + 8*n_ascan);
             
             MZ_EZ(i_bscan,:) = seg((1:n_ascan) + 14*n_ascan);
-            PHROS_IDZ(i_bscan,:) = seg((1:n_ascan) + 15*n_ascan);
-            IDZ_RPE(i_bscan,:) = seg((1:n_ascan) + 16*n_ascan);
+            OSP_IZ(i_bscan,:) = seg((1:n_ascan) + 15*n_ascan);
+            IZ_RPE(i_bscan,:) = seg((1:n_ascan) + 16*n_ascan);
         end
     end
 end
@@ -324,15 +324,15 @@ end
 if read_seg   
     segment.ILM = ILM;
     segment.BM = BM;
-    segment.NFL_GCL = NFL_GCL;
+    segment.RNFL_GCL = RNFL_GCL;
     segment.GCL_IPL = GCL_IPL;
     segment.IPL_INL = IPL_INL;
     segment.INL_OPL = INL_OPL;
     segment.OPL_ONL = OPL_ONL;
     segment.ELM = ELM;
     segment.MZ_EZ = MZ_EZ;
-    segment.PHROS_IDZ = PHROS_IDZ;
-    segment.IDZ_RPE = IDZ_RPE;
+    segment.OSP_IZ = OSP_IZ;
+    segment.IZ_RPE = IZ_RPE;
     
     % Remove outliers if present
     layers = fields(segment);
