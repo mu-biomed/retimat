@@ -38,4 +38,4 @@ Thickness = compute_thickness(seg, {'TRT', 'GCIP'}, header.scale_z);
 % [TRT_fit, fc_TRT] = fit_pit_model(theta, rho, TRT, 'Scheibe');
 
 X = get_morph_params(rho, TRT, 'all', true);
-X = get_morph_params(rho, TRT, {'cft', 'max_slope'}, true);
+% X = get_morph_params(rho, TRT, {'cft', 'max_slope'}, true);
