@@ -32,7 +32,7 @@ function [Z, unit_in] = convert_mm_um(Z, unit)
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
 
 % Get initial units
-if mean(abs(Z(:))) > 1 % um
+if mean(abs(Z(:))) > 10 % um
     unit_in = 'um';
 else
     unit_in = 'mm';
