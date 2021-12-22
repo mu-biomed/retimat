@@ -1,4 +1,4 @@
-function X = get_morph_params(rho, Z, features, average)
+function X = get_morph_params(rho, Z, parameters, average)
 % GET_MORPH_PARAMS - compute morphological parameters of the foveal pit
 % based on thickness profile values
 %
@@ -16,7 +16,7 @@ function X = get_morph_params(rho, Z, features, average)
 %   'Z'              Matrix with thickness profile values. Each row is a
 %                    different angular direction.
 %            
-%   'features'       String or cell array of strings with the name of the
+%   'parameters'     String or cell array of strings with the name of the
 %                    parameters to computed. By default all available 
 %                    parameters are returned.
 %  
@@ -53,117 +53,162 @@ function X = get_morph_params(rho, Z, features, average)
 %   David Romero-Bascones, dromero@mondragon.edu
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
 
-all_features =  {'cft',...
-                'height_min',...
-                'height_rim',...
-                'height_maxslope',...
-                'pit_area',...
-                'pit_depth',...
-                'radius_rim',...
-                'radius_maxslope',...
-                'slope_max',...
-                'slope_mean'};
-                         
+% Feature names with flags for necessary previous steps
+% Name    [cft, rim_height, rim_radius, slope, max_slope, max_slope_rad]
+
+param_data =    {'cft',                  1, 0, 0, 0, 0, 0;...
+                'max_slope',             0, 1, 1, 1, 1, 0;...
+                'max_slope_radius',      0, 1, 0, 1, 1, 1;...   
+                'max_slope_height',      0, 1, 0, 1, 1, 0;...   
+                'max_slope_disc_area',   0, 1, 0, 1, 1, 1;...   
+                'max_slope_disc_perim',  0, 1, 0, 1, 1, 1;...   
+                'mean_slope',            0, 1, 0, 1, 0, 0;...   
+                'min_height',            0, 0, 0, 0, 0, 0;...
+                'pit_area',              1, 1, 0, 0, 0, 0;...
+                'pit_depth',             1, 1, 0, 0, 0, 0;...                
+                'rim_height',            0, 1, 0, 0, 0, 0;...
+                'rim_radius',            0, 1, 1, 0, 0, 0;...
+                'rim_disc_area',         0, 1, 1, 0, 0, 0;...
+                'rim_disc_perim',        0, 1, 1, 0, 0, 0};             
 if nargin == 1
     error("The function expects at least 2 input arguments");
 end
 if nargin < 3
-    features = all_features;
+    parameters = param_data{:,1};
 end
 if nargin < 4
     average = true;
 end
 
-if ischar(features)
-     if isequal(features, 'all')
-         features = all_features;
+if ischar(parameters)
+     if isequal(parameters, 'all')
+         parameters = param_data(:,1);
+     else
+         parameters = {parameters}; 
      end
-elseif ~iscell(features)
+elseif ~iscell(parameters)
      error("features must be either a string or a cell of strings");
 end
-    
-% Get step
-n_angle = size(Z, 1);
 
-step = rho(1,2) - rho(1,1);
+flags = zeros(1, 6);
+for i=1:length(parameters)
+    idx = find(strcmp(parameters{i}, param_data(:,1)));
+    
+    if isempty(idx)
+        error(['Unknown parameter: ' parameters{i}']);
+    end    
+    flags = flags + cell2mat(param_data(idx,2:end));
+end
 
 % Check both axis in mm
 Z = convert_mm_um(Z, 'mm');
 rho = convert_mm_um(rho, 'mm');
 
-% Common computations
-% if intersect(features, {'height_rim', 'height_max_slope', 'pit_depth',...}
+n_angle = size(Z, 1);
+step = rho(1,2) - rho(1,1);
+theta = linspace(0, 2*pi, n_angle + 1); theta(end) = [];
         
-cft = Z(:, 1);
-[Z_max, ind_max] = max(Z, [], 2);  % find rim height to limit search roi
-Zd = diff(Z, [], 2)./step;  % 1st derivative
+% Common computations to avoid repetitions
+if flags(1) ~= 0
+    cft = Z(:, 1);    
+end
+if flags(2) ~= 0  
+    [rim_height, idx_rim] = max(Z, [], 2);
+end
+if flags(3) ~= 0  
+    rim_radius = get_2d_points(rho, 1:n_angle, idx_rim.');
+end
+if flags(4) ~= 0
+    Zd = diff(Z, [], 2)./step;  % 1st derivative
+end
+if flags(5) ~= 0
+    idx_maxslope = nan(1, n_angle);
+     for n=1:n_angle
+        [~, idx_maxslope(n)] = max(Zd(n, 1:idx_rim(n)-1));  
+     end     
+end
+if flags(6) ~= 0
+    % when computing the derivative we lose one unit (idx_maxslope + 1)
+     max_slope_radius = get_2d_points(rho, 1:n_angle, idx_maxslope + 1);             
+end
 
-for i=1:length(features)
-    switch features{i}
+% Feature computation
+for i=1:length(parameters)
+    switch parameters{i}
         case 'cft'
             % Central foveal thickness. Should be equal for all directions
             X.cft = 1e3*cft;
-            
-        case 'height_rim'
-            % Rim height
-            X.height_rim = 1e3 * Z_max;
-            
-        case 'height_min'
-            % Minimum height
-            X.height_min = min(1e3*Z, [], 2);
-            
-        case 'height_maxslope'
+
+        case 'max_slope_height'
+            % When computing the derivative we lose one unit (idx_maxslope + 1)
+            X.max_slope_height = 1e3*get_2d_points(Z, 1:n_angle, idx_maxslope + 1);                    
+
+        case 'max_slope_radius'
+            X.max_slope_radius = max_slope_radius;
+
+        case 'max_slope'
+            max_Zd = get_2d_points(Zd, 1:n_angle, idx_maxslope);
+            X.max_slope = rad2deg(atan(max_Zd));
+        
+        case 'max_slope_disc_area'     
+            [x, y] = pol2cart(theta, max_slope_radius);
+            X.max_slope_disc_area = polyarea(x, y);
+
+        case 'max_slope_disc_perim'
+            [x, y] = pol2cart(theta, max_slope_radius);
+            X.max_slope_disc_perim = perimeter(x, y);
+
+        case 'mean_slope'        
             for n=1:n_angle
-                [~, ind_maxd] = max(Zd(n, 1:ind_max(n)-1));  % Steepest point
-                ind_maxd = ind_maxd(1);  % In case there are two maxima
-                % when computing the derivative we lose one unit (ind_maxd + 1)
-                X.height_maxslope(n) = 1e3*Z(n, ind_maxd + 1);                
-            end
-            
-        case 'pit_depth'
-            X.pit_depth = 1e3*(Z_max - cft);
-            
-        case 'pit_area'           
-            area_square = step * Z_max .* (ind_max - 2);
-            AUC = cft*step/2 + sum(Z(2:ind_max-1)*step) + Z(ind_max)*step/2;
-            X.pit_area = area_square - AUC;
-    
-        case 'radius_rim'
-            for n=1:n_angle
-                X.radius_rim(n) = rho(n, ind_max(n));
-            end
-            
-        case 'radius_maxslope'
-            for n=1:n_angle
-                [~, ind_maxd] = max(Zd(n, 1:ind_max(n)-1));  % Steepest point
-                ind_maxd = ind_maxd(1);  % In case there are two maxima
-                % when computing the derivative we lose one unit (ind_maxd + 1)
-                X.radius_maxslope(n) = rho(n, ind_maxd + 1);
-            end   
-            
-        case 'slope_max'
-            for n=1:n_angle
-                max_Zd = max(Zd(n, 1:ind_max(n)-1));  % Steepest point
-                max_Zd = max_Zd(1);  % In case there are two maxima
-                X.slope_max(n) = rad2deg(atan(max_Zd));
-            end
-            
-        case 'slope_mean'
-            for n=1:n_angle
-                slope = rad2deg(atan(Zd(n,1:ind_max(n)-1))); % In degrees
-                X.slope_mean(n) = mean(slope);
+                slope = rad2deg(atan(Zd(n,1:idx_rim(n)-1))); % In degrees
+                X.mean_slope(n) = mean(slope);
             end          
-%                 X.slope_mean(n) = 180*atan(mean(slope))/pi;            
-              
+    %                 X.slope_mean(n) = 180*atan(mean(slope))/pi;            
+        case 'min_height'
+            X.min_height = min(1e3*Z, [], 2);
+                
+        case 'pit_depth'
+            X.pit_depth = 1e3*(rim_height - cft);
+
+        case 'pit_area'           
+            area_square = step * rim_height .* (idx_rim - 2);
+            AUC = cft*step/2 + sum(Z(2:idx_rim-1)*step) + Z(idx_rim)*step/2;
+            X.pit_area = area_square - AUC;
+        
+        case 'rim_height'
+            X.rim_height = 1e3 * rim_height;
+
+        case 'rim_radius'            
+            X.rim_radius = rim_radius;
+
+        case 'rim_disc_area'        
+            [x_rim, y_rim] = pol2cart(theta, rim_radius);
+            X.rim_disc_area = polyarea(x_rim, y_rim);
+            
+        case 'rim_disc_perim'                    
+            [x_rim, y_rim] = pol2cart(theta, rim_radius);
+            X.rim_disc_perim = perimeter(x_rim, y_rim);
+
         otherwise
-            error("Unknown feature provided");
+            error(['Unknown parameter: ' parameters{i}]);
     end
 end
 
 if average
-    for i=1:length(features)
-        if length(X.(features{i})) > 1
-            X.(features{i}) = mean(X.(features{i}));
-        end
+    for i=1:length(parameters)
+        X.(parameters{i}) = mean(X.(parameters{i}));
     end
+end
+end
+
+function p = perimeter(x, y)
+% Compute perimeter based on pairwise distances between vertices
+d = sqrt((x - [x(2:end) x(1)]).^2 + (y - [y(2:end) y(1)]).^2);
+p = sum(d);        
+end
+
+function vals = get_2d_points(A, rows, cols)
+% Access a set of 2d points efficiently
+idx = sub2ind(size(A), rows, cols);  
+vals = A(idx);   
 end
