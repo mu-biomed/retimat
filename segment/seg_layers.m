@@ -4,7 +4,7 @@ addpath(genpath('..'));
 
 file = '../data/raster.vol';
 
-[header, seg, bscan,~] = read_vol(file);
+[header, ~, bscan,~] = read_vol(file);
 
 I = bscan(:,:,1);
 [N, M] = size(I);
@@ -29,8 +29,8 @@ mask_retina = imresize(mask_retina, 1);
 I_dl = conv2(I, [1;-1], 'same');
 I_ld = conv2(I, [-1;1], 'same');
 
-I_dl = (I_dl - min(I_dl(:)))/(max(I_dl(:)) - min(I_dl(:)));
-I_ld = (I_ld - min(I_ld(:)))/(max(I_ld(:)) - min(I_ld(:)));
+I_dl = normalize(I_dl, 'range');
+I_ld = normalize(I_ld, 'range');
 
 % 1st layer segmentation
 mask = [ones(N,1) mask_retina ones(N,1)];
