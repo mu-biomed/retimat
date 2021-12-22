@@ -281,25 +281,20 @@ opt = fitoptions('Method','NonlinearLeastSquares',...
 switch fit_type
     case 'radial'
        
-        % Get value at the centre
+        % Set pit value to 0
         pit_val = Z(1,1);
-
+        Z = Z - pit_val;
+        
         % Fit the model in a radial fashion
         for i_angle = 1:n_angle
             
             x = rho(i_angle,:);
             y = Z(i_angle,:);
+            [fitted,~] = fit(x, y, fun, opt);
             
-            % Normalize all points to that centre value setting the pit to 0
-            y = y - pit_val;
+            y_fit = fitted(x)';  %  Reconstruct curve
             
-            [fitted,~] = fit(x',y',fun, opt);
-            
-            % Reconstruct curve
-            y_fit = fitted(x)';
-            
-            % Add pit thickness
-            Z_fit(i_angle,:) = y_fit + pit_val;
+            Z_fit(i_angle,:) = y_fit + pit_val;  %  Add pit thickness
             
             for i=1:length(params)
                 Fit_coeff.(params{i})(i_angle) = fitted.(params{i});
