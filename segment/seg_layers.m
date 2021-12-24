@@ -122,6 +122,9 @@ w_min = 1e-5;
     
 V = false(N, M+2); % visited nodes
 D = Inf*ones(N, M+2);  % distance to each node
+% D_un = Inf*ones(N, M+2);
+D_un = Inf*ones(1,N * (M+2));
+
 D(1,1) = 0;  % start-node distance
 
 current_i = 1;
@@ -136,6 +139,10 @@ while ~stop
     % Fist column: 4 neighbours (down, right-up, right, right-down)
     % Last column: 2 neighbours (up, down)
     % Regular column: 3 neighbours (right-up, right, right-down)
+
+    idx = sub2ind(size(D), current_i, current_j);
+    D_un(idx) = Inf;
+% D_un(current_i, current_j) = Inf;
 
 if current_j == 1
     neigh_i = current_i + [-1 0 1 1];
@@ -179,6 +186,9 @@ for n=1:n_neigh
 
     if d < D(i, j)
         D(i, j) = d;
+        idx = sub2ind(size(D), i, j);
+        D_un(idx) = d;
+%         D_un(i,j) = d;
     end        
 end
 
@@ -195,7 +205,8 @@ end
 % D_unvisit = D;
 % D_unvisit(V) = Inf;    
 % [~, next_node] = min(D_unvisit(:));
-[~, next_node] = min(1e3.*V(:) + D(:));
+% [~, next_node] = min(D_un(:));
+[~, next_node] = min(D_un);
 [current_i, current_j] = ind2sub(size(D), next_node);
 end    
 end
