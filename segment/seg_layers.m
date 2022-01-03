@@ -6,7 +6,7 @@ file = '../data/raster.vol';
 
 [header, ~, bscan,~] = read_vol(file);
 
-I = bscan(:,:,1);
+I = bscan(:,:,3);
 [N, M] = size(I);
 
 % Retina flatten
@@ -122,6 +122,9 @@ w_min = 1e-5;
     
 V = false(N, M+2); % visited nodes
 D = Inf*ones(N, M+2);  % distance to each node
+D_un = 1;
+idx_un = 1;
+
 D(1,1) = 0;  % start-node distance
 
 current_i = 1;
@@ -137,66 +140,81 @@ while ~stop
     % Last column: 2 neighbours (up, down)
     % Regular column: 3 neighbours (right-up, right, right-down)
 
-if current_j == 1
-    neigh_i = current_i + [-1 0 1 1];
-    neigh_j = current_j + [1 1 0 1];            
-elseif current_j == M+2     
-    neigh_i = current_i + [-1 1];
-    neigh_j = current_j + [0 0];
-else 
-    neigh_i = current_i + [-1 0 1];
-    neigh_j = current_j + [1 1 1];                       
-end
+    % Slower alternative:  idx = sub2ind(size(D), current_i, current_j);
+    idx = N * (current_j - 1) + current_i; 
+    
+    D_un = D_un(idx_un ~= idx);
+    idx_un = idx_un(idx_un ~= idx);
 
-in_box = neigh_i>0 & neigh_i<=N & neigh_j>0 & neigh_j<=M+2;    
-n_neigh = sum(in_box);
-if n_neigh==0
-    disp('Finished');
-    break;
-end
-neigh_i = neigh_i(in_box);
-neigh_j = neigh_j(in_box);
-
-% Explore neighbors
-for n=1:n_neigh
-    i = neigh_i(n);
-    j = neigh_j(n);
-
-    % If visited forget about it
-    if V(i,j)
-        continue;
+    if current_j == 1
+        neigh_i = current_i + [-1 0 1 1];
+        neigh_j = current_j + [1 1 0 1];            
+    elseif current_j == M+2     
+        neigh_i = current_i + [-1 1];
+        neigh_j = current_j + [0 0];
+    else 
+        neigh_i = current_i + [-1 0 1];
+        neigh_j = current_j + [1 1 1];                       
     end
 
-    % Compute distance
-    if isequal([j current_j], [1 1]) | isequal([j current_j], [M+2 M+2])
-        dab = w_min;        % First/last columns vertically wmin weight
-    else            
-        ga = G(current_i, current_j);
-        gb = G(i,j);
-        dab = 2 - (ga + gb) + w_min;
-    end        
-    d = D(current_i, current_j) + dab;
+    in_box = neigh_i>0 & neigh_i<=N & neigh_j>0 & neigh_j<=M+2;    
+    n_neigh = sum(in_box);
+    if n_neigh==0
+        disp('Finished');
+        break;
+    end
+    neigh_i = neigh_i(in_box);
+    neigh_j = neigh_j(in_box);
 
-    if d < D(i, j)
-        D(i, j) = d;
-    end        
-end
+    % Explore neighbors
+    for n=1:n_neigh
+        i = neigh_i(n);
+        j = neigh_j(n);
 
-% Mark node as visited
-V(current_i, current_j) = true;
+        % If visited forget about it
+        if V(i,j)
+            continue;
+        end
 
-% Stop if we reached the end node
-if current_i==end_i & current_j==end_j
-    disp('End node reached');
-    break;
-end
+        % Compute distance
+        if isequal([j current_j], [1 1]) | isequal([j current_j], [M+2 M+2])
+            dab = w_min;        % First/last columns vertically wmin weight
+        else            
+            ga = G(current_i, current_j);
+            gb = G(i,j);
+            dab = 2 - (ga + gb) + w_min;
+        end        
+        d = D(current_i, current_j) + dab;
 
-% Choose next node
-% D_unvisit = D;
-% D_unvisit(V) = Inf;    
-% [~, next_node] = min(D_unvisit(:));
-[~, next_node] = min(1e3.*V(:) + D(:));
-[current_i, current_j] = ind2sub(size(D), next_node);
+        if d < D(i, j)
+            D(i, j) = d;
+
+            idx = N * (j - 1) + i; 
+%             idx = sub2ind(size(D), i, j);
+            if any(idx_un == idx)
+                D_ux(idx_un==idx) = d;
+            else
+                D_un(end+1) = d;
+                idx_un(end+1) = idx;
+            end
+        end        
+    end
+
+    % Mark node as visited
+    V(current_i, current_j) = true;
+
+    % Stop if we reached the end node
+    if current_i==end_i & current_j==end_j
+        disp('End node reached');
+        break;
+    end
+
+    % Choose next node
+    [~, next_node] = min(D_un);
+    next_node = idx_un(next_node);
+    % Slower: [current_i, current_j] = ind2sub(size(D), next_node);
+    current_j = ceil(next_node/N);
+    current_i = next_node - (current_j-1)*N;    
 end    
 end
 
