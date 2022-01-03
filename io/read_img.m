@@ -233,10 +233,17 @@ if ~any(strcmp(C{5}{1}, {'OD','OS'}))
 end
 header.eye = C{5}{1};
 
-% 6./7./8. Not useful
-% header.sn = C{6}; % 'snXXXX'
-% header.cube = C{7}; % 'cube'
-% header.z = C{8}; % 'z' or 'raw'
+% 6. Scan number
+header.scan_number = C{6}{1}; % 'snXXXX'
+
+% 7./8. Extra info about file (useful only to discern cube_raw, cube_z, hidef)
+n_field = sum(~cellfun(@isempty, C));
+if n_field == 8
+    header.last = [C{7}{1} '_' C{8}{1}]; % 'cube'
+elseif n_field == 7
+    header.last = C{7}{1}; % 'z' or 'raw'    
+end
+
 end
 
 function  [dims_ok, dims] = guess_dimensions(n_voxel)
