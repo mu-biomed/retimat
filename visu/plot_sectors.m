@@ -62,17 +62,17 @@ switch Sectors.type
         
     case 'wedge'
         radius = Sectors.radius;
-        theta = Sectors.theta + Sectors.theta_0;
         n_angle = Sectors.n_angle;
+        theta = linspace(0, 2*pi, n_angle+1) + Sectors.theta_0;
         
         % center circle
-        plot_circle(radius(1), Z(1));
+        plot_circle(radius(1), Z(1), N);
         
-        % wedges looping through rings and angles
+        % plot wedges looping through rings and angles
         i = 2;
         for n=1:length(radius)-1
             for t=1:n_angle
-                plot_wedge(theta(t), theta(t+1), radius(n), radius(n+1), Z(i));
+                plot_wedge(theta(t), theta(t+1), radius(n), radius(n+1), Z(i), N);
                 i = i+1;
             end
         end
@@ -110,7 +110,7 @@ theta = linspace(0, 2*pi, N);
 rho = radius * ones(1,N);
 [x,y] = pol2cart(theta, rho);
 patch(x, y, z, 'linestyle', 'none');
-line(x, y, 'k');
+line(x, y, 'Color','black');
 end
 
 function plot_pie(th0, th1, radius, N)
