@@ -108,12 +108,13 @@ if ischar(layers)
     end
 end
 
+Thickness = struct;
 
 for i=1:length(layers)
     ind = find(strcmp(layer_top_bottom(:,1), layers{i}));
     
     if length(ind)~=1 
-        error(['Unknown layer. Accepted values: ' strjoin(layer_top_bottom(:,1))]);
+        error(['Unknown layer:' layers{i} '. Accepted values: ' strjoin(layer_top_bottom(:,1))]);
     end
     
     % Get top and bottom layer names    
