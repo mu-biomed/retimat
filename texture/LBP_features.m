@@ -83,7 +83,7 @@ for i=1:length(features)
         case 'iqr'
             X.iqr = iqr(LBP_hist);
         case 'range'
-            X.range = max(LBP_hist) - min(LBP_hist);
+            X.range = range(LBP_hist);
         case 'skewness'
             X.skewness = skewness(LBP_hist);
         case 'kurtosis'
@@ -96,6 +96,6 @@ for i=1:length(features)
         case 'none'
             X = nan;
         otherwise
-            error("Unknown feature input. ");
+            error("Unknown feature.");
     end
 end

@@ -294,7 +294,7 @@ else
         end
     else
         error(["features is expected to be char or cell array of chars but is ",...
-            class(features)];
+            class(features)]);
     end
 end
 end
