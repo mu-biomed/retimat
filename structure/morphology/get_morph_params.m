@@ -117,7 +117,7 @@ theta = linspace(0, 2*pi, n_angle + 1); theta(end) = [];
         
 % Common computations to avoid repetitions
 if flags(1) ~= 0
-    cft = Z(:, 1);    
+    cft = Z(:, 1)';    
 end
 if flags(2) ~= 0  
     [rim_height, idx_rim] = max(Z.');
@@ -172,7 +172,9 @@ for i=1:length(parameters)
             end          
     %                 X.slope_mean(n) = 180*atan(mean(slope))/pi;            
         case 'min_height'
-            X.min_height = min(1e3*Z, [], 2);
+            % Might not correspond to the pit if there is a smaller minima at
+            % large eccentricities
+            X.min_height = min(1e3*Z, [], 2)';
                 
         case 'pit_depth'  % See [1]
             X.pit_depth = 1e3*(rim_height - cft);

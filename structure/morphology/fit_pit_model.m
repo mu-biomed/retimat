@@ -290,7 +290,7 @@ switch fit_type
             
             x = rho(i_angle,:);
             y = Z(i_angle,:);
-            [fitted,~] = fit(x, y, fun, opt);
+            [fitted,~] = fit(x', y', fun, opt);
             
             y_fit = fitted(x)';  %  Reconstruct curve
             
