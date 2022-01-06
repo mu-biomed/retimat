@@ -119,9 +119,13 @@ switch pit_model
             a2.*exp(-((x-b2)./c2).^2) + ...
             a3.*exp(-((x-b3)./c3).^2));
                         
-        x_low = [0   -Inf  -Inf  -0.5 -0.5   -1   -Inf -Inf -Inf];
+        % Old limits
+        % x_low = [0   -Inf  -Inf  -0.5 -0.5   -1   -Inf -Inf -Inf];
+        % x_up =  [1    Inf   Inf   0.5  0.5    3    Inf  Inf  Inf];
+        x_low = [0   -2     -2   -0.5 -0.5   -3   -10  -10  -5];        
         x0 =    [0.3 -0.05 -0.02  0.3  0.04 -0.47  4.8  0.4  0.6];        
-        x_up =  [1    Inf   Inf   0.5  0.5    3    Inf  Inf  Inf];
+        x_up =  [1    2      2    0.5  0.5    3    10   10   5];
+        
         
    case 'Ding'   
         params = {'A0', 'A11', 'A12', 'A21', 'A22', 'K', 's1', 's2'};
