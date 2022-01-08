@@ -55,7 +55,15 @@ N = 50;
 
 switch Sectors.type    
     case 'regular'
+        % Compute coordinates of each square center
+        X_center = (Sectors.X_edge(1:end-1) + Sectors.X_edge(2:end))/2;
+        Y_center = (Sectors.Y_edge(1:end-1) + Sectors.Y_edge(2:end))/2;        
         
+        I = reshape(Z, [Sectors.n_y Sectors.n_x]);
+        imagesc(X_center, Y_center, I);
+        axis equal;
+        xlim([X_center(1) X_center(end)]);
+        ylim([Y_center(1) Y_center(end)]);        
     case 'ring'
     
     case 'pie'
