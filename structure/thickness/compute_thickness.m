@@ -91,7 +91,7 @@ layer_top_bottom = {'RNFL',     'ILM',        'RNFL_GCL';
                     'GCIP',     'RNFL_GCL',   'IPL_INL';
                     'IRL',      'ILM',        'IPL_INL';
                     'ONPL',     'INL_OPL',    'ELM';
-                    'EZOSP',   'MZ_EZ',      'OSP_IZ';
+                    'EZOSP',    'MZ_EZ',      'OSP_IZ';
                     'ELM_BM',   'ELM',        'BM'};
 
 if nargin == 1
