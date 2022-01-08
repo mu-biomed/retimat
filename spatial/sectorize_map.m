@@ -75,7 +75,7 @@ if ischar(varargin{1})
             Sectors.type = sector_type;
             Sectors.n_x = varargin{2};
             Sectors.n_y = varargin{3};
-            Sectors.n_sect = nx*ny;
+            Sectors.n_sect = Sectors.n_x*Sectors.n_y;
             Sectors.X_edge = linspace(min(X(:)), max(X(:)), Sectors.n_x + 1);
             Sectors.Y_edge = linspace(min(Y(:)), max(Y(:)), Sectors.n_y + 1);        
         case 'disk'
@@ -103,6 +103,8 @@ if ischar(varargin{1})
             Sectors.theta_0 = -pi/4;
             Sectors.n_angle = 4;
             Sectors.n_sect = 9;
+        otherwise
+            error("Incorrect sector type. Options: 'regular','disk','ring','pie','wege','etdrs'");
     end
     
 elseif ~isstruct(varargin{1})
@@ -153,7 +155,7 @@ switch Sectors.type
                 i_sect = i_sect + 1;
             end
         end                  
-    case 'disc'
+    case 'disk'
         [~, rho] = cart2pol(X, Y);        
         mask = rho <= Sectors.radius;        
         Zs = fun(Z(mask));        
