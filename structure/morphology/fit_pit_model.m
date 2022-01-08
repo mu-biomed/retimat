@@ -141,14 +141,17 @@ switch pit_model
         x_up = inf(1, length(params));
         
     case 'Dubis'
-        params = {'a1', 'a2', 'b1', 'b2', 'c1', 'c2'};
+        params = {'a1', 'a2', 'b1', 'b2', 'c1', 'c2', 'z'};
         fit_type = 'bscan';
         fit_unit = 'mm';                        
         fun = fittype(@(a1,a2,b1,b2,c1,c2,z,x) ...
             a1.*exp((x-b1).^2./(-2*c1)) - a2.*exp((x-b2).^2./(-2*c2)) + z);       
-        x_low = [ 0   0   -0.3 -0.3 0   0    0];
-        x0 =    [0.2 0.14   0    0  5  0.09 0.8];
-        x_up =  [ 1  0.3   0.3  0.1 30  10   2];
+%         x_low = [ 0   0   -0.3 -0.3 0   0    0];
+%         x0 =    [0.2 0.14   0    0  5  0.09 0.8];
+%         x_up =  [ 1  0.3   0.3  0.1 30  10   2];
+        x_low = [ 0    0   -0.3 -0.2  0   0  -0.5];
+        x0 =    [0.2  0.15   0    0   5  0.09   0.1];
+        x_up =  [ 0.7  0.5  0.3  0.2  25  10    0.5];
               
     case 'Liu'
         params = {'a', 'f', 'g', 'lambda', 'mu', 'sigma'};
