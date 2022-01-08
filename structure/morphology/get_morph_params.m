@@ -65,8 +65,8 @@ param_data = {'cft',                   1, 0, 0, 0, 0, 0;...
               'max_slope',             0, 1, 1, 1, 1, 0;...
               'max_slope_radius',      0, 1, 0, 1, 1, 1;...   
               'max_slope_height',      0, 1, 0, 1, 1, 0;...   
-              'max_slope_disc_area',   0, 1, 0, 1, 1, 1;...   
-              'max_slope_disc_perim',  0, 1, 0, 1, 1, 1;...   
+              'max_slope_disk_area',   0, 1, 0, 1, 1, 1;...   
+              'max_slope_disk_perim',  0, 1, 0, 1, 1, 1;...   
               'mean_slope',            0, 1, 0, 1, 0, 0;...   
               'min_height',            0, 0, 0, 0, 0, 0;...
               'pit_area',              1, 1, 0, 0, 0, 0;...
@@ -74,14 +74,14 @@ param_data = {'cft',                   1, 0, 0, 0, 0, 0;...
               'pit_volume',            1, 1, 1, 0, 0, 0;...
               'rim_height',            0, 1, 0, 0, 0, 0;...
               'rim_radius',            0, 1, 1, 0, 0, 0;...
-              'rim_disc_area',         0, 1, 1, 0, 0, 0;...
-              'rim_disc_perim',        0, 1, 1, 0, 0, 0};             
+              'rim_disk_area',         0, 1, 1, 0, 0, 0;...
+              'rim_disk_perim',        0, 1, 1, 0, 0, 0};             
 
 if nargin == 1
     error("The function expects at least 2 input arguments");
 end
 if nargin < 3
-    parameters = param_data{:,1};
+    parameters = param_data(:,1);
 end
 if nargin < 4
     average = true;
@@ -157,13 +157,13 @@ for i=1:length(parameters)
             max_Zd = get_2d_points(Zd, 1:n_angle, idx_maxslope);
             X.max_slope = rad2deg(atan(max_Zd));
         
-        case 'max_slope_disc_area'  % See [2]    
+        case 'max_slope_disk_area'  % See [2]    
             [x, y] = pol2cart(theta, max_slope_radius);
-            X.max_slope_disc_area = polyarea(x, y);
+            X.max_slope_disk_area = polyarea(x, y);
 
-        case 'max_slope_disc_perim'  % See [2]
+        case 'max_slope_disk_perim'  % See [2]
             [x, y] = pol2cart(theta, max_slope_radius);
-            X.max_slope_disc_perim = perimeter(x, y);
+            X.max_slope_disk_perim = perimeter(x, y);
 
         case 'mean_slope'        
             for n=1:n_angle
@@ -210,7 +210,7 @@ for i=1:length(parameters)
             end
             
             % Volume under the foveal surface (Vs)
-            % The formula comes from the discreted volume integral defined
+            % The formula comes from the diskreted volume integral defined
             % in equation 30-31 in [2]. We substitute c by Z and r by rho.
             for n=1:n_angle
                 Vs(n) = sum(Z(n, 1:idx_rim(n)) .* (2*pi/n_angle).*rho(1:idx_rim(n)));
@@ -225,13 +225,13 @@ for i=1:length(parameters)
         case 'rim_radius'  % See [1]   
             X.rim_radius = rim_radius;
 
-        case 'rim_disc_area'  % See [2]       
+        case 'rim_disk_area'  % See [2]       
             [x_rim, y_rim] = pol2cart(theta, rim_radius);
-            X.rim_disc_area = polyarea(x_rim, y_rim);
+            X.rim_disk_area = polyarea(x_rim, y_rim);
             
-        case 'rim_disc_perim'  % See [2]                   
+        case 'rim_disk_perim'  % See [2]                   
             [x_rim, y_rim] = pol2cart(theta, rim_radius);
-            X.rim_disc_perim = perimeter(x_rim, y_rim);
+            X.rim_disk_perim = perimeter(x_rim, y_rim);
 
         otherwise
             error(['Unknown parameter: ' parameters{i}]);
