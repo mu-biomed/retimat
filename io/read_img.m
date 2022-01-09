@@ -212,6 +212,15 @@ elseif contains(scan_data, 'HD 5 Line Raster')
     header.scan_type = '5line_raster';    
     header.n_ascan = 1024;
     header.n_bscan = 5;
+    
+elseif contains(scan_data, 'Anterior Segment Cube')
+    header.scan_type = 'anterior_segment_cube';
+   
+    ind = strfind(C2{4}{1}, 'x');
+    if length(ind)==1 & ind >1 & ind <length(C2{4}{1})
+        header.n_ascan = str2double(C2{4}{1}(1:ind-1));
+        header.n_bscan = str2double(C2{4}{1}(ind+1:end));
+    end
 else
     warning("Could not retrieve scan type from file name");
 end
@@ -247,6 +256,8 @@ end
 end
 
 function  [dims_ok, dims] = guess_dimensions(n_voxel)
+% Warning: anterior segment cube has the same number of voxels as macular_cube
+% and is therefore indistinguishable based solely on voxel count.
 dims_ok = true;
 switch n_voxel
     case 67108864
@@ -258,6 +269,11 @@ switch n_voxel
         dims.scan_type = 'optic_disc_cube';
         dims.n_ascan= 200;
         dims.n_bscan = 200;
+        dims.n_axial = 1024;
+    case 20971520
+        dims.scan_type = '5line_raster_wide';
+        dims.n_ascan = 4096;
+        dims.n_bscan = 5;
         dims.n_axial = 1024;
     case 5242880
         dims.scan_type = '5line_raster';
