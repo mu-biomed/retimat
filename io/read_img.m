@@ -212,7 +212,12 @@ elseif contains(scan_data, 'HD 5 Line Raster')
     header.scan_type = '5line_raster';    
     header.n_ascan = 1024;
     header.n_bscan = 5;
-    
+
+elseif contains(scan_data, 'HD 21 Line')
+    header.scan_type = '21line_raster_wide';    
+    header.n_ascan = 1024;
+    header.n_bscan = 21;    
+
 elseif contains(scan_data, 'Anterior Segment Cube')
     header.scan_type = 'anterior_segment_cube';
    
@@ -270,6 +275,11 @@ switch n_voxel
         dims.n_ascan= 200;
         dims.n_bscan = 200;
         dims.n_axial = 1024;
+    case 22020096
+        dims.scan_type = '21line_raster_wide';
+        dims.n_ascan = 1024;
+        dims.n_bscan = 21;
+        dims.n_axial = 1024;        
     case 20971520
         dims.scan_type = '5line_raster_wide';
         dims.n_ascan = 4096;
