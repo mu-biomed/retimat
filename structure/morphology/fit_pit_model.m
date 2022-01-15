@@ -100,8 +100,9 @@ tol_x = p.Results.tol_x;
 tol_fun = p.Results.tol_fun;
 
 % Check the presence of nan values
-if sum(isnan(Z(:))) > 0
-    warning('NaN values in layer. Fitting might result in errors.');
+n_nan = sum(isnan(Z(:)));
+if n_nan > 0
+    warning([num2str(n_nan) ' NaN values encountered. Fitting might fail.']);
 end
 
 [n_angle, n_point] = size(Z);
@@ -297,7 +298,10 @@ switch fit_type
             
             x = rho(i_angle,:);
             y = Z(i_angle,:);
-            [fitted,~] = fit(x', y', fun, opt);
+                        
+            % Fit the model        
+            include = ~isnan(y);
+            fitted = fit(x(include)',y(include)',fun,opt);
             
             y_fit = fitted(x)';  %  Reconstruct curve
             
@@ -313,8 +317,9 @@ switch fit_type
             x = [-fliplr(rho(n+n_bscan,:)) rho(n, 2:end)];
             y = [fliplr(Z(n+n_bscan,:)) Z(n, 2:end)]; % Dont get center two times
             
-            % Fit the model
-            fitted = fit(x',y',fun,opt);
+            % Fit the model           
+            include = ~isnan(y);
+            fitted = fit(x(include)',y(include)',fun,opt);
             
             % Reconstruct fitted curve
             y_fit = fitted(x)';
