@@ -113,7 +113,7 @@ reference_id = char(fread(fid, 16, '*uchar')');
 pid = fread(fid, 1, '*int32');
 patient_id = char(fread(fid, 21, '*uchar')');
 padding = fread(fid, 3, '*int8');
-dob = fread(fid, 1, '*double');
+birth_date = fread(fid, 1, '*double');
 vid = fread(fid, 1, '*int32');
 visit_id = char(fread(fid, 24, '*uchar')');
 visit_date = fread(fid, 1, '*double');
@@ -144,7 +144,7 @@ if verbose
     disp(['       ReferenceID: ' char(reference_id)]);
     disp(['               PID: ' num2str(pid)]);
     disp(['         PatientID: ' char(patient_id)]);
-    disp(['               DOB: ' datestr(dob+693960)]);
+    disp(['        Birth Date: ' datestr(birth_date+693960)]);
     disp(['               VID: ' num2str(vid)]);
     disp(['           VisitID: ' char(visit_id)]);
     disp(['         VisitDate: ' datestr(double(visit_date+693960))]);
@@ -259,8 +259,8 @@ header.scale_x_slo = scale_x_slo;
 header.scale_y_slo = scale_y_slo;
 header.fov_slo = fov_slo;
 
-header.patient_id = patient_id;
-header.eye = eye(1:2);
+header.patient_id = deblank(patient_id); % remove trailing whitespaces
+header.eye = deblank(eye);
 header.scan_focus = scan_focus;
 
 switch scan_pattern
@@ -277,17 +277,17 @@ end
 % Return the entire header only if required
 if full_header
     header.version = version;
-    header.exam_time = exam_time;
+    header.exam_time = datestr(double(exam_time(1)/(1e7*60*60*24)+584755+(2/24)));
     header.scan_pattern = scan_pattern;
     header.bscan_hdr_size = bscan_hdr_size;
-    header.id = id;
-    header.reference_id = reference_id;
+    header.id = deblank(id);
+    header.reference_id = deblank(reference_id);
     header.pid = pid;
     header.padding = padding;
-    header.dob = dob;
+    header.birth_date = datestr(birth_date+693960);
     header.vid = vid;
-    header.visit_id = visit_id;
-    header.visit_date = visit_date;
+    header.visit_id = deblank(visit_id);
+    header.visit_date = datestr(double(visit_date+693960));
     header.grid_type = grid_type;
     header.grid_offset = grid_offset;
     header.spare = spare;
