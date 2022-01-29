@@ -60,7 +60,7 @@ if nargin <= 2
                 'entropy'};
 end
 
-LBP_hist = extractLBPFeatures(I, 'NumNeighbors', n_neighbor);
+LBP_hist = double(extractLBPFeatures(I, 'NumNeighbors', n_neighbor));
 % extra parameters can be entered (radius, rotation-invariance)
 
 if ischar(features)
