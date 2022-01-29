@@ -57,7 +57,6 @@ if nargin <= 2
                 'range',...
                 'skewness',...
                 'kurtosis',...
-                'energy',...
                 'entropy'};
 end
 
@@ -88,8 +87,6 @@ for i=1:length(features)
             X.skewness = skewness(LBP_hist);
         case 'kurtosis'
             X.kurtosis = kurtosis(LBP_hist);
-        case 'energy'
-            X.energy = sum(LBP_hist.^2);
         case 'entropy'
             p = LBP_hist./sum(LBP_hist);
             X.entropy = -sum(log2(p(p~=0)).*p(p~=0));
