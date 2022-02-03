@@ -83,7 +83,7 @@ feature_list = {'autocorrelation',...
                 'max_prob',...
                 'sum_of_squares',...
                 'sum_average',...
-                'sum_variance',...
+%                 'sum_variance',...
                 'sum_entropy'};
     
 
@@ -238,9 +238,10 @@ for i_feat=1:n_feat
             % See [1]
             X.sum_average = sum(P_sum .* k); 
         
-        case 'sum_variance'
+% Deprecated as it is the same as sum of squares
+%         case 'sum_variance'
             % See [1]
-            X.sum_variance = sum(P_sum .* (k - X.sum_average).^2);
+%             X.sum_variance = sum(P_sum .* (k - X.sum_average).^2);
         
         case 'sum_entropy'
             % See [1]
