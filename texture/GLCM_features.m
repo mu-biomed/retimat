@@ -83,7 +83,6 @@ feature_list = {'autocorrelation',...
                 'max_prob',...
                 'sum_of_squares',...
                 'sum_average',...
-%                 'sum_variance',...
                 'sum_entropy'};
     
 
@@ -105,7 +104,7 @@ sdi = sqrt(sum(Pij(:) .* (i(:) - mui).^2));
 sdj = sqrt(sum(Pij(:) .* (j(:) - muj).^2));
 
 % Compute the distribution of i+j (sum of indexes) if necessary
-if any(ismember(features, {'sum_average', 'sum_variance', 'sum_entropy'}))
+if any(ismember(features, {'sum_average', 'sum_entropy'}))
     P_sum = zeros(1, 2*N-1);
     k = 2:2*N;
     for ik=1:length(k)
