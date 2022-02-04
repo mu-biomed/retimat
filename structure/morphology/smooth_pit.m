@@ -8,9 +8,9 @@ function Z_smooth = smooth_pit(rho, Z, span)
 %  
 %   'rho'            Matrix with radial coordinates of thickness values.          
 %  
-%   'Z'              Matrix with foveal pit values           
+%   'Z'              Matrix with foveal pit values.           
 %    
-%   'span'           SConfiguration parameter of the smoothing method.
+%   'span'           Percentage of samples included in each window.
 %
 %
 %   Output arguments:
@@ -31,13 +31,16 @@ function Z_smooth = smooth_pit(rho, Z, span)
 %   https://doi.org/10.3390/e23060699
 %
 %
-%   Example 1
+%   Example
 %   ---------      
 %   % Example description
 %
-%     I = [1 1 5 6 8 8;2 3 5 7 0 2; 0 2 3 5 6 7];
-%     [GLCMS,SI] = graycomatrix(I,'NumLevels',9,'G',[])
-%     
+%   [header, seg]  = read_vol('my_file.vol','coordinates');
+%   Thickness = compute_thickness(seg, 'TRT');
+%   [X, Y, TRT] = resample_map(header.X_oct, header.Y_oct, Thickness.TRT, ...
+%   'star', 'n_point', 100, 'max_d', 2.4, 'n_angle', n_angle);     
+%   [theta, rho] = cart2pol(X, Y);
+%   TRT_smooth = smooth_pit(rho, TRT, 20);     
 %
 %   David Romero-Bascones, dromero@mondragon.edu
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
@@ -60,12 +63,12 @@ for n=1:n_bscan
 
     % Reconstruct the B-Scan
     x = [-fliplr(rho(n+n_bscan,:)) rho(n,2:end)];
-    z = [fliplr(Z(n+n_bscan,:)) Z(n,2:end)]; % Dont get center two times
+    z = [fliplr(Z(n+n_bscan,:)) Z(n,2:end)];  %  Dont get the center two times
 
     % Smooth the signal
     z_smooth = smooth(x, z, span, 'loess')';
 
     % From fitted B-Scan to radial again
-    Z_smooth(n,:) = z_smooth((end-n_point+1):end);% Right part of the B-Scan
+    Z_smooth(n,:) = z_smooth((end-n_point+1):end);  %  Right part of the B-Scan
     Z_smooth(n+n_bscan,:) = z_smooth(n_point:-1:1);
 end
