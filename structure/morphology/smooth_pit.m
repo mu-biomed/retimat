@@ -1,4 +1,4 @@
-function Z_smooth = smooth_pit(rho, Z, span)
+function [Z_smooth, rmse] = smooth_pit(rho, Z, span)
 %SMOOTH_PIT Smooth the foveal pit based on LOESS
 %
 %   Z_smooth = smooth_pit(rho, Z, span)
@@ -72,3 +72,5 @@ for n=1:n_bscan
     Z_smooth(n,:) = z_smooth((end-n_point+1):end);  %  Right part of the B-Scan
     Z_smooth(n+n_bscan,:) = z_smooth(n_point:-1:1);
 end
+
+rmse = sqrt(mean((Z - Z_smooth).^2, 2));

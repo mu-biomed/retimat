@@ -1,4 +1,4 @@
-function [Z_fit, Fit_coeff] = fit_pit_model(theta, rho, Z, pit_model, varargin)
+function [Z_fit, Fit_coeff, rmse] = fit_pit_model(theta, rho, Z, pit_model, varargin)
 %   [Z_fit, Fit_coeff] = fit_pit_model(theta, rho, Z, pit_model)
 %   Detail explanation goes here
 %
@@ -291,13 +291,12 @@ switch fit_type
        
         % Set pit value to 0
         pit_val = Z(1,1);
-        Z = Z - pit_val;
         
         % Fit the model in a radial fashion
         for i_angle = 1:n_angle
             
             x = rho(i_angle,:);
-            y = Z(i_angle,:);
+            y = Z(i_angle,:) - pit_val;
                         
             % Fit the model        
             include = ~isnan(y);
@@ -369,6 +368,9 @@ switch fit_type
 end
 
 Z_fit = convert_mm_um(Z_fit, unit_in);
+Z = convert_mm_um(Z, unit_in);
+
+rmse = sqrt(mean((Z - Z_fit).^2, 2));
 
 end
 
