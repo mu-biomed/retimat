@@ -45,7 +45,7 @@ function Seg = seg_layers(I, scale_z, visu)
 [N, M] = size(I);
 
 % Flatten retina
-[I_flat, shift] = flatten_retina(I);
+[I_flat, shift] = flatten_retina(I, 'mask', scale_z);
 
 % Get retina mask
 mask_retina = seg_retina(I_flat, scale_z, 50, 'mean', false);
@@ -433,22 +433,34 @@ end
 
 end
 
-function [I_flat, shift] = flatten_retina(I)
+function [I_flat, shift] = flatten_retina(I, method, scale_z)
 % Pilot rpe based flattening
-
 M = size(I, 2);
 
-If = imgaussfilt(I, 1.5);
-
 rpe = nan(1,M);
-mid = nan(1,M);
-for i=1:M
-    pdf = If(:,i)/sum(If(:,i));
-    cdf = cumsum(pdf);
-    [~, mid(i)] = min(abs(cdf - 0.4));
-    
-    mid_point = round(mid(i));
-    [~, rpe(i)] = max([zeros(mid_point-1,1); If(mid_point:end,i)]);
+switch method
+    case 'middle'
+        If = imgaussfilt(I, 1.5);
+
+        mid = nan(1,M);
+        for i=1:M
+            pdf = If(:,i)/sum(If(:,i));
+            cdf = cumsum(pdf);
+            [~, mid(i)] = min(abs(cdf - 0.4));
+            
+            mid_point = round(mid(i));
+            [~, rpe(i)] = max([zeros(mid_point-1,1); If(mid_point:end,i)]);
+        end
+    case 'mask'
+        mask_retina = seg_retina(I, scale_z, 50, 'mean', false);
+        n_pixel_rnfl = 1e-3*80/scale_z;
+        for i=1:M            
+            first_mask = find(mask_retina(:,i), 1);
+            mid_point = first_mask + n_pixel_rnfl;
+            [~, rpe(i)] = max([zeros(mid_point-1,1); I(mid_point:end,i)]);
+        end        
+    otherwise
+        error("Not supported retina flattening method");        
 end
 
 % Second order polynomial
