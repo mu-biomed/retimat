@@ -1,19 +1,54 @@
-function seg_layers
-close all;clc;clearvars;
-addpath(genpath('..'));
+function Seg = seg_layers(I, scale_z, visu)
+%SEG_LAYERS Segment retinal layers from a macular OCT B-scan
+%
+%   Seg = seg_layers(I, scale_z, visu)
+%   Segmentation of retinal layer boundaries based on graphs [1].
+%
+%   Input arguments:
+%  
+%   'I'              B-Scan image.
+%            
+%   'scale_z'        Axial resolution in micrometers.
+%            
+%   'visu'           If true segmentation results are displayed.
+%            
+%  
+%  
+%   Output arguments:
+%  
+%   'Seg'            Struct with the segmented values.          
+%  
+%
+%   
+%   Notes
+%   -----
+%   The function has been tested with Spectralis data only.
+%
+%
+%   References
+%   ----------
+%   [1] Chiu et al., Automatic segmentation of seven retinal layers in SDOCT
+%   images congruent with expert manual segmentation, Optics Express, 2010.
+%
+%
+%   Example
+%   ---------      
+%   % Example description
+%
+%     [header,~,bscan] = read_vol(my_vol.vol);
+%     seg = seg_layers(bscan(:,:,13), header.scale_z);
+%
+%  
+%   David Romero-Bascones, dromero@mondragon.edu
+%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
-file = '../data/raster.vol';
-
-[header, ~, bscan,~] = read_vol(file);
-
-I = bscan(:,:,3);
 [N, M] = size(I);
 
-% Retina flatten
+% Flatten retina
 [I_flat, shift] = flatten_retina(I);
 
 % Get retina mask
-mask_retina = seg_retina(I_flat, header.scale_z, 50, 'mean', false);
+mask_retina = seg_retina(I_flat, scale_z, 50, 'mean', false);
 for i=1:M
     ind = find(mask_retina(:,i)==1);
     start = ind - 10;
@@ -21,96 +56,221 @@ for i=1:M
     mask_retina(start:ind, i) = 1;
 end
 
-I = imresize(I_flat, 1);
-mask_retina = imresize(mask_retina, 1);
-[N,M] = size(I);
+I = I_flat;
 
-% Gradients
-I_dl = conv2(I, [1;-1], 'same');
-I_ld = conv2(I, [-1;1], 'same');
+% Resize masks
+% I = imresize(I_flat, 1);
+% mask_retina = imresize(mask_retina, 1);
+% [N, M] = size(I);
+
+% Compute horizontal intensity gradients
+n_filt = 10;
+I_dl = conv2(I, [ones(1,n_filt);-ones(1,n_filt)], 'same');
+I_ld = conv2(I, [-ones(1,n_filt);ones(1,n_filt)], 'same');
 
 I_dl = normalize(I_dl, 'range');
 I_ld = normalize(I_ld, 'range');
 
-% 1st layer segmentation
-mask = [ones(N,1) mask_retina ones(N,1)];
+% ILM segmentation
+[ilm, D, mask, extra] = segment_ilm(I_dl, mask_retina);
 
+if visu    
+    % Visualization
+    clf;
+    subplot(431); hold on;
+    imshow(I);
+    plot(ilm, 'r', 'Linewidth', 1);
+    colormap(gca, 'gray');
+    set(gca,'YDir','reverse');
+    
+    subplot(432);hold on;
+    imagesc(I_dl);
+    scatter(1,1,'r')
+    scatter(M+2,N,1,'r')
+    plot(extra.path_j, extra.path_i,'r');
+    colormap(gca, gray);
+    set(gca,'YDir','reverse');
+    
+    subplot(433);hold on;
+    imagesc(D);
+    scatter(1,1,'r')
+    scatter(M+2,N,1,'r')
+    plot(extra.path_j, extra.path_i,'r');
+    colors = parula;
+    colormap(gca, colors(end:-1:1,:));
+    set(gca,'YDir','reverse');
+    title('ILM');
+end
+
+% ISOS segmentation
+[isos, D, mask, extra] = segment_isos(I_dl, mask_retina);
+
+if visu 
+    subplot(434); hold on;
+    imshow(I);
+    plot(isos, 'g', 'Linewidth', 1);
+    
+    subplot(435);hold on;
+    imagesc(I_dl);
+    scatter(1,1,'r')
+    scatter(M+2,N,1,'r')
+    plot(extra.path_j, extra.path_i,'r');
+    colormap(gca, gray);
+    set(gca,'YDir','reverse');
+    
+    subplot(436);hold on;
+    imagesc(D);
+    scatter(1,1,'r')
+    scatter(M+2,N,1,'r')
+    plot(extra.path_j, extra.path_i,'r');
+    colors = parula;
+    colormap(gca, colors(end:-1:1,:));
+    set(gca,'YDir','reverse');
+end
+
+% BM segmentation
+[bm, D, mask, extra] = segment_bm(I_ld, mask_retina, isos);
+
+if visu 
+    subplot(437); hold on;
+    imshow(I);
+    plot(bm, 'g', 'Linewidth', 1);
+    
+    subplot(438);hold on;
+    imagesc(I_dl);
+    scatter(1,1,'r')
+    scatter(M+2,N,1,'r')
+    plot(extra.path_j, extra.path_i,'r');
+    colormap(gca, gray);
+    set(gca,'YDir','reverse');
+    
+    subplot(439);hold on;
+    imagesc(D);
+    scatter(1,1,'r')
+    scatter(M+2,N,1,'r')
+    plot(extra.path_j, extra.path_i,'r');
+    colors = parula;
+    colormap(gca, colors(end:-1:1,:));
+    set(gca,'YDir','reverse');
+end
+
+% ELM segmentation
+[elm, D, mask, extra] = segment_elm(I_dl, mask_retina, isos);
+
+if visu 
+    subplot(4,3,10); hold on;
+    imshow(I);
+    plot(elm, 'g', 'Linewidth', 1);
+    
+    subplot(4,3,11);hold on;
+    imagesc(I_dl);
+    scatter(1,1,'r')
+    scatter(M+2,N,1,'r')
+    plot(extra.path_j, extra.path_i,'r');
+    colormap(gca, gray);
+    set(gca,'YDir','reverse');
+    
+    subplot(4,3,12);hold on;
+    imagesc(D);
+    scatter(1,1,'r')
+    scatter(M+2,N,1,'r')
+    plot(extra.path_j, extra.path_i,'r');
+    colors = parula;
+    colormap(gca, colors(end:-1:1,:));
+    set(gca,'YDir','reverse');
+end
+
+end
+
+function [ilm, D, mask, extra] = segment_ilm(I_dl, mask_retina)
+
+[N, M] = size(mask_retina);
+
+n_row = sum(mask_retina(:,1));
+
+mask = mask_retina & (cumsum(mask_retina) < n_row/2);
+
+% Search mask: half upper retinal mask
+mask = [ones(N,1) mask ones(N,1)];
+
+% Initialize Graph
 G = [I_dl(:,1) I_dl I_dl(:,end)];
 G(~mask) = -Inf;
+
+% Find shortest path
 D = dijkstra_matrix(G);
 [path_i, path_j] = get_path(D);
 
-layer = path_i(path_j~=M+2 & path_j~=1);
-layer = flip(layer);
+ilm = path_i(path_j~=M+2 & path_j~=1);
+ilm = flip(ilm);
 
-If = imgaussfilt(I, 0.5);
-th =  graythresh(If);
-bright_mask = If > th;
-bright_up = zeros(1,M);
+extra.path_i = path_i;
+extra.path_j = path_j;
+end
+
+function [isos, D, mask, extra] = segment_isos(I_dl, mask_retina)
+
+[N, M] = size(mask_retina);
+
+n_row = sum(mask_retina(:,1));
+
+mask = mask_retina & (cumsum(mask_retina) > n_row/3);
+
+% Search mask: half upper retinal mask
+mask = [ones(N,1) mask ones(N,1)];
+
+% Initialize Graph
+G = [I_dl(:,1) I_dl I_dl(:,end)];
+G(~mask) = -Inf;
+
+% Find shortest path
+D = dijkstra_matrix(G);
+[path_i, path_j] = get_path(D);
+
+isos = path_i(path_j~=M+2 & path_j~=1);
+isos = flip(isos);
+
+extra.path_i = path_i;
+extra.path_j = path_j;
+end
+
+function [bm, D, mask, extra] = segment_bm(I_ld, mask_retina, isos)
+[N, M] = size(mask_retina);
+
+mask_down = false(N,M);
 for i=1:M
-    bright_up(i) = sum(bright_mask(1:layer(i), i));
+    mask_down(isos(i)+5:isos(i)+50,i) = 1; 
+end
+mask = [ones(N,1) mask_retina .* mask_down ones(N,1)];
+
+G = [I_ld(:,1) I_ld I_ld(:,end)];  % I_dl does not work well
+G(~mask) = -Inf;
+D = dijkstra_matrix(G);
+[path_i, path_j] = get_path(D);
+bm = flip(path_i(path_j~=M+2 & path_j~=1));
+
+extra.path_i = path_i;
+extra.path_j = path_j;
 end
 
-if sum(bright_up)/sum(bright_mask(:)) > 0.025
-    Layers.ISOS = layer;    
-    next_layer = 'RNFL';
-else
-    Layers.RNFL = layer;
-    next_layer = 'ISOS';
+function [elm, D, mask, extra] = segment_elm(I_dl, mask_retina, isos)
+
+[N, M] = size(mask_retina);
+
+% ELM segmentation
+mask = false(N,M);
+for i=1:M
+    mask(isos(i)-15:isos(i)-4,i) = 1; 
 end
-
-clf;
-subplot(131); hold on;
-imshow(I);
-plot(layer, 'r', 'Linewidth', 1);
-colormap(gca, 'gray');
-set(gca,'YDir','reverse');
-
-subplot(132);hold on;
-imagesc(D);
-scatter(1,1,'r')
-scatter(M+2,N,1,'r')
-plot(path_j, path_i,'r');
-colors = parula;
-colormap(gca, colors(end:-1:1,:));
-set(gca,'YDir','reverse');
-
-% 2nd layer segmentation
-
-switch next_layer
-    case 'RNFL'
-        mask_up = false(N, M);
-        for i=1:M
-            mask_up(1:Layers.ISOS(i)-5,i) = 1; 
-        end
-        mask = [ones(N,1) mask_retina .* mask_up ones(N,1)];
-        
-    case 'ISOS'
-        mask_down = false(N, M);
-        for i=1:M
-            mask_down(Layers.RNFL(i)+5:end,i) = 1; 
-        end
-        mask = [ones(N,1) mask_retina .* mask_down ones(N,1)];
-end
-
+% mask = [ones(N,1) mask_retina .* mask_up ones(N,1)];
 G = [I_dl(:,1) I_dl I_dl(:,end)];
 G(~mask) = -Inf;
 D = dijkstra_matrix(G);
 [path_i, path_j] = get_path(D);
+elm = flip(path_i(path_j~=M+2 & path_j~=1));
 
-layer = flip(path_i(path_j~=M+2 & path_j~=1));
-        
-subplot(131); hold on;
-plot(layer, 'g', 'Linewidth', 1);
-        
-subplot(133);hold on;
-imagesc(D);
-scatter(1,1,'r')
-scatter(M+2,N,1,'r')
-plot(path_j, path_i,'r');
-colors = parula;
-colormap(gca, colors(end:-1:1,:));
-set(gca,'YDir','reverse');
+extra.path_i = path_i;
+extra.path_j = path_j;
 end
 
 function D = dijkstra_matrix(G)
