@@ -45,7 +45,7 @@ function Seg = seg_layers(I, scale_z, visu)
 [N, M] = size(I);
 
 % Flatten retina
-[I_flat, shift] = flatten_retina(I, 'mask', scale_z);
+[I_flat, shift] = flatten_retina(I, 'middle', scale_z);
 
 % Get retina mask
 mask_retina = seg_retina(I_flat, scale_z, 50, 'mean', false);
@@ -180,6 +180,10 @@ if visu
     set(gca,'YDir','reverse');
 end
 
+Seg.ilm = ilm;
+Seg.isos = isos;
+Seg.elm = elm;
+Seg.bm = bm;
 end
 
 function [ilm, D, mask, extra] = segment_ilm(I_dl, mask_retina)
