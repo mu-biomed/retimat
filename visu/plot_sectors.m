@@ -62,8 +62,8 @@ switch Sectors.type
         I = reshape(Z, [Sectors.n_y Sectors.n_x]);
         imagesc(X_center, Y_center, I);
         axis equal;
-        xlim([X_center(1) X_center(end)]);
-        ylim([Y_center(1) Y_center(end)]);        
+        xlim([Sectors.X_edge(1) Sectors.X_edge(end)]);
+        ylim([Sectors.Y_edge(1) Sectors.Y_edge(end)]);        
     case 'ring'
     
     case 'pie'
