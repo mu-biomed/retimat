@@ -143,15 +143,18 @@ for d=1:length(aux)
     % Plotrange
     [XInf,YInf] = pol2cart(theta,prctile(Data,0.5));
     [XSup,YSup] = pol2cart(theta,prctile(Data,99.5));
+    
+%     [XInf,YInf] = pol2cart(theta,min(Data));
+%     [XSup,YSup] = pol2cart(theta,max(Data));        
     if plotInterval
         patch([XSup XSup(1) X X(1)],[YSup YSup(1) Y Y(1)],ColorFill(d,:),'FaceAlpha',0.10,'EdgeColor','none');
         patch([X X(1) XInf XInf(1)],[Y Y(1) YInf YInf(1)],ColorFill(d,:),'FaceAlpha',0.10,'EdgeColor','none');
     end
 
-    [XInf,YInf] = pol2cart(theta,min(Data));
-    [XSup,YSup] = pol2cart(theta,max(Data));
-    plot([XInf XInf(1)],[YInf YInf(1)],'--r','LineWidth',1);
-    plot([XSup XSup(1)],[YSup YSup(1)],'--r','LineWidth',1);
+%     [XInf,YInf] = pol2cart(theta,min(Data));
+%     [XSup,YSup] = pol2cart(theta,max(Data));
+%     plot([XInf XInf(1)],[YInf YInf(1)],'--r','LineWidth',1);
+%     plot([XSup XSup(1)],[YSup YSup(1)],'--r','LineWidth',1);
     
     % Plot data
     p = plot([X X(1)],[Y Y(1)],'Color',ColorFill(d,:),'LineWidth',2.5);
