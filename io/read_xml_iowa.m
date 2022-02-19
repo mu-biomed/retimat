@@ -109,9 +109,24 @@ for i_seg=1:n_seg
         [idx_a1, idx_a2] = get_index(chunk_bscan, 'y');
         n_ascan = length(idx_a1);
         
-        for i_ascan=1:n_ascan
-            seg.(seg_name)(i_bscan,i_ascan) = str2double(chunk_bscan(idx_a1(i_ascan)+3:idx_a2(i_ascan)-1));
+        % Fast method
+        n_len = idx_a2 - idx_a1 -3;
+        n_len_unique = unique(n_len);
+        
+        if length(n_len_unique) == 1
+            vals = str2num(chunk_bscan(idx_a1'+repmat(3:2+n_len_unique,n_ascan,1)));            
+        else        
+            vals = cellstr(chunk_bscan(idx_a1'+repmat(3:2+max(n_len),n_ascan,1)));
+            vals = cellfun(@(x,y) x(1:n_len(y)), vals, num2cell(1:n_ascan)','UniformOutput',false);
+            vals = str2num(cell2mat(vals));
         end
+        
+        seg.(seg_name)(i_bscan,:) = vals;
+        
+        % Slow method
+%         for i_ascan=1:n_ascan
+%             seg.(seg_name)(i_bscan,i_ascan) = str2double(chunk_bscan(idx_a1(i_ascan)+3:idx_a2(i_ascan)-1));
+%         end
     end
 end
 
