@@ -1,5 +1,62 @@
-function [header, seg] = read_xml_iowa(file)
+function [header, seg] = read_xml_iowa(file, coordinates)
+%READ_XML_IOWA Read segmentation results obtained by OCTExplorer and IOWA
+%reference algorithm
+%
+%   [header, seg] = read_xml_iowa(file)
+%   The segmentation as well as metadata are extracted from xml file.
+%
+%   Input arguments:
+%  
+%   'file'           Path to xml file outputed by OCTExplorer. It usually ends
+%                    with *Surfaces_Iowa.xml
+%            
+%  
+%   Output arguments:
+%  
+%   'header'         Metadata related with the segmentation: version,
+%                    resolution, dimensions.
+%
+%   'seg'            Struct with point segmentation values (in pixels).          
+%  
+%
+%   
+%   Notes
+%   -----
+%   This function only works for macular OCT, not ONH and has not been tested
+%   with OCTExplorer version other than 3.8.0
+%
+%
+%   References
+%   ----------
+%   [1] The Iowa Reference Algorithms (Retinal Image Analysis Lab, Iowa 
+%   Institute for Biomedical Imaging, Iowa City, IA), 
+%   https://www.iibi.uiowa.edu/oct-reference
+%
+%   [2] Abramoff MD et al., Retinal Imaging and Image Analysis. IEEE 
+%   Reviews in Biomedical Engineering, 2010. doi:10.1109/RBME.2010.2084567
+%   
+%   [3] Kang L et al., Optimal Surface Segmentation in Volumetric Images – A 
+%   Graph-Theoretic Approach. IEEE Transactions on Pattern Analysis and Machine
+%   Intelligence, 2006. doi:10.1109/TPAMI.2006.19
+%   
+%   [4] Garvin MK et al., Automated 3-D Intraretinal Layer Segmentation of
+%   Macular Spectral-Domain Optical Coherence Tomography Images. IEEE Trans 
+%   Med. Imaging, 2009. doi:10.1109/TMI.2009.2016958
+%
+%
+%   Example
+%   ---------      
+%   % Extract data from iowa xml
+%
+%     [header, seg] = read_xml_iowa('my_file_Surfaces_Iowa.xml')
+%     
+%
+%   David Romero-Bascones, dromero@mondragon.edu
+%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
+if nargin < 2
+    coordinates = false; 
+end
 % Read whole xml as text
 str = fileread(file);
 
@@ -7,6 +64,12 @@ str = fileread(file);
 [idx1, idx2] = get_index(str, 'version');
 header.version = str(idx1(1)+9:idx2(1)-1);
 header.exec_version = str(idx1(2)+9:idx2(2)-1);
+
+% Manufacturer
+header.manufacturer = get_field(str, 'manufacturer','str');
+
+% Eye
+header.eye = get_field(str, 'laterality','str');
 
 % Dimensions
 [idx1, idx2] = get_index(str, 'size');
@@ -33,7 +96,7 @@ for i_seg=1:n_seg
     seg_name = get_field(chunk_seg, 'name', 'str');    
     seg_name = change_name(seg_name);
     
-    disp(['Reading segmentation:' seg_name]);
+    disp(['Reading layer: ' seg_name]);
     % Get B-scans
     [idx_b1, idx_b2] = get_index(chunk_seg, 'bscan');
     n_bscan = length(idx_b1);
@@ -52,7 +115,16 @@ for i_seg=1:n_seg
     end
 end
 
-disp('finished');
+% Coordinates
+if coordinates
+    range_x = (header.n_ascan - 1) * header.scale_x;
+    range_y = (header.n_bscan - 1) * header.scale_y;
+    
+    x = linspace(-range_x/2,range_x/2,n_ascan);
+    y = linspace(-range_y/2,range_y/2,n_bscan);
+    
+    [header.X, header.Y] = meshgrid(x,y);
+end
 
 function [idx1, idx2] = get_index(text, label)
 
@@ -73,17 +145,17 @@ switch seg_name
     case 'INL-OPL (INL-OPL)'
         seg_name = 'INL_OPL';
     case 'OPL-Henles fiber layer (OPL-HFL)'
-        seg_name = 'OPL_HFL';
+        seg_name = 'OPL_ONL';
     case 'Boundary of myoid and ellipsoid of inner segments (BMEIS)'
-        seg_name = 'BMEIS';
+        seg_name = 'MZ_EZ';
     case 'IS/OS junction (IS/OSJ)'
-        seg_name = 'ISOSJ';
+        seg_name = 'EZ_OSP';
     case 'Inner boundary of OPR (IB_OPR)'
-        seg_name = 'IB_OPR';
+        seg_name = 'OSP_IZ';
     case 'Inner boundary of RPE (IB_RPE)'
-        seg_name = 'IB_RPE';
+        seg_name = 'IZ_RPE';
     case 'Outer boundary of RPE (OB_RPE)'
-        seg_name = 'OB_RPE';
+        seg_name = 'BM';
     otherwise
         warning(['Unrecognized layer: ' seg_name]);
 end
