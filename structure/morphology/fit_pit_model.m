@@ -338,22 +338,22 @@ switch fit_type
         [X, Y] = pol2cart(theta, rho);
         
         % Remove pit value (repeated in all radial scans)
-        Z = Z(:);
+        Zf = Z(:);
         Xf = X;
         Yf = Y;
         
         for n=2:n_angle
-            Z(n,1) = nan;
+            Zf(n,1) = nan;
             Xf(n,1) = nan;
             Yf(n,1) = nan;
         end
         
-        Z = Z(~isnan(Z)); 
+        Zf = Zf(~isnan(Zf)); 
         Xf = Xf(~isnan(Xf));
         Yf = Yf(~isnan(Yf)); 
    
         % Fit the model
-        fitted = fit([Xf Yf], Z, fun, opt);
+        fitted = fit([Xf Yf], Zf, fun, opt);
         
         % Reconstruct radially
         for n=1:n_angle
