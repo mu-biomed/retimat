@@ -65,9 +65,15 @@ switch Sectors.type
         xlim([Sectors.X_edge(1) Sectors.X_edge(end)]);
         ylim([Sectors.Y_edge(1) Sectors.Y_edge(end)]);        
     case 'ring'
-    
+        n_sect = Sectors.n_sect;
+        radius = Sectors.radius;
+        for n=1:n_sect
+            plot_ring(radius(n), radius(n+1), Z(n), N)
+        end
+        axis equal;
+        axis off;
     case 'pie'
-        
+        warning(["Not implemented yet"]);        
     case 'wedge'
         radius = Sectors.radius;
         n_angle = Sectors.n_angle;
