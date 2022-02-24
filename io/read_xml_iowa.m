@@ -7,9 +7,11 @@ function [header, seg] = read_xml_iowa(file, coordinates)
 %
 %   Input arguments:
 %  
-%   'file'           Path to xml file outputed by OCTExplorer. It usually ends
-%                    with *Surfaces_Iowa.xml
+%   'file'           Path to xml file outputed by OCTExplorer. It usually
+%                    ends with *Surfaces_Iowa.xml
 %            
+%   'coordinates'    If true then A-Scan coordinates are computed and 
+%                    returned as part of the header. Default is false.
 %  
 %   Output arguments:
 %  
@@ -22,8 +24,12 @@ function [header, seg] = read_xml_iowa(file, coordinates)
 %   
 %   Notes
 %   -----
-%   This function only works for macular OCT, not ONH and has not been tested
-%   with OCTExplorer version other than 3.8.0
+%   This function only works for macular OCT and has not been tested with
+%   either ONH acquisitions or an OCTExplorer version other than 3.8.0.
+%   The axes convention used in IOWA differs from the one used here:
+%   - x: horizontal (temporal - nasal)
+%   - y: vertical (inferior - superior)
+%   - z: axial (depth)
 %
 %
 %   References
@@ -35,9 +41,9 @@ function [header, seg] = read_xml_iowa(file, coordinates)
 %   [2] Abramoff MD et al., Retinal Imaging and Image Analysis. IEEE 
 %   Reviews in Biomedical Engineering, 2010. doi:10.1109/RBME.2010.2084567
 %   
-%   [3] Kang L et al., Optimal Surface Segmentation in Volumetric Images – A 
-%   Graph-Theoretic Approach. IEEE Transactions on Pattern Analysis and Machine
-%   Intelligence, 2006. doi:10.1109/TPAMI.2006.19
+%   [3] Kang L et al., Optimal Surface Segmentation in Volumetric Images – 
+%   A Graph-Theoretic Approach. IEEE Transactions on Pattern Analysis and 
+%   Machine Intelligence, 2006. doi:10.1109/TPAMI.2006.19
 %   
 %   [4] Garvin MK et al., Automated 3-D Intraretinal Layer Segmentation of
 %   Macular Spectral-Domain Optical Coherence Tomography Images. IEEE Trans 
