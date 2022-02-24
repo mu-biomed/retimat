@@ -117,8 +117,7 @@ for i_seg=1:n_seg
             vals = str2num(chunk_bscan(idx_a1'+repmat(3:2+n_len_unique,n_ascan,1)));            
         else        
             vals = cellstr(chunk_bscan(idx_a1'+repmat(3:2+max(n_len),n_ascan,1)));
-            vals = cellfun(@(x,y) x(1:n_len(y)), vals, num2cell(1:n_ascan)','UniformOutput',false);
-            vals = str2num(cell2mat(vals));
+            vals = cellfun(@(x,y) str2double(x(1:n_len(y))), vals, num2cell(1:n_ascan)');
         end
         
         seg.(seg_name)(i_bscan,:) = vals;
@@ -138,7 +137,7 @@ if coordinates
     x = linspace(-range_x/2,range_x/2,n_ascan);
     y = linspace(-range_y/2,range_y/2,n_bscan);
     
-    [header.X, header.Y] = meshgrid(x,y);
+    [header.X_oct, header.Y_oct] = meshgrid(x,-y);
 end
 
 function [idx1, idx2] = get_index(text, label)
