@@ -78,7 +78,6 @@ feature_list = {'autocorrelation',...
                 'IDN',...
                 'IDM',...
                 'IDMN',...
-                'joint_average',...
                 'joint_variance',...
                 'max_prob',...
                 'sum_of_squares',...
@@ -163,7 +162,7 @@ for i_feat=1:n_feat
         
         case 'dif_variance'
             % See [1]
-            X.dif_average = sum(Pij(:) .* abs(i(:) - j(:))); % dissimilarity
+%             X.dif_average = sum(Pij(:) .* abs(i(:) - j(:))); % equal to dissimilarity
             X.dif_variance = sum(P_dif .* (d-X.dif_average).^2);
         
         case 'dif_entropy'
@@ -216,9 +215,10 @@ for i_feat=1:n_feat
             % Inverse difference Moment Normalized. See [3]
             X.inverse_difference_moment_norm = sum(Pij(:) ./ (1 + (i(:)-j(:)).^2 ./ N^2));           
         
-        case 'joint_average'
+% Deprecated as it is the same as autocorrelation
+%         case 'joint_average'
             % See [3]. Use it only when GLCM is symmetrical
-            X.joint_average = sum(Pij(:) .* i(:) .* j(:));
+%             X.joint_average = sum(Pij(:) .* i(:) .* j(:));
         
         case 'joint_variance'
             joint_average = sum(Pij(:) .* i(:) .* j(:));
@@ -250,7 +250,7 @@ for i_feat=1:n_feat
             warning(['Unknown feature:' feature]);
     end
 end
-end
+
 
 function H = entropy_safe(p)
 % Function to compute entropies in a safe way
@@ -261,7 +261,7 @@ else
     p = p(p~=0); % avoid log(0) = -Inf
     H = -sum(p .* log2(p));
 end
-end
+
 
 function [GLCM, features] = parse_inputs(GLCM, extra_args, feature_list)
 
@@ -296,5 +296,4 @@ else
         error(["features is expected to be char or cell array of chars but is ",...
             class(features)]);
     end
-end
 end
