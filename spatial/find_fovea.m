@@ -84,11 +84,9 @@ switch method
     otherwise
         error('Unsupported fovea location method');
 end
-end
 
 function [x_min, y_min] = find_min(X, Y, Z)
 [~, ind_min] = min(Z(:));
 [ind_x, ind_y] = ind2sub(size(X), ind_min);        
 x_min = X(ind_x, ind_y);
 y_min = Y(ind_x, ind_y);        
-end
