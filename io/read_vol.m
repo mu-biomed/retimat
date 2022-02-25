@@ -364,7 +364,6 @@ if visu
         drawnow
     end
 end
-end
 
 function [X_slo, Y_slo, X_oct, Y_oct] = get_coordinates(header, start_x, ...
     start_y, end_x, end_y)
@@ -498,5 +497,3 @@ Y_oct = Y_oct - y_oct_center;
 % Set to zero horizontal and vertical
 X_oct(abs(X_oct) < 1e-6) = 0;
 Y_oct(abs(Y_oct) < 1e-6) = 0;
-       
-end

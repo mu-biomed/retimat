@@ -243,16 +243,13 @@ if average
         X.(parameters{i}) = mean(X.(parameters{i}));
     end
 end
-end
 
 function p = perimeter(x, y)
 % Compute perimeter based on pairwise distances between vertices
 d = sqrt((x - [x(2:end) x(1)]).^2 + (y - [y(2:end) y(1)]).^2);
 p = sum(d);        
-end
 
 function vals = get_2d_points(A, rows, cols)
 % Access a set of 2d points efficiently
 idx = sub2ind(size(A), rows, cols);  
 vals = A(idx);   
-end

@@ -159,162 +159,157 @@ if visu
     ylabel('Log(L)');
     grid on;
 end
-end
 
 function Lac = lacunarity_3d(I, M, N, r)   
-    % Intuitively, we build a tower of cubes of rxrxr and we glide the entire
-    % tower through the image. The base of the tower is what we call 'box'. 
-    % We compute the occupied space/volume for each cube in the tower and store
-    % it in vl. (Cubes can overlap).
-    %
-    % As we glide the tower, there is an overlap with the previous tower so
-    % that we do not need to compute vl entirely. We can just remove the
-    % occupied space due to the old rows/columns that do not belong to the new
-    % tower and add the new/columns. In this way, the occupied space due to the
-    % shared columns/rows is kept and the computation is faster.
-    %
-    % We then only consider those cubes that have partial volume, i.e. that are
-    % neither empty (vl=0) or completely filled (vl=S_max=r^3)
-    %
-    % Parameters:
-    % cc: crossed cubes (intercepted). Fully filled boxes with that intensity
-    % cr: part of the height that is used to partially fill cubes (note that
-    % this part can be also used to fill the previous cubes below)
-    % h: pixel intensity (height)
-    % l: maximal number of cubes allowed in the pixel intensity direction (z)
-    % L: maximum number of gray values
-    % n: number of cubes with mass equal to the index (e.g., n(3) is the number
-    % of cubes with mass 3)
-    % r: cube size
-    % S_max: maximum occupied volume in a cube (s^3) 
-    % vl: occupied volume of each cube in the tower (z direction)
-    
-    L = double(max(I(:)));  
-    l = L - r + 1; 
-    S_max = r^3; 
-    I = double(I);
-    
-    if l <= 0
-        warning(['box size (r=', num2str(r), ') is > than the number of', ...
-            ' image levels (L=', num2str(L),'). Use a smaller r.']); 
-        Lac = nan;
-        return;
-    end
-    
-    vl = zeros(1, l);  
-    n = zeros(1, S_max);
-    
-    % Get the occupied space in each cube of the tower located at the first box
-    % (first r columns/rows). We do this by gliding through all pixels in the
-    % box
-    for x=1:r
-        vl = compute_column(I, vl, l, x, 1, r, 1);
-    end        
-    vl1 = vl;  % store the volume of the first box
-            
-    % Loop through columns
-    first = true;
-    for y=r:N
-        % Loop through rows
-        for x=r:M
-            if first
-                % If it is the first box/tower --> store the volume directly
-                first = false;
-            else
-                % Remove the volume of the column from previous box that does
-                % not belong to this new box.
-                vl = compute_column(I, vl, l, x-r, y-r+1, r, -1); 
+% Intuitively, we build a tower of cubes of rxrxr and we glide the entire
+% tower through the image. The base of the tower is what we call 'box'. 
+% We compute the occupied space/volume for each cube in the tower and store
+% it in vl. (Cubes can overlap).
+%
+% As we glide the tower, there is an overlap with the previous tower so
+% that we do not need to compute vl entirely. We can just remove the
+% occupied space due to the old rows/columns that do not belong to the new
+% tower and add the new/columns. In this way, the occupied space due to the
+% shared columns/rows is kept and the computation is faster.
+%
+% We then only consider those cubes that have partial volume, i.e. that are
+% neither empty (vl=0) or completely filled (vl=S_max=r^3)
+%
+% Parameters:
+% cc: crossed cubes (intercepted). Fully filled boxes with that intensity
+% cr: part of the height that is used to partially fill cubes (note that
+% this part can be also used to fill the previous cubes below)
+% h: pixel intensity (height)
+% l: maximal number of cubes allowed in the pixel intensity direction (z)
+% L: maximum number of gray values
+% n: number of cubes with mass equal to the index (e.g., n(3) is the number
+% of cubes with mass 3)
+% r: cube size
+% S_max: maximum occupied volume in a cube (s^3) 
+% vl: occupied volume of each cube in the tower (z direction)
 
-                %  Add the volume from the columns that are new to this box.
-                %  The volume of shared columns is kept.
-                vl = compute_column(I, vl, l, x, y-r+1, r, 1);                  
-            end
-            
-            for i=1:l
-                % Do not count cubes that are empty (vl=0) or completely filled
-                % (vl=S_max)
-                if vl(i)~=0 & vl(i)~=S_max
-                    n(vl(i)) = n(vl(i)) + 1;  % add boxes with mass vl 
-                end
+L = double(max(I(:)));  
+l = L - r + 1; 
+S_max = r^3; 
+I = double(I);
+
+if l <= 0
+    warning(['box size (r=', num2str(r), ') is > than the number of', ...
+        ' image levels (L=', num2str(L),'). Use a smaller r.']); 
+    Lac = nan;
+    return;
+end
+
+vl = zeros(1, l);  
+n = zeros(1, S_max);
+
+% Get the occupied space in each cube of the tower located at the first box
+% (first r columns/rows). We do this by gliding through all pixels in the
+% box
+for x=1:r
+    vl = compute_column(I, vl, l, x, 1, r, 1);
+end        
+vl1 = vl;  % store the volume of the first box
+
+% Loop through columns
+first = true;
+for y=r:N
+    % Loop through rows
+    for x=r:M
+        if first
+            % If it is the first box/tower --> store the volume directly
+            first = false;
+        else
+            % Remove the volume of the column from previous box that does
+            % not belong to this new box.
+            vl = compute_column(I, vl, l, x-r, y-r+1, r, -1); 
+
+            %  Add the volume from the columns that are new to this box.
+            %  The volume of shared columns is kept.
+            vl = compute_column(I, vl, l, x, y-r+1, r, 1);                  
+        end
+
+        for i=1:l
+            % Do not count cubes that are empty (vl=0) or completely filled
+            % (vl=S_max)
+            if vl(i)~=0 & vl(i)~=S_max
+                n(vl(i)) = n(vl(i)) + 1;  % add boxes with mass vl 
             end
         end
-        
-        % When we have gone through all the rows check if there are more
-        % columns remaining (y < N) and if so compute the volume of the first
-        % box at the top.
-        if y < N
-            vl1 = compute_row(I, vl1, l, 1, y-r+1, r, -1);
-            vl1 = compute_row(I, vl1, l, 1, y+1, r, 1);
-            vl = vl1;            
-        end
-        first = true;
     end
-    
-    % Calculate Lacunarity            
-    n_cube = sum(n);  % number of partially filled cubes
-    if n_cube == 0
-        Lac = 0;  % All cubes were fully filled or empty.
-    else
-        % Probability density distribution of a partially filled cube having
-        % certain occupancy. We just divide the number of cubes with each occupancy
-        % by the total number of partially filled cubes.
-        c = n./sum(n);
-    
-        Z1 = sum((1:S_max) .* c);  % mean occupied cubes
-        Z2 = sum((1:S_max).^2 .* c);  % power
-        
-        Lac = Z2/Z1^2;
+
+    % When we have gone through all the rows check if there are more
+    % columns remaining (y < N) and if so compute the volume of the first
+    % box at the top.
+    if y < N
+        vl1 = compute_row(I, vl1, l, 1, y-r+1, r, -1);
+        vl1 = compute_row(I, vl1, l, 1, y+1, r, 1);
+        vl = vl1;            
     end
+    first = true;
+end
+
+% Calculate Lacunarity            
+n_cube = sum(n);  % number of partially filled cubes
+if n_cube == 0
+    Lac = 0;  % All cubes were fully filled or empty.
+else
+    % Probability density distribution of a partially filled cube having
+    % certain occupancy. We just divide the number of cubes with each occupancy
+    % by the total number of partially filled cubes.
+    c = n./sum(n);
+
+    Z1 = sum((1:S_max) .* c);  % mean occupied cubes
+    Z2 = sum((1:S_max).^2 .* c);  % power
+
+    Lac = Z2/Z1^2;
 end
 
 function vl = compute_column(I, vl, l, x, y, r, t)
-    % t: 1 or -1 to add or remove volume, respectively
-    
-    for y1=y:y+r-1
-        [cc, cr] = count_boxes(l, I(x,y1), r);      
+% t: 1 or -1 to add or remove volume, respectively
 
-        % Store/remove the volume of each cube that was filled
-        vl(1:cc) = vl(1:cc) + t*r;
+for y1=y:y+r-1
+    [cc, cr] = count_boxes(l, I(x,y1), r);      
 
-        % Store the volume of those cubes partially filled
-        i = cc + 1;
-        while (i<l) & (cr > 0)
-            vl(i) = vl(i) + t*cr;  %  add partial volume
-            cr = cr - 1;
-            i = i + 1;
-        end
+    % Store/remove the volume of each cube that was filled
+    vl(1:cc) = vl(1:cc) + t*r;
+
+    % Store the volume of those cubes partially filled
+    i = cc + 1;
+    while (i<l) & (cr > 0)
+        vl(i) = vl(i) + t*cr;  %  add partial volume
+        cr = cr - 1;
+        i = i + 1;
     end
 end
 
 function vl = compute_row(I, vl, l, x, y, r, t)
-    % t: 1 or -1 to add or remove volume, respectively
+% t: 1 or -1 to add or remove volume, respectively
 
-    for x1 = x:x+r-1
-        [cc, cr] = count_boxes(l, I(x1,y), r);
+for x1 = x:x+r-1
+    [cc, cr] = count_boxes(l, I(x1,y), r);
 
-        vl(1:cc) = vl(1:cc) + t*r;
-        
-        i = cc + 1;
-        while (i<l) & (cr > 0)
-            vl(i) = vl(i) + t*cr;
-            cr = cr - 1;
-            i = i + 1;
-        end
+    vl(1:cc) = vl(1:cc) + t*r;
+
+    i = cc + 1;
+    while (i<l) & (cr > 0)
+        vl(i) = vl(i) + t*cr;
+        cr = cr - 1;
+        i = i + 1;
     end
 end
 
 function [cc, cr] = count_boxes(l, h, r)
-    % Number of cubes which a given pixel intercepts in function of its gray
-    % level intensity    
-    cc = h - r + 1;
-    
-    % If not even a single box is filled
-    if cc <= 0
-        cc = 0;
-        cr = h;
-    elseif cc < l  % Not all cubes filled (regular case)
-        cr = r - 1;  % Typo in the original paper I believe
-    else  %  All cubes filled (no height to partially fill cubes cr=0)
-        cr = 0;        
-    end
+% Number of cubes which a given pixel intercepts in function of its gray level
+% intensity    
+cc = h - r + 1;
+
+% If not even a single box is filled
+if cc <= 0
+    cc = 0;
+    cr = h;
+elseif cc < l  % Not all cubes filled (regular case)
+    cr = r - 1;  % Typo in the original paper I believe
+else  %  All cubes filled (no height to partially fill cubes cr=0)
+    cr = 0;        
 end

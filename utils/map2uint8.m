@@ -42,6 +42,3 @@ end
 I = (Z - gray_limits(1))/(gray_limits(2) - gray_limits(1));  %  Normalize [0,1]
 
 I = uint8(round(255*I));  %  Normalize [0, 255]
-
-
-

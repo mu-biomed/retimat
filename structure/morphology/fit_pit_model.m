@@ -372,7 +372,7 @@ Z = convert_mm_um(Z, unit_in);
 
 rmse = sqrt(mean((Z - Z_fit).^2, 2));
 
-end
+
 
 function y = equation_yadav_int(x, alpha, beta, P0, P3)
 % equationYadavInt - evaluate the model presented by Yadav et al. (2017)
@@ -397,7 +397,6 @@ P2 = P3 - beta*T;
 Q = P0*Be(t,0) + P1*Be(t,1) + P2*Be(t,2) + P3*Be(t,3);
 
 y = interp1(Q(1,:),Q(2,:),x);
-end
 
 function y = equation_yadav_ext(x, alpha, P2x, P2y, P0, P3)
 % equationYadavExt - evaluate the model presented by Yadav et al. (2017)
@@ -417,7 +416,6 @@ P2 = [P2x;P2y];
 
 Q = P0*Be(t,0) + P1*Be(t,1) + P2*Be(t,2) + P3*Be(t,3);
 y = interp1(Q(1,:),Q(2,:),x);
-end
 
 function B = Be(t,i)
 % Be - Evaluate Bernstein polynomial
@@ -441,7 +439,6 @@ switch i
     case 3
         B = t.^3;
 end
-end
 
 function y = equation_liu(x,a,f,g,lambda,mu,sigma)
 %
@@ -462,4 +459,3 @@ G1(centre) = max(G);
 G2 = g - (a*G1+f*x); 
 
 y = G2;
-end

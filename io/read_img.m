@@ -41,7 +41,7 @@ function [bscan, header] = read_img(file, scan_size, get_coord)
 %     - Hidef: [512 x 2 x 1024] (not supported yet)
 %
 %   Scans differing from the previous might not be read properly. 
-
+%
 %  Info from previous function:
 %  hidef scan consists of 2 orthogonal bscans intersecting in the center of
 %  the volume. The first is in the y direction (across B-scans), the second
@@ -159,7 +159,6 @@ if get_coord
     end
     [header.X, header.Y] = meshgrid(x_range, y_range);    
 end
-end
 
 function header = data_from_filename(fname)
 
@@ -258,8 +257,6 @@ elseif n_field == 7
     header.last = C{7}{1}; % 'z' or 'raw'    
 end
 
-end
-
 function  [dims_ok, dims] = guess_dimensions(n_voxel)
 % Warning: anterior segment cube has the same number of voxels as macular_cube
 % and is therefore indistinguishable based solely on voxel count.
@@ -293,5 +290,4 @@ switch n_voxel
     otherwise
         dims_ok = false;
         dims = nan;
-end
 end

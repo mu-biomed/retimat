@@ -251,7 +251,6 @@ for i_feat=1:n_feat
     end
 end
 
-
 function H = entropy_safe(p)
 % Function to compute entropies in a safe way
 if abs(sum(p(:)) - 1) > 1e-4
@@ -261,7 +260,6 @@ else
     p = p(p~=0); % avoid log(0) = -Inf
     H = -sum(p .* log2(p));
 end
-
 
 function [GLCM, features] = parse_inputs(GLCM, extra_args, feature_list)
 

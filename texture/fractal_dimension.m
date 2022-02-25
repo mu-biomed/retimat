@@ -180,4 +180,3 @@ if visu
     title(['FD = ' num2str(FD)]);
     set(gca, 'FontSize', 12);
 end
-end
