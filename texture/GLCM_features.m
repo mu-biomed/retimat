@@ -162,8 +162,8 @@ for i_feat=1:n_feat
         
         case 'dif_variance'
             % See [1]
-%             X.dif_average = sum(Pij(:) .* abs(i(:) - j(:))); % equal to dissimilarity
-            X.dif_variance = sum(P_dif .* (d-X.dif_average).^2);
+            dif_average = sum(Pij(:) .* abs(i(:) - j(:))); % equal to dissimilarity
+            X.dif_variance = sum(P_dif .* (d-dif_average).^2);
         
         case 'dif_entropy'
             % See [1]
