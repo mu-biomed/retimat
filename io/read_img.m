@@ -1,7 +1,7 @@
 function [bscan, header] = read_img(file, scan_size, get_coord)
 %READ_IMG Read data from .img files from Zeiss Cirrus scans
 %
-%   [bscan, header] = template(file, scan_size)
+%   [bscan, header] = read_img(file, scan_size, get_coord)
 %   Reads the image volume stored in 'file' and tries to retrieve spatial 
 %   information.
 %
