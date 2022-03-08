@@ -89,6 +89,7 @@ layer_top_bottom = {'RNFL',     'ILM',        'RNFL_GCL';
                     % Composite layers
                     'TRT',      'ILM',        'BM';
                     'GCIP',     'RNFL_GCL',   'IPL_INL';
+                    'GCC',      'ILM',        'IPL_INL';   
                     'IRL',      'ILM',        'IPL_INL';
                     'ONPL',     'INL_OPL',    'ELM';
                     'EZOSP',    'MZ_EZ',      'OSP_IZ';
