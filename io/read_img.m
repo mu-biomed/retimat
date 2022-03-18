@@ -1,7 +1,7 @@
-function [bscan, header] = read_img(file, scan_size, get_coord)
+function [header, bscan] = read_img(file, scan_size, get_coord)
 %READ_IMG Read data from .img files from Zeiss Cirrus scans
 %
-%   [bscan, header] = read_img(file, scan_size, get_coord)
+%   [header, bscan] = read_img(file, scan_size, get_coord)
 %   Reads the image volume stored in 'file' and tries to retrieve spatial 
 %   information.
 %
@@ -21,11 +21,12 @@ function [bscan, header] = read_img(file, scan_size, get_coord)
 %
 %   Output arguments:
 %  
-%   'bscan'          3D matrix of size [n_ascan x n_axial x n_bscan] with 
-%                    image data.
-%
 %   'header'         Basic header information retrieved from filename and
 %                    volume dimensions.
+%
+%   'bscan'          3D matrix of size [n_axial x n_ascan x n_bscan] with 
+%                    image data.
+%
 %
 %
 %   Notes
@@ -56,7 +57,7 @@ function [bscan, header] = read_img(file, scan_size, get_coord)
 %   ---------      
 %   % Read img file
 %
-%     [bscan, header] = read_img('myfile.img')    
+%     [header, bscan] = read_img('myfile.img')    
 %
 %  
 %   David Romero-Bascones, dromero@mondragon.edu
@@ -231,7 +232,7 @@ end
 
 % 3./4. Scan-date
 if isempty(C{3}) | isempty(C{4})
-    warning("Could not full data from filename");
+    warning("Could not retrieve full data from filename");
     return;
 end
 header.scan_date = [C{3}{1} ' ' C{4}{1}];
