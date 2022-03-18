@@ -214,7 +214,7 @@ for i_bscan = 1:n_bscan
         oct = reshape(oct, n_ascan, n_axial);
         oct = oct.^0.25;  % as per Van der Schoot et al. (IOVS, 2012) normalizes the range to [0,1]
         bscan(:,:,i_bscan)=oct';
-        bscan(bscan > 1e3) = 0;  % remove outliers at the edges
+        bscan(bscan > 1e3) = nan;  % remove outliers at the edges
     end
          
 
