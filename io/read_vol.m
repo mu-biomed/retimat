@@ -70,10 +70,10 @@ function [header, segment, bscan, slo] = read_vol(file, varargin)
 %   Hopkins University - Modifications to increase efficiency - 5/17/2012 
 %
 %   Current version modified by David Romero-Bascones, Biomedical Engineering
-%   Department, Mondragon Unibertsitatea, 2021
+%   Department, Mondragon Unibertsitatea, 03/2022
 %
 %   David Romero-Bascones, Biomedical Engineering Department, Mondragon
-%   Unibertsitatea, 2021
+%   Unibertsitatea, 2022
 %   dromero@mondragon.edu
 
 
