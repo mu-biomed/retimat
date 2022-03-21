@@ -36,3 +36,16 @@ for i=1:n_bscan
 end
 
 colormap(gray);
+
+%% Attenuation coefficient
+clc;clearvars;close all;
+file = '../data/raster.vol';
+% [header, seg, bscan, slo] = read_vol(file, 'coordinates');
+[header, seg, bscan, slo] = read_vol(file, 'coordinates','raw_pixel');
+
+att = compute_attenuation(bscan, header.scale_z);
+subplot(121);imagesc(bscan(:,:,13).^0.25);axis off;
+subplot(122);imagesc(att(:,:,13));axis off;
+colormap(gray);
+set(gca,'ColorScale','log')
+% caxis([0 5]);
