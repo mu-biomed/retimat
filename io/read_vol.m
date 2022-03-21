@@ -23,6 +23,9 @@ function [header, segment, bscan, slo] = read_vol(file, varargin)
 %
 %                    'coordinates': retrieve fundus and A-Scan X, Y coordinates
 %
+%                    'raw_voxel': return raw pixel reflectance instead of
+%                    visualization-adapted values.
+%
 %   Output arguments:
 %  
 %   'header'         Structure with .vol file header values.          
@@ -83,6 +86,7 @@ visu = any(strcmp('visu', varargin));
 verbose = any(strcmp('verbose', varargin));
 full_header = any(strcmp('full_header', varargin));
 coordinates = any(strcmp('coordinates', varargin));
+raw_pixel = any(strcmp('raw_pixel', varargin));
 read_seg = nargout >= 2;
 read_bscan = nargout >= 3; 
 read_slo = nargout == 4;
@@ -212,12 +216,18 @@ for i_bscan = 1:n_bscan
         fseek( fid, bscan_hdr_size + 2048 + (size_x_slo*size_y_slo) + (ii*(bscan_hdr_size+n_ascan*n_axial*4)), -1);
         oct = fread(fid, n_ascan*n_axial, '*float32');
         oct = reshape(oct, n_ascan, n_axial);
-        oct = oct.^0.25;  % as per Van der Schoot et al. (IOVS, 2012) normalizes the range to [0,1]
+        
+        % As per Van der Schoot et al. (IOVS, 2012) normalizes the range to
+        % [0,1] for visualization. To compute reflectance we need however
+        % raw intensities.
+        if ~raw_pixel
+            oct = oct.^0.25;  
+        end
+        
         bscan(:,:,i_bscan)=oct';
         bscan(bscan > 1e3) = nan;  % remove outliers at the edges
     end
          
-
     % Read segmentation     
     fseek(fid, 256 + 2048 + (size_x_slo*size_y_slo) + (ii*(bscan_hdr_size+n_ascan*n_axial*4)), -1 );
     if read_seg
