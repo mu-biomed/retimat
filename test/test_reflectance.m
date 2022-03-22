@@ -40,12 +40,22 @@ colormap(gray);
 %% Attenuation coefficient
 clc;clearvars;close all;
 file = '../data/raster.vol';
-% [header, seg, bscan, slo] = read_vol(file, 'coordinates');
-[header, seg, bscan, slo] = read_vol(file, 'coordinates','raw_pixel');
+% [header, ~, bscan] = read_vol(file, 'coordinates');
+[header, ~, bscan] = read_vol(file, 'coordinates','raw_pixel');
 
 att = compute_attenuation(bscan, header.scale_z);
 subplot(121);imagesc(bscan(:,:,13).^0.25);axis off;
 subplot(122);imagesc(att(:,:,13));axis off;
 colormap(gray);
 set(gca,'ColorScale','log')
-% caxis([0 5]);
+
+%% Attenuation coefficient
+clc;clearvars;close all;
+file = '../data/raster.vol';
+[header, seg, bscan] = read_vol(file);
+
+stacked = stack_bscans(bscan, seg, {'RNFL','GCIP','RPE'});
+subplot(131);imagesc(stacked.RNFL);axis off;title('RNFL');
+subplot(132);imagesc(stacked.GCIP);axis off; title('GCIP');
+subplot(133);imagesc(stacked.RPE);axis off; title('RPE');
+colormap(gray);
