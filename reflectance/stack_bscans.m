@@ -75,17 +75,13 @@ layer_top_bottom = {'RNFL',     'ILM',        'RNFL_GCL';
                 
 
 if ischar(layers)
-    if strcmp(layers, 'all')
-        layers = layer_top_bottom(:,1);
-    else
-        layers = {layers};
-    end
+    layers = {layers};
 end
 
 n_layer = length(layers);
 
-if ndims(bscan) ~=3
-    error('Input bscan must be a 3D volume');
+if ndims(bscan) ~= 3 || ~ isnumeric(bscan)
+    error('Input bscan must be a 3D volume.');
 end
 
 [~, n_ascan, n_bscan] = size(bscan);
@@ -108,11 +104,9 @@ for i_layer=1:n_layer
     bottom = layer_top_bottom{ind, 3};
     
     if ~isfield(seg, top)
-        warning(['Boundary ' top ' not found in segmentation. Unable to compute thickness for ' layer ' layer']);
-        continue
+        error(['Boundary ' top ' not found in segmentation. Unable to compute thickness for ' layer ' layer']);
     elseif ~isfield(seg, bottom)
-        warning(['Boundary ' bottom ' not found in segmentation. Unable to compute thickness for ' layer ' layer']);
-        continue
+        error(['Boundary ' bottom ' not found in segmentation. Unable to compute thickness for ' layer ' layer']);
     end
     
     % Get segmentation
