@@ -1,64 +1,103 @@
-close all;clc;clear all;
+function [header, seg, bscan, fundus] = read_tabs(folder, coordinates)
+%READ_TABS Read TABS output
+%
+%   [header, seg, bscan, slo] = read_tabs(folder)
+%   Load and organize the output of Topcon Advanced Boundary Segmentation
+%   (TABS). All TABS output files must be in the in_folder folder.
+%
+%   Input arguments:
+%  
+%   'in_folder'      String with the directory containing TABS outputs.
+%            
+%  
+%   Output arguments:
+%  
+%   'header'         Structure with metadata.
+%
+%   'seg'            Struct with the segmentation of retinal layers 
+%                    performed by TABS.
+%
+%   'bscan'          3D matrix containing bscans.
+%
+%   'fundus'         Fundus image.
+%  
+%  
+%   Notes
+%   -----
+%   This function has only been tested with a macular scans and may fail
+%   with other acquisition patterns.
+%
+%
+%   Example
+%   ---------      
+%   % Read TABS output
+%
+%     [header, seg, bscan, slo] = read_tabs('../tabs_out_folder')
+%
+%  
+%   David Romero-Bascones, dromero@mondragon.edu
+%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022.
 
-addpath(genpath('C:\Users\dromero\Desktop\GITHUB\retimat'));
 
-%% Read fundus
-fname = '1000084_21011_0_0/ColorFundus.dat';
+% Check arguments
+if nargin == 1
+    coordinates = false;
+end
 
-fid = fopen(fname);
-fundus = fread(fid, '*uint8');
+% Read meta-data
+file = [folder '/FDSInfo.txt'];
+header = read_metadata(file, coordinates);
 
-n_size = [3 2048 1536];
-fundus = reshape(fundus, n_size);
-fundus = permute(fundus, [3 2 1]);
-fundus = flip(fundus,3);
-%% Read B-Scans
-fname = '1000084_21011_0_0/AlignedOCTImages.dat';
+% Read extra meta-data (foveal center)
+file = [folder '/SegIndicators.txt'];
+header = read_metadata2(file, header, coordinates);
+if nargout == 1
+    return;
+end
 
-fid = fopen(fname);
-I = fread(fid, '*uint16');
+% Read segmented boundary names
+file = [folder '/TabilSegStat000.txt'];
+header = read_seg_layers(file, header);
 
-% Remove useless data
-% I = I(2:2:end); % other is just 0s (maybe unit16)
+% Read segmentation
+file = [folder '/TabilSegStat.dat'];
+seg = read_seg(file, header);
+if nargout == 2
+    return; 
+end
 
-n_size = [512 650 128];
-bscan = reshape(I, n_size);
-bscan = permute(bscan, [3 2 1]);
+% Read bscans
+file = [folder '/AlignedOCTImages.dat'];
+bscan = read_bscan(file, header);
+if nargout == 3 
+    return
+end
 
-en_face = squeeze(mean(bscan,2));
-%% Read segmentation
-n_layer = 10;
-n_ascan = 512;
-n_bscan = 128;
+% Read fundus
+file = [folder '/ColorFundus.dat'];
+fundus = read_fundus(file, header);
 
-fname = '1000084_21011_0_0/TabilSegStat.dat';
-fid = fopen(fname);
-seg = fread(fid,'*uint16');
+function header = read_metadata(file, coordinates)
+% Parameters are structured in categories and fields within each category.
+% This function merges all the fields into a single header struct.
 
-n_size = [n_ascan n_bscan n_layer];
+if ~exist(file,'file')
+    error(['Unable to find metadata file: ' file]);
+end
 
-seg = reshape(seg, n_size);
+fid = fopen(file);
 
-seg = permute(seg, [2 1 3]);
-
-TRT = seg(:,:,9) - seg(:,:,1);
-GCIPL = seg(:,:,4) - seg(:,:,2);
-%% Read meta-data
-fname = '1000084_21011_0_0/FDSInfo.txt';
-fid = fopen(fname,'r');
-% seg = fscanf(fid,'%f',2);
+% Read all the text and convert it to lines
 meta_data = char(fread(fid)');
 lines = splitlines(meta_data);
 
-header = struct;
+% Remove empty lines (last one basically)
 is_empty = cellfun(@isempty, lines);
 lines(is_empty) = [];
 n_line = length(lines);
 
-idx_cat = find(cellfun(@(x) x(1) ~= ' ', lines));
-n_cat = length(idx_cat);
-
 % Loop through fields
+header = struct;
 for i_line=1:n_line
     
     line = lines{i_line};
@@ -111,7 +150,8 @@ for i_line=1:n_line
                 case 'Color fundus photo'
                     dims = strsplit(dims,',');
 
-                    header.fundus_dims = cellfun(@str2num, dims);
+                    dims = cellfun(@str2num, dims);
+                    header.fundus_dims = dims([2 1 3]);
                 otherwise
                     error('Unknown category for (x,y,z)');
             end            
@@ -164,11 +204,24 @@ for i_line=1:n_line
     end         
 end
    
-fclose(fid);
+header.scale_x = header.size_x/(header.n_ascan-1);
+header.scale_y = header.size_y/(header.n_bscan-1);
+header.scale_z = header.size_z/(header.n_axial-1);
 
-%% Read meta-data 2
-fname = '1000084_21011_0_0/SegIndicators.txt';
-fid = fopen(fname, 'r');
+if coordinates
+   
+    x = linspace(-header.size_x/2, header.size_x/2, header.n_ascan);
+    y = linspace(header.size_y/2, -header.size_y/2, header.n_bscan);
+
+    [header.X_oct, header.Y_oct] = meshgrid(x,y);
+end
+    
+function header = read_metadata2(file, header, coordinates)
+if ~exist(file,'file')
+    error(['Unable to find segmentation metadata file: ' file]);
+end
+
+fid = fopen(file);
 meta_data = char(fread(fid)');
 
 lines = splitlines(meta_data);
@@ -196,13 +249,13 @@ for i_line=1:n_line
             field_val = strrep(field_val,'(','');
             field_val = strsplit(field_val,',');
             
-            header.macula_center = cellfun(@str2num, field_val);
+            header.fovea_center_px = cellfun(@str2num, field_val);
         case '(Disc_Center-frame, Disc_Center-aline)'
             field_val = strrep(field_val,')','');
             field_val = strrep(field_val,'(','');
             field_val = strsplit(field_val,',');
             
-            header.onh_center = cellfun(@str2num, field_val);
+            header.onh_center_px = cellfun(@str2num, field_val);
         case 'ONH size'
             header.onh_size = str2num(field_val);
         case 'ILM indicator'
@@ -219,109 +272,86 @@ for i_line=1:n_line
     end
 end
 
-x = linspace(-header.size_x/2, header.size_x/2, n_ascan);
-y = linspace(header.size_y/2, -header.size_y/2, n_bscan);
+% Foveal center in mm
+if coordinates
+    header.x_fovea = header.X_oct(1, header.fovea_center_px(2));
+    header.y_fovea = header.Y_oct(header.fovea_center_px(1),1);
+end
 
-[X, Y] = meshgrid(x,y);
-header.scale_z = header.size_z/(header.n_axial-1);
+fclose(fid);
 
-% Foveal center
-x_cen = X(1,header.macula_center(2));
-y_cen = Y(header.macula_center(1),1);
+function header = read_seg_layers(file, header)
+if ~exist(file,'file')
+    warning(['Unable to find segmentation .txt file: ',file,...
+        ' layer names might be inaccurate']);
+    header.layers = {'ILM','RNFL_GCL','GCL_IPL','IPL_INL','INL_OPL','ELM','ISOS','RPE','BM','CSI'};
+    return;
+end
 
-% Align the scans
-X_cen = X - x_cen;
-Y_cen = Y - y_cen;
+fid = fopen(file);
 
-% Pixel to um
-TRT = double(TRT) * header.scale_z * 1e3;
-GCIPL = double(GCIPL) * header.scale_z * 1e3;
-%% Plotting
-tiledlayout(3,3,'TileSpacing','compact');
+data = char(fread(fid)');
+lines = splitlines(data);
+layers = strsplit(lines{1}, '\t');
 
-% Fundus
-nexttile;
-imagesc(fundus);
-hold on;
-x = [header.oct_fundus_ul(1) header.oct_fundus_br(1)];
-y = [header.oct_fundus_ul(2) header.oct_fundus_br(2)];
+% Remove first column
+header.layers = layers(2:end);
 
-scatter(x,y,'g');
-plot([x(1) x(2) x(2) x(1) x(1)],[y(1) y(1) y(2) y(2) y(1)],'--g');
-axis off;
+fclose(fid);
 
-% En face
-nexttile;
-imagesc(en_face);
-colormap(gca,gray);
-hold on;
-scatter(header.macula_center(2), header.macula_center(1),15,'r','filled');
-axis off;
-title('En face');
+function seg = read_seg(file, header)
 
-% B-scan
-% i_bscan = round(linspace(1,n_bscan,8));
-i_bscan = round(n_bscan/2);
-for i=1:length(i_bscan)
-    nexttile;
+if ~exist(file,'file')
+    error(['Unable to find segmentation .dat file: ' file]);
+end
 
-    imagesc(squeeze(bscan(i_bscan(i),:,:)));hold on;
-    for i_layer=1:n_layer
-        plot(squeeze(seg(i_bscan(i),:,i_layer)));
-    end
-    colormap(gca,gray);
-    axis off;
-    title(['Bscan:' num2str(i_bscan(i))]);
-end 
+fid = fopen(file);
+seg_data = fread(fid,'*uint16');
 
-% TRT
-nexttile;
-surf(X,Y,TRT,'EdgeColor','none');view(0,90);
-hold on;
-scatter3(x_cen, y_cen, max(TRT(:)), 15, 'r', 'filled');
-axis([-3 3 -3 3]);
-title('TRT');
-colorbar;
+dims = [header.n_ascan header.n_bscan header.n_layer];
 
-% TRT ETDRS
-nexttile;
-[TRT_etdrs, sect] = sectorize_map(X_cen,Y_cen,TRT,'mean','etdrs');
-plot_sectors(TRT_etdrs, sect);
-title('TRT ETDRS');
-axis([-3 3 -3 3]);
-axis on;
+seg_data = reshape(seg_data, dims);
+seg_data = permute(seg_data, [2 1 3]);
 
-% TRT rings
-nexttile;
-[TRT_ring, sect] = sectorize_map(X_cen,Y_cen,TRT,'mean','ring',linspace(0,3,10));
-plot_sectors(TRT_ring, sect);
-title('TRT rings');
-axis([-3 3 -3 3]);
-axis on;
+seg = struct;
+for i_layer=1:header.n_layer
+    seg.(header.layers{i_layer}) = seg_data(:,:,i_layer);
+end
 
-% GCIPL
-nexttile;
-surf(X,Y,GCIPL,'EdgeColor','none');view(0,90);
-hold on;
-scatter3(x_cen, y_cen, max(TRT(:)), 15, 'r', 'filled');
-axis([-3 3 -3 3]);
-title('GCIPL');
-colorbar;
+function bscan = read_bscan(file, header)
+if ~exist(file,'file')
+    error(['Unable to find bscan data file: ' file]);
+end
 
-% GCIPL ETDRS
-nexttile;
-[GCIPL_etdrs, sect] = sectorize_map(X_cen,Y_cen,GCIPL,'mean','etdrs');
-plot_sectors(GCIPL_etdrs, sect);
-title('GCIPL ETDRS');
-axis([-3 3 -3 3]);
-axis on;
+fid = fopen(file);
 
-% GCIPL rings
-nexttile;
-[GCIPL_ring, sect] = sectorize_map(X_cen,Y_cen,GCIPL,'mean','ring',linspace(0,3,10));
-plot_sectors(GCIPL_ring, sect);
-title('GCIPL rings');
-axis([-3 3 -3 3]);
-axis on;
+I = fread(fid, '*uint16');
 
-sgtitle('1000084_21011_0_0','Interpreter','none');
+% Remove useless data (not necessary if we read it as uint16)
+% I = I(2:2:end); % other is just 0s 
+
+dims = [header.n_ascan header.n_axial header.n_bscan];
+% dims = [512 650 128]; % hard coded
+
+bscan = reshape(I, dims);
+bscan = permute(bscan, [3 2 1]);
+
+fclose(fid);
+
+function fundus = read_fundus(file, header)
+if ~exist(file,'file')
+    error(['Unable to find colour fundus file: ' file]);
+end
+
+fid = fopen(file);
+fundus = fread(fid, '*uint8');
+
+% fundus_dims = [3 2048 1536];
+% Define colour fundus image dimensions
+dims = flip(header.fundus_dims);
+
+fundus = reshape(fundus, dims);
+fundus = permute(fundus, [3 2 1]);
+fundus = flip(fundus,3);
+
+fclose(fid);
