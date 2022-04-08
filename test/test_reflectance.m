@@ -49,8 +49,9 @@ subplot(122);imagesc(att(:,:,13));axis off;
 colormap(gray);
 set(gca,'ColorScale','log')
 
-%% Attenuation coefficient
+%% Stakced b-scans
 clc;clearvars;close all;
+addpath(genpath('..'));
 file = '../data/raster.vol';
 [header, seg, bscan] = read_vol(file);
 
