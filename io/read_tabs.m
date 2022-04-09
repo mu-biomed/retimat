@@ -32,6 +32,13 @@ function [header, seg, bscan, fundus] = read_tabs(folder, coordinates)
 %   This function has only been tested with a macular scans and may fail
 %   with other acquisition patterns or with TABS outputs with different
 %   metadata structure.
+%   The function expects the following files inside folder:
+%   - FDSInfo.txt: metadata
+%   - SegIndicators.txt: extra metadata (foveal center...)
+%   - TabilSegStat000.txt: only used to retrieve boundary names
+%   - TabilSegStat.dat: segmentation data
+%   - AlignedOCTImages.dat: OCT bscans
+%   - ColorFundus.dat: color fundus image
 %
 %
 %   Example
