@@ -52,7 +52,7 @@ imshow(I);
 %% Read TABS output
 clc;close all;
 
-folder = '../data/1000084_21011_0_0';
+folder = '../data_private/example_tabs';
 [h, seg, bscan, fundus] = read_tabs(folder, true);
 
 % Plotting: fundus
@@ -67,11 +67,11 @@ plot([x(1) x(2) x(2) x(1) x(1)],[y(1) y(1) y(2) y(2) y(1)],'--g');
 axis off;
 
 % Pixel to um
-TRT = double(seg.BM - seg.ILM) * h.scale_z * 1e3;
+GCIPL = double(seg.IPL_INL - seg.RNFL_GCL) * h.scale_z * 1e3;
 
 % En face
 subplot(142);
-en_face = squeeze(mean(bscan,2));
+en_face = squeeze(mean(bscan))';
 imagesc(en_face);
 colormap(gca,gray);
 hold on;
@@ -82,9 +82,9 @@ title('En face');
 % B-scan
 subplot(143);
 i_bscan = round(h.n_bscan/2);
-imagesc(squeeze(bscan(i_bscan,:,:)));hold on;
-for i_layer=1:h.n_layer
-    layer = h.layers{i_layer};
+imagesc(bscan(:,:,i_bscan));hold on;
+for i_layer=1:h.n_boundary
+    layer = h.boundaries{i_layer};
     plot(seg.(layer)(i_bscan, :));
 end
 colormap(gca,gray);
@@ -93,9 +93,9 @@ title(['Bscan:' num2str(i_bscan)]);
 
 % TRT
 subplot(144);
-surf(h.X_oct,h.Y_oct,TRT,'EdgeColor','none');view(0,90);
+surf(h.X_oct,h.Y_oct,GCIPL,'EdgeColor','none');view(0,90);
 hold on;
-scatter3(h.x_fovea, h.y_fovea, max(TRT(:)), 15, 'r', 'filled');
+scatter3(h.x_fovea, h.y_fovea, max(GCIPL(:)), 15, 'r', 'filled');
 axis([-3 3 -3 3]);
 title('TRT');
 colorbar;

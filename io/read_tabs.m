@@ -7,32 +7,38 @@ function [header, seg, bscan, fundus] = read_tabs(folder, coordinates)
 %
 %   Input arguments:
 %  
-%   'in_folder'      String with the directory containing TABS outputs.
+%   'folder'         String with the directory containing TABS outputs.
 %            
-%  
+%   'coordinates'    If true a-scan coordinates are returned as part of the
+%                    header. Default: false.
+%
+%
 %   Output arguments:
 %  
 %   'header'         Structure with metadata.
 %
-%   'seg'            Struct with the segmentation of retinal layers 
-%                    performed by TABS.
+%   'seg'            Struct with the segmentation of retinal boundaries 
+%                    performed by TABS. Dimensions of each boundary 
+%                    segmentation are [n_bscan n_ascan].
 %
-%   'bscan'          3D matrix containing bscans.
+%   'bscan'          3D matrix containing bscans raw intensity values. The
+%                    dimensions are [n_axial n_ascan n_bscan].
 %
-%   'fundus'         Fundus image.
+%   'fundus'         Fundus colour image.
 %  
 %  
 %   Notes
 %   -----
 %   This function has only been tested with a macular scans and may fail
-%   with other acquisition patterns.
+%   with other acquisition patterns or with TABS outputs with different
+%   metadata structure.
 %
 %
 %   Example
 %   ---------      
 %   % Read TABS output
 %
-%     [header, seg, bscan, slo] = read_tabs('../tabs_out_folder')
+%     [header, seg, bscan, fundus] = read_tabs('../tabs_out_folder')
 %
 %  
 %   David Romero-Bascones, dromero@mondragon.edu
@@ -57,7 +63,7 @@ end
 
 % Read segmented boundary names
 file = [folder '/TabilSegStat000.txt'];
-header = read_seg_layers(file, header);
+header = read_seg_boundary_names(file, header);
 
 % Read segmentation
 file = [folder '/TabilSegStat.dat'];
@@ -177,7 +183,7 @@ for i_line=1:n_line
         case 'Version'
             header.seg_version = str2num(field_val);
         case 'Layers'
-            header.n_layer = str2num(field_val);
+            header.n_boundary = str2num(field_val);
         case '(Ascan,Frame)'
             vals = strrep(field_val,'(','');            
             vals = strrep(vals,')','');      
@@ -280,11 +286,24 @@ end
 
 fclose(fid);
 
-function header = read_seg_layers(file, header)
+function header = read_seg_boundary_names(file, header)
+
+% Define the new boundary naming convention (left:TABS, right:standard)
+boundary_names = {'ILM', 'ILM'; ...
+                  'NFL', 'RNFL_GCL';...
+                  'GCL', 'GCL_IPL';...
+                  'IPL', 'IPL_INL';...
+                  'INL', 'INL_OPL';...
+                  'ELM', 'ELM';...
+                  'ISOS','MZ_EZ';...
+                  'RPE', 'IZ_RPE';...
+                  'BM',  'BM';...
+                  'CSI', 'CSI'};
+
 if ~exist(file,'file')
     warning(['Unable to find segmentation .txt file: ',file,...
-        ' layer names might be inaccurate']);
-    header.layers = {'ILM','RNFL_GCL','GCL_IPL','IPL_INL','INL_OPL','ELM','ISOS','RPE','BM','CSI'};
+        ' boundary names might be inaccurate']);
+    header.boundaries = boundary_names(:,2)';
     return;
 end
 
@@ -292,10 +311,30 @@ fid = fopen(file);
 
 data = char(fread(fid)');
 lines = splitlines(data);
-layers = strsplit(lines{1}, '\t');
+boundaries = strsplit(lines{1}, '\t');
 
-% Remove first column
-header.layers = layers(2:end);
+% Remove a-scan column header
+boundaries(strcmp(boundaries,'nAscan')) = [];
+n_boundary = length(boundaries);
+
+if n_boundary ~= header.n_boundary
+    warning('The number of boundaries differs between header and segmentation');
+end
+
+header.boundaries = cell(1,n_boundary);
+
+for i_boundary=1:n_boundary
+    boundary = boundaries{i_boundary};
+    % Find the boundary in the defined convention
+    idx = find(strcmp(boundary_names(:,1), boundary));
+    
+    if isempty(idx)
+        header.boundaries{i_boundary} = boundary;
+        warning(['Layer ' boundary ' not previously known']);
+    else
+        header.boundaries{i_boundary} = boundary_names{idx,2};
+    end
+end
 
 fclose(fid);
 
@@ -308,14 +347,14 @@ end
 fid = fopen(file);
 seg_data = fread(fid,'*uint16');
 
-dims = [header.n_ascan header.n_bscan header.n_layer];
+dims = [header.n_ascan header.n_bscan header.n_boundary];
 
 seg_data = reshape(seg_data, dims);
 seg_data = permute(seg_data, [2 1 3]);
 
 seg = struct;
-for i_layer=1:header.n_layer
-    seg.(header.layers{i_layer}) = seg_data(:,:,i_layer);
+for i_boundary=1:header.n_boundary
+    seg.(header.boundaries{i_boundary}) = seg_data(:,:,i_boundary);
 end
 
 function bscan = read_bscan(file, header)
@@ -324,17 +363,16 @@ if ~exist(file,'file')
 end
 
 fid = fopen(file);
-
 I = fread(fid, '*uint16');
 
 % Remove useless data (not necessary if we read it as uint16)
 % I = I(2:2:end); % other is just 0s 
 
+% Rearange raw voxel info
 dims = [header.n_ascan header.n_axial header.n_bscan];
 % dims = [512 650 128]; % hard coded
-
 bscan = reshape(I, dims);
-bscan = permute(bscan, [3 2 1]);
+bscan = permute(bscan, [2 1 3]); % [n_axial x n_ascan x n_bscan]
 
 fclose(fid);
 
@@ -346,9 +384,9 @@ end
 fid = fopen(file);
 fundus = fread(fid, '*uint8');
 
-% fundus_dims = [3 2048 1536];
-% Define colour fundus image dimensions
-dims = flip(header.fundus_dims);
+% Restructure raw pixel values
+dims = flip(header.fundus_dims); % image dimensions
+% dims = [3 2048 1536]; % hard-coded
 
 fundus = reshape(fundus, dims);
 fundus = permute(fundus, [3 2 1]);
