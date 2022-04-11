@@ -1,24 +1,33 @@
 close all;clc;clearvars;
 addpath(genpath('..'));
 
-%% Reflectance map
 file = '../data/raster.vol';
-[header, seg, bscan, slo] = read_vol(file, 'coordinates');
+[header, seg, bscan, slo] = read_vol(file, 'coordinates','raw_pixel');
+%% Basic reflectance map (all layers)
+R = reflectance_map(bscan,'raw','mean');
+imagesc(R);
 
-% MR = reflectance_map(bscan, seg, 'mean', 'ILM', 'BM');
+%% Layer reflectance map
 
-Tnfl = reflectance_map(bscan, seg, 'total', 'ILM', 'RNFL_GCL');
-Trpe = reflectance_map(bscan, seg, 'total', 'IDZ_RPE', 'BM');
+Tnfl = reflectance_map(bscan, 'raw', 'total', seg, 'ILM', 'RNFL_GCL');
+Tnfl = reflectance_map(bscan, 'normalized', 'total', seg, 'IZ_RPE', 'BM');
+% Trpe = reflectance_map(bscan, 'raw', 'total', seg, 'IZ_RPE', 'BM');
 
-att = reflectance_map(bscan, seg, 'NFL_RPE_att', header.scale_z, 'ILM', 'BM');
+att = reflectance_map(bscan, 'attenuation','mean', seg, header.scale_z, 'ILM', 'BM');
 
-subplot(131);imagesc(Tnfl);
-subplot(132);imagesc(Trpe);
-subplot(133);imagesc(att);caxis([0 10]);
+subplot(131);imagesc(Tnfl);title('RNFL raw');
+subplot(132);imagesc(Trpe);title('RPE raw');
+subplot(133);imagesc(att);title('TRT attenuation');
+set(gca,'ColorScale','log')
+
 colormap(gray);
 
 %% Normalize bscan
-bscan_norm = normalize_reflectance(bscan, seg, 'column');
+clc;clearvars;close all;
+file = '../data/raster.vol';
+[header, seg, bscan, slo] = read_vol(file, 'coordinates');
+
+bscan_norm = normalize_reflectance(bscan, seg, 'ascan');
 bscan_norm2 = normalize_reflectance(bscan, seg, 'bscan');
 
 n_bscan = 6;
@@ -30,9 +39,20 @@ norm_lim2 = [prctile(bscan_norm2(:),1) prctile(bscan_norm2(:),99)];
 for i=1:n_bscan
     b = idx_bscan(i);
     
-    subplot(3,n_bscan,i);imagesc(bscan(:,:,b));caxis(minmax(bscan(:)'));
-    subplot(3,n_bscan,i+n_bscan);imagesc(bscan_norm(:,:,b));caxis(norm_lim);
-    subplot(3,n_bscan,i+2*n_bscan);imagesc(bscan_norm2(:,:,b));caxis(norm_lim2);
+    subplot(3,n_bscan,i);
+    imagesc(bscan(:,:,b));
+    caxis(minmax(bscan(:)'));
+    title('raw');
+    
+    subplot(3,n_bscan,i+n_bscan);
+    imagesc(bscan_norm(:,:,b));
+    caxis(norm_lim);
+    title('norm-ascan');
+    
+    subplot(3,n_bscan,i+2*n_bscan);
+    imagesc(bscan_norm2(:,:,b));
+    caxis(norm_lim2);
+    title('norm-bscan');
 end
 
 colormap(gray);
