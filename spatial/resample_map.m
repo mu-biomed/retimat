@@ -1,8 +1,9 @@
 function [X1, Y1, Z1] = resample_map(X, Y, Z, grid_type, varargin)
 %RESAMPLE_MAP Resample a 2D map into a new grid by interpolation/extrapolation
 %
-%   Usage example OUT = template(IN1)
-%   Detail explanation goes here
+%   [X1, Y1, Z1] = resample_map(X, Y, Z, grid_type, varargin)
+%   Rarange a thickness map into a new grid by means of interpolation and
+%   extrapolation.
 %
 %   Input arguments (mandatory):
 %  
@@ -55,19 +56,19 @@ function [X1, Y1, Z1] = resample_map(X, Y, Z, grid_type, varargin)
 %
 %
 %
-%   Example 1
+%   Example
 %   ---------      
-%   % Example description
+%   % Resample original a-scans to a regular grid
 %
 %   [header, seg, ~, ~] = read_vol(myfile.vol, 'coordinates');
 %   Thickness = compute_thickness(seg, 'TRT', header.scale_z);
-
+%
 %   [X, Y, TRT] = resample_map(header.X_oct, header.Y_oct, Thickness.TRT, ...
 %   'regular', 'n_point', 100, 'max_d', 2.5);
 %
 %  
 %   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
+%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022.
 
 if mod(nargin,2) ~=0
     error('Number of arguments must be even');
