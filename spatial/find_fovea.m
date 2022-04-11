@@ -82,7 +82,8 @@ switch method
         [x_fovea, y_fovea] = find_min(X, Y, TRT_filt);
         
     otherwise
-        error('Unsupported fovea location method');
+        error(strcat("Unsupported fovea location method. Valid options: ",...
+            "'none','min','resample_min','smooth_min'"));
 end
 
 function [x_min, y_min] = find_min(X, Y, Z)
