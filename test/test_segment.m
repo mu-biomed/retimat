@@ -12,6 +12,14 @@ mask = seg_retina(I, header.scale_z, 100, 'otsu', true);
 
 %% Layers segmentation
 
-I = bscan(:,:,13);
+I = bscan(:,:,1);
+layers = {'ilm','isos','elm','bm'};
+seg = seg_layers(I, header.scale_z, layers, true);
 
-seg = seg_layers(I, header.scale_z, true);
+% figure;
+% imagesc(I);hold on;
+% for i=1:length(layers)
+%     plot(seg.(layers{i}));
+% end
+% colormap(gray);
+% legend(layers);

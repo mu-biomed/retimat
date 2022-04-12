@@ -1,4 +1,4 @@
-function Seg = seg_layers(I, scale_z, visu)
+function seg = seg_layers(I, scale_z, layers, visu)
 %SEG_LAYERS Segment retinal layers from a macular OCT B-scan
 %
 %   Seg = seg_layers(I, scale_z, visu)
@@ -16,7 +16,7 @@ function Seg = seg_layers(I, scale_z, visu)
 %  
 %   Output arguments:
 %  
-%   'Seg'            Struct with the segmented values.          
+%   'seg'            Struct with the segmented values.          
 %  
 %
 %   
@@ -45,7 +45,7 @@ function Seg = seg_layers(I, scale_z, visu)
 [N, M] = size(I);
 
 % Flatten retina
-[I_flat, shift] = flatten_retina(I, 'mask', scale_z);
+[I_flat, shift, mask] = flatten_retina(I, 'middle', scale_z);
 
 % Get retina mask
 mask_retina = seg_retina(I_flat, scale_z, 50, 'mean', false);
@@ -71,207 +71,117 @@ I_ld = conv2(I, [-ones(1,n_filt);ones(1,n_filt)], 'same');
 I_dl = normalize(I_dl, 'range');
 I_ld = normalize(I_ld, 'range');
 
-% ILM segmentation
-[ilm, D, mask, extra] = segment_ilm(I_dl, mask_retina);
+% Initialize segmentation
+seg = struct;
 
-if visu    
-    % Visualization
-    clf;
-    subplot(431); hold on;
-    imshow(I);
-    plot(ilm, 'r', 'Linewidth', 1);
-    colormap(gca, 'gray');
-    set(gca,'YDir','reverse');
+n_layer = length(layers);
+
+for i_layer=1:n_layer
+    layer = layers{i_layer};
+
+    [seg, D, mask, extra] = segment_layer(I_dl, I_ld, seg, mask_retina, layer);
     
-    subplot(432);hold on;
-    imagesc(I_dl);
-    scatter(1,1,'r')
-    scatter(M+2,N,1,'r')
-    plot(extra.path_j, extra.path_i,'r');
-    colormap(gca, gray);
-    set(gca,'YDir','reverse');
-    
-    subplot(433);hold on;
-    imagesc(D);
-    scatter(1,1,'r')
-    scatter(M+2,N,1,'r')
-    plot(extra.path_j, extra.path_i,'r');
-    colors = parula;
-    colormap(gca, colors(end:-1:1,:));
-    set(gca,'YDir','reverse');
-    title('ILM');
+    if visu    
+        subplot(n_layer,3,1+3*(i_layer-1)); hold on;
+        imagesc(I);
+        plot(seg.(layer), 'r', 'Linewidth', 1);
+        colormap(gca, 'gray');
+        set(gca,'YDir','reverse');
+        axis off;
+        
+        subplot(n_layer,3,2+3*(i_layer-1));hold on;
+        imagesc(I_dl);
+        scatter(1,1,'r')
+        scatter(M+2,N,1,'r')
+        plot(extra.path_j, extra.path_i,'r');
+        colormap(gca, gray);
+        set(gca,'YDir','reverse');
+        axis off;
+        
+        subplot(n_layer,3,3+3*(i_layer-1));hold on;
+        imagesc(D);
+        scatter(1,1,'r')
+        scatter(M+2,N,1,'r')
+        plot(extra.path_j, extra.path_i,'r');
+        colors = parula;
+        colormap(gca, colors(end:-1:1,:));
+        set(gca,'YDir','reverse');
+        title(layer);
+    end
 end
 
-% ISOS segmentation
-[isos, D, mask, extra] = segment_isos(I_dl, mask_retina);
-
-if visu 
-    subplot(434); hold on;
-    imshow(I);
-    plot(isos, 'g', 'Linewidth', 1);
-    
-    subplot(435);hold on;
-    imagesc(I_dl);
-    scatter(1,1,'r')
-    scatter(M+2,N,1,'r')
-    plot(extra.path_j, extra.path_i,'r');
-    colormap(gca, gray);
-    set(gca,'YDir','reverse');
-    
-    subplot(436);hold on;
-    imagesc(D);
-    scatter(1,1,'r')
-    scatter(M+2,N,1,'r')
-    plot(extra.path_j, extra.path_i,'r');
-    colors = parula;
-    colormap(gca, colors(end:-1:1,:));
-    set(gca,'YDir','reverse');
+if visu
+    figure;
+    imagesc(I);hold on;
+    for i=1:length(layers)
+        plot(seg.(layers{i}),'LineWidth',1);
+    end
+    colormap(gray);
+    legend(layers,'Location','southwest');
+    set(gca,'FontSize',14);
+    axis off;
 end
 
-% BM segmentation
-[bm, D, mask, extra] = segment_bm(I_ld, mask_retina, isos);
+function [seg, D, mask, extra] = segment_layer(I_dl, I_ld, seg, mask_retina, layer)
 
-if visu 
-    subplot(437); hold on;
-    imshow(I);
-    plot(bm, 'g', 'Linewidth', 1);
-    
-    subplot(438);hold on;
-    imagesc(I_dl);
-    scatter(1,1,'r')
-    scatter(M+2,N,1,'r')
-    plot(extra.path_j, extra.path_i,'r');
-    colormap(gca, gray);
-    set(gca,'YDir','reverse');
-    
-    subplot(439);hold on;
-    imagesc(D);
-    scatter(1,1,'r')
-    scatter(M+2,N,1,'r')
-    plot(extra.path_j, extra.path_i,'r');
-    colors = parula;
-    colormap(gca, colors(end:-1:1,:));
-    set(gca,'YDir','reverse');
-end
-
-% ELM segmentation
-[elm, D, mask, extra] = segment_elm(I_dl, mask_retina, isos);
-
-if visu 
-    subplot(4,3,10); hold on;
-    imshow(I);
-    plot(elm, 'g', 'Linewidth', 1);
-    
-    subplot(4,3,11);hold on;
-    imagesc(I_dl);
-    scatter(1,1,'r')
-    scatter(M+2,N,1,'r')
-    plot(extra.path_j, extra.path_i,'r');
-    colormap(gca, gray);
-    set(gca,'YDir','reverse');
-    
-    subplot(4,3,12);hold on;
-    imagesc(D);
-    scatter(1,1,'r')
-    scatter(M+2,N,1,'r')
-    plot(extra.path_j, extra.path_i,'r');
-    colors = parula;
-    colormap(gca, colors(end:-1:1,:));
-    set(gca,'YDir','reverse');
-end
-
-end
-
-function [ilm, D, mask, extra] = segment_ilm(I_dl, mask_retina)
-
+% Basic info
 [N, M] = size(mask_retina);
-
 n_row = sum(mask_retina(:,1));
 
-mask = mask_retina & (cumsum(mask_retina) < n_row/2);
+% Se
+switch layer
+    case 'ilm'
+        % Search mask: half upper retinal mask    
+        % Gradient: I_dl
+        mask = mask_retina & (cumsum(mask_retina) < n_row/2);
+        I = I_dl;
+        
+    case 'isos'
+        % Search mask: half bottom retinal mask
+        % Gradient: I_dl
+        mask = mask_retina & (cumsum(mask_retina) > n_row/3);
+        I = I_dl;
+        
+    case 'bm'
+        % Search mask: down ISOS
+        % Gradient: I_ld (I_dl does not work well)
+        mask = false(N,M);
+        for i=1:M
+            mask(seg.isos(i)+5:seg.isos(i)+50,i) = 1; 
+        end
+        mask = mask_retina .* mask;
+        I = I_ld;
+        
+    case 'elm'
+        % Search mask: top ISOS
+        % Gradient: I_dl
+        mask = false(N,M);
+        for i=1:M
+            mask(seg.isos(i)-15:seg.isos(i)-4,i) = 1; 
+        end
+%         mask = [ones(N,1) mask_retina .* mask ones(N,1)];
+        I = I_dl;
 
-% Search mask: half upper retinal mask
-mask = [ones(N,1) mask ones(N,1)];
+    otherwise
+        error("Unknown layer to segment");
+end
+
+% Add padding
+mask = [ones(N,1) mask ones(N,1)];  
 
 % Initialize Graph
-G = [I_dl(:,1) I_dl I_dl(:,end)];
+G = [I(:,1) I I(:,end)];
 G(~mask) = -Inf;
 
 % Find shortest path
 D = dijkstra_matrix(G);
 [path_i, path_j] = get_path(D);
 
-ilm = path_i(path_j~=M+2 & path_j~=1);
-ilm = flip(ilm);
+seg.(layer) = path_i(path_j~=M+2 & path_j~=1);
+seg.(layer) = flip(seg.(layer));
 
 extra.path_i = path_i;
 extra.path_j = path_j;
-end
-
-function [isos, D, mask, extra] = segment_isos(I_dl, mask_retina)
-
-[N, M] = size(mask_retina);
-
-n_row = sum(mask_retina(:,1));
-
-mask = mask_retina & (cumsum(mask_retina) > n_row/3);
-
-% Search mask: half upper retinal mask
-mask = [ones(N,1) mask ones(N,1)];
-
-% Initialize Graph
-G = [I_dl(:,1) I_dl I_dl(:,end)];
-G(~mask) = -Inf;
-
-% Find shortest path
-D = dijkstra_matrix(G);
-[path_i, path_j] = get_path(D);
-
-isos = path_i(path_j~=M+2 & path_j~=1);
-isos = flip(isos);
-
-extra.path_i = path_i;
-extra.path_j = path_j;
-end
-
-function [bm, D, mask, extra] = segment_bm(I_ld, mask_retina, isos)
-[N, M] = size(mask_retina);
-
-mask_down = false(N,M);
-for i=1:M
-    mask_down(isos(i)+5:isos(i)+50,i) = 1; 
-end
-mask = [ones(N,1) mask_retina .* mask_down ones(N,1)];
-
-G = [I_ld(:,1) I_ld I_ld(:,end)];  % I_dl does not work well
-G(~mask) = -Inf;
-D = dijkstra_matrix(G);
-[path_i, path_j] = get_path(D);
-bm = flip(path_i(path_j~=M+2 & path_j~=1));
-
-extra.path_i = path_i;
-extra.path_j = path_j;
-end
-
-function [elm, D, mask, extra] = segment_elm(I_dl, mask_retina, isos)
-
-[N, M] = size(mask_retina);
-
-% ELM segmentation
-mask = false(N,M);
-for i=1:M
-    mask(isos(i)-15:isos(i)-4,i) = 1; 
-end
-% mask = [ones(N,1) mask_retina .* mask_up ones(N,1)];
-G = [I_dl(:,1) I_dl I_dl(:,end)];
-G(~mask) = -Inf;
-D = dijkstra_matrix(G);
-[path_i, path_j] = get_path(D);
-elm = flip(path_i(path_j~=M+2 & path_j~=1));
-
-extra.path_i = path_i;
-extra.path_j = path_j;
-end
 
 function D = dijkstra_matrix(G)
     
@@ -376,7 +286,6 @@ while ~stop
     current_j = ceil(next_node/N);
     current_i = next_node - (current_j-1)*N;    
 end    
-end
 
 function [path_i, path_j] = get_path(D)
 
@@ -431,9 +340,7 @@ while ~stop
     c = c + 1;
 end
 
-end
-
-function [I_flat, shift] = flatten_retina(I, method, scale_z)
+function [I_flat, shift, mask_retina] = flatten_retina(I, method, scale_z)
 % Pilot rpe based flattening
 M = size(I, 2);
 
@@ -451,12 +358,13 @@ switch method
             mid_point = round(mid(i));
             [~, rpe(i)] = max([zeros(mid_point-1,1); If(mid_point:end,i)]);
         end
+        mask_retina = [];
     case 'mask'
         mask_retina = seg_retina(I, scale_z, 50, 'mean', false);
         n_pixel_rnfl = 1e-3*80/scale_z;
         for i=1:M            
             first_mask = find(mask_retina(:,i), 1);
-            mid_point = first_mask + n_pixel_rnfl;
+            mid_point = round(first_mask + n_pixel_rnfl);
             [~, rpe(i)] = max([zeros(mid_point-1,1); I(mid_point:end,i)]);
         end        
     otherwise
@@ -473,6 +381,4 @@ shift = round(min(rpe_2) - rpe_2);
 I_flat = I;
 for i=1:M
     I_flat(:,i) = circshift(I_flat(:,i), shift(i));
-end
-
 end
