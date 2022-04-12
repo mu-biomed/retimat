@@ -11,6 +11,11 @@ I = bscan(:,:,1);
 mask = seg_retina(I, header.scale_z, 100, 'otsu', true);
 
 %% Layers segmentation
+% file = '../data/raster.vol';
+% [header, ~, bscan,~] = read_vol(file);
+
+file = '../data/Zeiss_Macula.img';
+[bscan, header] = read_img(file);
 
 I = bscan(:,:,1);
 layers = {'ilm','isos','elm','bm'};

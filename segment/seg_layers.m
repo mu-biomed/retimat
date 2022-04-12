@@ -64,9 +64,9 @@ I = I_flat;
 % [N, M] = size(I);
 
 % Compute horizontal intensity gradients
-n_filt = 10;
-I_dl = conv2(I, [ones(1,n_filt);-ones(1,n_filt)], 'same');
-I_ld = conv2(I, [-ones(1,n_filt);ones(1,n_filt)], 'same');
+n_filt = [2 4];
+I_dl = conv2(I, [ones(n_filt);-ones(n_filt)], 'same');
+I_ld = conv2(I, [-ones(n_filt);ones(n_filt)], 'same');
 
 I_dl = normalize(I_dl, 'range');
 I_ld = normalize(I_ld, 'range');
@@ -93,7 +93,7 @@ for i_layer=1:n_layer
         imagesc(I_dl);
         scatter(1,1,'r')
         scatter(M+2,N,1,'r')
-        plot(extra.path_j, extra.path_i,'r');
+        plot(extra.path_j, extra.path_i,'--r');
         colormap(gca, gray);
         set(gca,'YDir','reverse');
         axis off;
@@ -102,7 +102,7 @@ for i_layer=1:n_layer
         imagesc(D);
         scatter(1,1,'r')
         scatter(M+2,N,1,'r')
-        plot(extra.path_j, extra.path_i,'r');
+        plot(extra.path_j, extra.path_i,'--r');
         colors = parula;
         colormap(gca, colors(end:-1:1,:));
         set(gca,'YDir','reverse');
