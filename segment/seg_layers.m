@@ -1,4 +1,4 @@
-function seg = seg_layers(I, scale_z, layers, visu)
+function seg = seg_layers(I, scale_z, layers, mask_retina, visu)
 %SEG_LAYERS Segment retinal layers from a macular OCT B-scan
 %
 %   Seg = seg_layers(I, scale_z, visu)
@@ -46,17 +46,20 @@ function seg = seg_layers(I, scale_z, layers, visu)
 
 % Flatten retina
 [I_flat, shift, mask] = flatten_retina(I, 'middle', scale_z);
+I = I_flat;
 
 % Get retina mask
-mask_retina = seg_retina(I_flat, scale_z, 50, 'mean', false);
-for i=1:M
-    ind = find(mask_retina(:,i)==1);
-    start = ind - 10;
-    % start <1 -> start=1
-    mask_retina(start:ind, i) = 1;
+if mask_retina
+    mask_retina = seg_retina(I_flat, scale_z, 50, 'mean', false);
+    for i=1:M
+        ind = find(mask_retina(:,i)==1);
+        start = ind - 10;
+        % start <1 -> start=1
+        mask_retina(start:ind, i) = 1;
+    end
+else
+    mask_retina = ones(size(I_flat));
 end
-
-I = I_flat;
 
 % Resize masks
 % I = imresize(I_flat, 1);
@@ -262,7 +265,7 @@ while ~stop
             idx = N * (j - 1) + i; 
 %             idx = sub2ind(size(D), i, j);
             if any(idx_un == idx)
-                D_ux(idx_un==idx) = d;
+                D_un(idx_un==idx) = d;
             else
                 D_un(end+1) = d;
                 idx_un(end+1) = idx;

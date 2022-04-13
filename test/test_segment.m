@@ -17,9 +17,9 @@ mask = seg_retina(I, header.scale_z, 100, 'otsu', true);
 file = '../data/Zeiss_Macula.img';
 [bscan, header] = read_img(file);
 
-I = bscan(:,:,1);
+I = bscan(:,:,24);
 layers = {'ilm','isos','elm','bm'};
-seg = seg_layers(I, header.scale_z, layers, true);
+seg = seg_layers(I, header.scale_z, layers, false, true);
 
 % figure;
 % imagesc(I);hold on;
