@@ -44,5 +44,3 @@ function OUT = template(IN1,IN2)
 
 outputArg1 = inputArg1;
 outputArg2 = inputArg2;
-end
-
