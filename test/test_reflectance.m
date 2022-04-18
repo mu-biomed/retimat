@@ -80,3 +80,30 @@ subplot(131);imagesc(stacked.RNFL);axis off;title('RNFL');
 subplot(132);imagesc(stacked.GCIP);axis off; title('GCIP');
 subplot(133);imagesc(stacked.RPE);axis off; title('RPE');
 colormap(gray);
+
+%% Image Quality (Spectralis)
+clc;clearvars;close all;
+file = '../data/raster.vol';
+[header, seg, bscan] = read_vol(file,'full_header');
+
+mTCI = image_quality(bscan,'mTCI','Spectralis');
+snr = image_quality(bscan,'cnr',seg);
+
+subplot(121);
+scatter(header.quality, mTCI, 'filled'); hold on;
+xlabel('Spectralis');
+ylabel('mTCI');
+
+subplot(122);
+scatter(header.quality, snr, 'filled');
+xlabel('Spectralis');
+ylabel('SNR');
+
+%% Image Quality (Topcon)
+clc;clearvars;close all;
+folder = '../data_private/example_tabs';
+[header, seg, bscan] = read_tabs(folder);
+mTCI = image_quality(bscan,'mTCI','3D-OCT-1000');
+snr = image_quality(bscan,'snr',seg);
+
+scatter(mTCI, snr);
