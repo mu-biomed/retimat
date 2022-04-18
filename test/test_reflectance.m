@@ -87,7 +87,7 @@ file = '../data/raster.vol';
 [header, seg, bscan] = read_vol(file,'full_header');
 
 mTCI = image_quality(bscan,'mTCI','Spectralis');
-snr = image_quality(bscan,'snr',seg);
+snr = image_quality(bscan,'cnr',seg);
 
 subplot(121);
 scatter(header.quality, mTCI, 'filled'); hold on;
@@ -105,3 +105,5 @@ folder = '../data_private/example_tabs';
 [header, seg, bscan] = read_tabs(folder);
 mTCI = image_quality(bscan,'mTCI','3D-OCT-1000');
 snr = image_quality(bscan,'snr',seg);
+
+scatter(mTCI, snr);

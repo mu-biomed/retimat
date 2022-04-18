@@ -2,9 +2,13 @@ function iq = image_quality(I, metric, varargin)
 %IMAGE_QUALITY Compute an image quality metric
 %
 %   metric = image_quality(I)
-%   Compute an image quality metric for each bscan in I. Supported options
-%   are signal to noise ratio (snr) and maximum tissue contrast index 
-%   (mTCI) [1].
+%   Compute an image quality metric for each bscan in I. 
+%   Supported metrics:
+%    - signal to noise ratio (snr)
+%    - peak to noise ratio (psnr) [1]
+%    - contrast to noise ratio (cnr) [2]
+%    - maximum tissue contrast index (mTCI) [3].
+%
 %
 %   Input arguments:
 %  
@@ -12,7 +16,7 @@ function iq = image_quality(I, metric, varargin)
 %                    dimension is assumed to be the bscan index.
 %            
 %   'metric'         Metric used to compute image quality. Accepted options
-%                    Options: 'snr','snr_approx','mTCI'
+%                    Options: 'mTCI','snr','psnr','cnr'
 %                    Default: 'mTCI'
 %
 %   Optional input arguments (varargin):
@@ -21,7 +25,7 @@ function iq = image_quality(I, metric, varargin)
 %                    Options: 'Cirrus','RTVue',Spectralis','3D-OCT-1000'
 %                    If not provided an arbitrary value will be used.
 %   
-%   'seg'            Segmentation structure. When using 'snr'.
+%   'seg'            Struct with segmentation used in 'snr','psnr','cnr'.
 %
 %   'scale_z'        Axial resolution. Used in 'snr_approx' to approximate
 %                    the number of pixels of the retina.
@@ -32,12 +36,37 @@ function iq = image_quality(I, metric, varargin)
 %   'iq'         Image quality metric.        
 %  
 %
+%   Notes
+%   -----
+%   The definition of SNR, CNR varies across the literature. Check the
+%   references for the precise definition implemented here.
+%   
+%   Here SNR, PSNR and CNR rely on an accurate segmentation of both the ILM
+%   and the BM. If the image is pure nois, highly ocluded, or the 
+%   segmentation is wrong these metrics might not work.
+%
+%   A more accurate noise estimation procedure may require acquiring a
+%   noise profiling or reference image [4].
+%
 %
 %   References
 %   ----------
-%   [1] Huang, Signal Quality Assessment of Retinal Optical Coherence 
+%
+%   [2] Rico-Jimenez J J, Real-time OCT image denoising using a self-fusion
+%   neural network," Biomed. Opt. Express, 2022.
+%   https://doi.org/10.1364/BOE.451029
+%
+%   [1] Shirasawa, Objective Determination of Optimal Number of Spectral-
+%   Domain Optical Coherence Tomographic Images of Retina to Average, PLOS
+%   ONE, 2014. http://dx.doi.org/10.1371/journal.pone.0110550
+%
+%   [3] Huang, Signal Quality Assessment of Retinal Optical Coherence 
 %   Tomography Images, IOVS, 2012. 
 %   https://dx.doi.org/10.1167%2Fiovs.11-8755
+%
+%   [4] Sahu, Statistical modeling and Gaussianization procedure based 
+%   de-speckling algorithm for retinal OCT images, Journal of Ambient
+%   Intelligence and Humanized Computing, 2018.
 %
 %
 %   Example
@@ -45,11 +74,11 @@ function iq = image_quality(I, metric, varargin)
 %   % Compute mTCI for a whole volume
 %
 %   [~, ~, bscan] = read_vol(file);
-%   mTCI = image_quality(bscan, 'Spectralis');
+%   mTCI = image_quality(bscan, 'mTCI', 'Spectralis');
 %
 %  
 %   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
+%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022.
 
 if nargin == 1
     metric = 'mTCI';
@@ -63,73 +92,89 @@ I = double(I);
 % I(I==0) = nan; % Spectralis data has a peak in zero. The detection level
 % is above the real 0 and therefore many values are mapped to 0 (ceil).
 
-switch metric
-    case 'mTCI'
-        if nargin == 3
-            scanner = varargin{1};            
-        else
-            scanner = 'unknown';
+% Metrics relying on the segmentation (informed)
+if any(strcmp(metric, {'psnr','cnr','snr'}))
+    if nargin < 3
+     error([metric 'requires segmentation data as an input.']);
+    end
+    
+    seg = varargin{1};
+        
+    % Computation
+    if ismatrix(I)
+        iq = compute_informed(I, metric, seg.ILM, seg.BM);
+    elseif ndims(I) == 3
+        n_bscan = size(I, 3);
+        iq = nan(1, n_bscan);
+        for i_bscan=1:n_bscan
+            ilm = seg.ILM(i_bscan,:);
+            bm = seg.BM(i_bscan,:);
+            iq(i_bscan) = compute_informed(I(:,:,i_bscan), metric, ilm, bm);    
         end
-        
-        % Get noise profiling defaults depending on scanner
-        switch scanner
-            case 'Cirrus'
-                cN1Bs = 0.4;
-            case 'RTVue'
-                cN1Bs = 0.55;
-            case 'Spectralis'
-                cN1Bs = 0.45;
-            case '3D-OCT-1000'
-                cN1Bs = 0.5;
-            otherwise
-                warning(['Unknown scanner. Valid options: Cirrus, RTVue, Spectralis',...
-                    ', 3D-OCT-1000. Using 0.45 as an arbitrary default.']);
-                cN1Bs = 0.45;
+    end    
+    
+elseif strcmp(metric, 'mTCI')
+    if nargin == 3
+        scanner = varargin{1};            
+    else
+        scanner = 'unknown';
+    end
+
+    % Get noise profiling defaults depending on scanner
+    switch scanner
+        case 'Cirrus'
+            cN1Bs = 0.4;
+        case 'RTVue'
+            cN1Bs = 0.55;
+        case 'Spectralis'
+            cN1Bs = 0.45;
+        case '3D-OCT-1000'
+            cN1Bs = 0.5;
+        otherwise
+            warning(['Unknown scanner. Valid options: Cirrus, RTVue, Spectralis',...
+                ', 3D-OCT-1000. Using 0.45 as an arbitrary default.']);
+            cN1Bs = 0.45;
+    end
+
+    % Metric computation
+    if ismatrix(I)
+        iq = compute_mTCI(I, cN1Bs);
+    elseif ndims(I) == 3
+        n_bscan = size(I, 3);
+        iq = nan(1, n_bscan);
+        for i_bscan=1:n_bscan
+            iq(i_bscan) = compute_mTCI(I(:,:,i_bscan), cN1Bs);    
         end
-        
-        % Metric computation
-        if ismatrix(I)
-            iq = compute_mTCI(I, cN1Bs);
-        elseif ndims(I) == 3
-            n_bscan = size(I, 3);
-            iq = nan(1, n_bscan);
-            for i_bscan=1:n_bscan
-                iq(i_bscan) = compute_mTCI(I(:,:,i_bscan), cN1Bs);    
-            end
-        end
-        
-    case 'snr'
-        if nargin < 3
-            error('snr requires segmentation data as an input');
-        end        
-        seg = varargin{1};
-        
-        % SNR computation
-        if ismatrix(I)
-            iq = compute_snr(I, seg.ILM, seg.BM);
-        elseif ndims(I) == 3
-            n_bscan = size(I, 3);
-            iq = nan(1, n_bscan);
-            for i_bscan=1:n_bscan
-                ilm = seg.ILM(i_bscan,:);
-                bm = seg.BM(i_bscan,:);
-                iq(i_bscan) = compute_snr(I(:,:,i_bscan), ilm, bm);    
-            end
-        end
-        
-    otherwise
-        error("Unknown metric. Valid options are: 'mTCI', 'snr'");
+    end            
+else
+    error("Unknown metric. Valid options are: 'mTCI', 'psnr','cnr','snr'");
 end
 
-function snr = compute_snr(I, ilm, bm)
-
-% Efficiently compute the retinal mask
+function met = compute_informed(I, metric, ilm, bm)
+% Efficiently compute the retinal mask (foreground)
 idx = repmat(1:size(I,1),size(I,2),1)';
 mask_in = (idx >= ilm) & (idx <= bm);
 
-signal = nanmean(I(mask_in));
-noise = nanmean(I(~mask_in));
-snr = signal/noise;
+switch metric
+    case 'snr'
+        signal = nanmean(I(mask_in));
+        noise = nanstd(I(~mask_in));
+        met = 10*log10(signal^2/noise^2);
+    
+    case 'psnr'
+        signal = max(I(mask_in));
+        noise = nanstd(I(~mask_in));
+        met = 10*log10(signal^2/noise^2);
+        
+    case 'cnr'
+        mu_fore = nanmean(I(mask_in));
+        mu_back = nanmean(I(~mask_in));
+
+        var_fore = nanvar(I(mask_in));
+        var_back = nanvar(I(~mask_in));
+        
+        met = abs(mu_fore-mu_back) / sqrt(var_fore+var_back); 
+end
 
 function mTCI = compute_mTCI(I, cN1Bs)
 I = I(~isnan(I));
