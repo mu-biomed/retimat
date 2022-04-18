@@ -27,9 +27,6 @@ function iq = image_quality(I, metric, varargin)
 %   
 %   'seg'            Struct with segmentation used in 'snr','psnr','cnr'.
 %
-%   'scale_z'        Axial resolution. Used in 'snr_approx' to approximate
-%                    the number of pixels of the retina.
-%
 %  
 %   Output arguments:
 %  
