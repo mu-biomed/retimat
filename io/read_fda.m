@@ -45,42 +45,89 @@ function [header, seg, bscan, fundus] = read_fda(file)
 %   David Romero-Bascones, dromero@mondragon.edu
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
-close all;clc;clearvars;
-file = '../data_private/149989.fda'; % star
-file = '../data_private/149990.fda'; % raster
-
+% close all;clc;clearvars;
+% file = '../data_private/149989.fda'; % star
+% file = '../data_private/149990.fda'; % raster
 
 fid = fopen(file);
 
-type = char(fread(fid, 4, '*uchar')');
-fixation = char(fread(fid, 3, '*uchar')');
-version1 = fread(fid,1,'*uint32');
-version2 = fread(fid,1,'*uint32');
+% Preliminary values (not very useful for analysis)
+type     = fread(fid, 4, '*char')';
+fixation = fread(fid, 3, '*char')';
+unknown1 = fread(fid, 1, '*uint32');
+unknown2 = fread(fid, 1, '*uint32');
+
+% Discover all chunks (name-size-position)
+chunks = struct;
+i = 1;
 
 more_chunks = true;
-
 while more_chunks
     chunk_name_size = fread(fid,1,'*uint8');
     
     if chunk_name_size == 0
         break; 
     else
-       chunk_name = char(fread(fid, chunk_name_size, '*uint8')'); 
-       disp(chunk_name);
-       chunk_size = fread(fid, 1, '*uint32'); % Bytes!
-       chunk_pos = ftell(fid);
-       data = read_chunk(fid, chunk_name, chunk_pos, chunk_size);
-       
-       fseek(fid, chunk_pos + chunk_size, 'bof');
+       chunks(i).name = char(fread(fid, chunk_name_size, '*uint8')'); 
+       disp(chunks(i).name);
+       chunks(i).size = fread(fid, 1, '*uint32'); % Bytes!
+       chunks(i).pos = ftell(fid);       
+       fseek(fid, chunks(i).pos + chunks(i).size, 'bof');
+       i = i + 1;
     end    
 end
+chunks = struct2table(chunks);
+
+% Read header-related things first
+header = read_header(fid, chunks);
+if nargout == 1
+    return
 end
 
-function data = read_chunk(fid, chunk_name, chunk_pos, chunk_size)
+% Read segmentation
+seg = read_segmentation(fid, chunks);
+if nargout == 2
+    return
+end
+
+% Read B-Scan
+bscan = read_bscan(fid, chunks);
+if nargout == 3
+    return
+end
+
+% Read fundus
+fundus = read_fundus(fid, chunks);
+fclose(fid);
+
+function header = read_header(fid, chunks)
+
+data = read_chunk(fid, chunks,'@CAPTURE_INFO_02');
+header.eye = data.eye;
+header.scan_date = datetime(data.year, data.month, data.day, ...
+                            data.hour,data.minute,data.second);
+
+data = read_chunk(fid, chunks,'@FDA_FILE_INFO');
+A = 2;
+       
+
+function seg = read_segmentation(fid, chunks)
+
+data = read_chunk(fid, chunks,'@CONTOUR_INFO');
+seg = data.seg;
+        
+function bscan = read_bscan(fid, chunks)
+
+data = read_chunk(fid, chunks,'@IMG_JPEG');
+bscan = data.bscan;
+
+function data = read_chunk(fid, chunks, chunk_name)
+
+% Locate chunk
+idx = find(strcmp(chunks.name, chunk_name));
+fseek(fid, chunks.pos(idx), 'bof');
 
 data = struct();
-fseek(fid, chunk_pos, 'bof');
-
 switch chunk_name
     case '@ALIGN_INFO'
 
@@ -88,36 +135,41 @@ switch chunk_name
 
     case '@CAPTURE_INFO_02'
         eye = fread(fid, 1, '*uint8');
+        if eye==0
+            data.eye = 'OD';
+        elseif eye == 1
+            data.eye = 'OS';
+        else
+            data.eye = 'unknown';
+            warning('Unknown eye value');
+        end
         
-        unknown = fread(fid,1,'*uint8');
-        zero = fread(fid, 52, '*uint16');
-        
-        year = fread(fid, 1, '*uint16');
-        month = fread(fid, 1, '*uint16');
-        day = fread(fid, 1, '*uint16');
-        hour = fread(fid, 1, '*uint16');
-        minute = fread(fid, 1, '*uint16');
-        second = fread(fid, 1, '*uint16');
+        data.unknown = fread(fid, 1, '*uint8');  % always 2 apparently        
+        data.zero    = fread(fid, 52, '*uint16');        
+        data.year    = fread(fid, 1, '*uint16');
+        data.month   = fread(fid, 1, '*uint16');
+        data.day     = fread(fid, 1, '*uint16');
+        data.hour    = fread(fid, 1, '*uint16');
+        data.minute  = fread(fid, 1, '*uint16');
+        data.second  = fread(fid, 1, '*uint16');
         
     case '@CONTOUR_INFO'
         % Segmentation
-        id = char(fread(fid, 20, '*uint8')');
+        data.id      = fread(fid, 20, '*char')';        
+        data.type    = fread(fid, 1, '*uint16');
+        data.n_ascan = fread(fid, 1, '*uint32');  % width
+        data.n_bscan = fread(fid, 1, '*uint32');  % height
+        data.size    = fread(fid, 1, '*uint32'); % useful?
         
-        type = fread(fid, 1, '*uint16');
-        n_ascan = fread(fid, 1, '*uint32');  % width
-        n_bscan = fread(fid, 1, '*uint32');  % height
-        size = fread(fid, 1, '*uint32'); % useful?
-        
+        n_voxel = data.n_ascan * data.n_bscan;
         if type == 0
-            seg = fread(fid, n_ascan*n_bscan, '*uint16');
+            seg = fread(fid, n_voxel, '*uint16');
         else
-            seg = fread(fid, n_ascan*n_bscan, '*float64');
+            seg = fread(fid, n_voxel, '*float64');
         end
-        
-        % Reshape it
-        seg = reshape(seg, n_ascan, n_bscan);
-        
-        seg_version = char(fread(fid, 32, '*uint8')');
+                
+        data.seg = reshape(seg, n_ascan, n_bscan); % reshape it        
+        data.seg_version = fread(fid, 32, '*char')';
         
     case '@CONTOUR_MASK_INFO'
         
@@ -128,9 +180,9 @@ switch chunk_name
     case '@FDA_DISC_SEGMENTATION'
         
     case '@FDA_FILE_INFO'
-        data.info1 = fread(fid, 1, '*uint32');
-        data.info2 = fread(fid, 1, '*uint32');
-        data.version = char(fread(fid, 32, '*uint8'))';        
+        data.info1   = fread(fid, 1, '*uint32');
+        data.info2   = fread(fid, 1, '*uint32');
+        data.version = fread(fid, 32, '*char')';        
 
     case '@FOCUS_MOTOR_INFO'
         
@@ -153,45 +205,43 @@ switch chunk_name
     case '@IMG_EN_FACE'
         
     case '@IMG_FUNDUS'
-        width = fread(fid, 1, '*uint32');
-        height = fread(fid, 1, '*uint32');
-        bits_per_pixel = fread(fid, 1, '*uint32');
-        num_slices = fread(fid, 1, '*uint32');
-        val = fread(fid, 1, '*uint32');
-        
-        size = fread(fid, 1, '*uint32');
-        
-        fundus_bytes = fread(fid, size, '*uint8');
+        data.width          = fread(fid, 1, '*uint32');
+        data.height         = fread(fid, 1, '*uint32');
+        data.bits_per_pixel = fread(fid, 1, '*uint32');
+        data.num_slices     = fread(fid, 1, '*uint32');
+        data.val            = fread(fid, 1, '*uint32');        
+        data.size           = fread(fid, 1, '*uint32');        
+        data.fundus_bytes   = fread(fid, size, '*uint8');
 
         % Ugly trick to decode jp2
         temp_file = 'temp.jpg';
         fid2 = fopen(temp_file, 'wb');
-        fwrite(fid2, fundus_bytes, 'uint8');             
+        fwrite(fid2, data.fundus_bytes, 'uint8');             
         fclose(fid2);        
         fundus = imread(temp_file);          
         delete(temp_file);
         
-        % Reorient fundus properly
-        fundus = flip(fundus, 1); % Upside-down
-        fundus = flip(fundus, 3); % BGR to RGB
-        
-    case '@IMG_JPEG' 
-        return
-        data.type = fread(fid, 1, '*uint8');
+        % BGR to RGB 
+        data.fundus = flip(fundus, 3);        
+
+    case '@IMG_JPEG'
+        % Read preliminary data
+        data.type     = fread(fid, 1, '*uint8');
         data.unknown1 = fread(fid, 1, '*uint32');
         data.unknown2 = fread(fid, 1, '*uint32');
-        data.n_ascan = fread(fid, 1, '*uint32');  % width
-        data.n_axial = fread(fid, 1, '*uint32');  % height
-        data.n_bscan = fread(fid, 1, '*uint32');  % num_slices
+        data.n_ascan  = fread(fid, 1, '*uint32');  % width
+        data.n_axial  = fread(fid, 1, '*uint32');  % height
+        data.n_bscan  = fread(fid, 1, '*uint32');  % num_slices
         data.constant = fread(fid, 1, '*uint32');
-        
+
+        % Read B-scans        
         temp_file = 'temp.jpg';
-        
-        bscan = nan(data.n_axial, data.n_ascan, data.n_bscan);
+
+        data.bscan = nan(data.n_axial, data.n_ascan, data.n_bscan);
         for i=1:data.n_bscan
             slice_size = fread(fid, 1, '*uint32');
             bscan_bytes = fread(fid, slice_size, '*uint8');
-            
+
             % Ugly trick to read JPEG compressed info. It would be more
             % efficient to decode it without saving it.
             % Possible option
@@ -199,9 +249,9 @@ switch chunk_name
             fid2 = fopen(temp_file, 'wb');
             fwrite(fid2, bscan_bytes, 'uint8'); 
             fclose(fid2);
-            bscan(:,:,i) = imread(temp_file);              
+            data.bscan(:,:,i) = imread(temp_file);              
         end
-        delete(temp_file);
+        delete(temp_file);       
         
     case '@IMG_MOT_COMP_03'
 
@@ -238,11 +288,11 @@ switch chunk_name
     case '@PARAM_OBS_02'
         
     case '@PARAM_SCAN_04'
-        unknown = fread(fid, 6, '*uint16');
+        data.unknown = fread(fid, 6, '*uint16');
         
-        size_x = fread(fid, 1, '*float64');
-        size_y = fread(fid, 1, '*float64');
-        scale_z = fread(fid, 1, '*float64');
+        data.size_x = fread(fid, 1, '*float64');
+        data.size_y = fread(fid, 1, '*float64');
+        data.scale_z = fread(fid, 1, '*float64');
 %         scale_x = fread(fid, 4, '*float64');
         
 %         unknown2 = fread(fid, 2, '*float64');
@@ -270,6 +320,7 @@ switch chunk_name
         
         
     case '@PATIENT_INFO_03'
+        % Apparently encoded to hide patient information
         
         unknown  = fread(fid, 2, '*uint16');
         id       = fread(fid, 1, '*uint16');
@@ -290,6 +341,4 @@ switch chunk_name
         
     otherwise
         warning(['Chunk:' chunk_name ' is unknown. Unable to read']);
-end
-
 end
