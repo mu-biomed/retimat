@@ -129,9 +129,12 @@ fseek(fid, chunks.pos(idx), 'bof');
 
 data = struct();
 switch chunk_name
-    case '@ALIGN_INFO'
-
+    
+    case '@ANGIO_TRACKING_INFO'
+        
     case '@ANTERIOR_CALIB_INFO'
+    
+    case '@ALIGN_INFO'
 
     case '@CAPTURE_INFO_02'
         eye = fread(fid, 1, '*uint8');
