@@ -1,8 +1,9 @@
 function [Zs, Sectors] = sectorize_map(X, Y, Z, metric, varargin)
 %SECTORIZE_MAP Sectorize a 2D map into several sectors
 %
-%   Zs = sectorize_map(X, Y, Z, Sectors)
-%   Detail explanation goes here
+%   Zs = sectorize_map(X, Y, Z, metric)
+%   Summarize thickness point values across sectors. For example by taking
+%   the average thickness for ETDRS sectorization.
 %
 %   Input arguments:
 %  
@@ -12,7 +13,7 @@ function [Zs, Sectors] = sectorize_map(X, Y, Z, metric, varargin)
 %
 %   'Z'              Z coordinates of map points
 %
-%   'metric'         metric to be used to sectorize data. 
+%   'metric'         Metric to be used to sectorize data. 
 %                    Options: ['mean', 'std', skewness', 'kurtosis']
 %
 %   'varargin'       Extra arguments to define the sectorization. 
@@ -32,8 +33,8 @@ function [Zs, Sectors] = sectorize_map(X, Y, Z, metric, varargin)
 %   
 %   Notes
 %   -----
-%   All angles are expected in radians. To convert from degrees to radians use
-%   deg2rad() function.   
+%   All angles are expected in radians. To convert from degrees to radians 
+%   use deg2rad() function.   
 %
 %
 %
@@ -63,7 +64,7 @@ function [Zs, Sectors] = sectorize_map(X, Y, Z, metric, varargin)
 %   David Romero-Bascones, dromero@mondragon.edu
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
 
-if nargin < 5
+if nargin < 4
     error("A minimum of 4 input arguments must be provided");
 end
 
@@ -127,7 +128,8 @@ switch metric
     case 'snr'
         fun = @(x) mean(x)/std(x);
     otherwise
-        error("Unknown metric. Accepted options=['mean','std','skewness','kurtosis','snr']");
+        error(strcat("Unknown metric. Accepted values: 'mean','median',",...
+            "'std','skewness','kurtosis','snr'"));
 end
 
 switch Sectors.type
