@@ -32,7 +32,7 @@ function bscan_norm = normalize_reflectance(bscan, seg, method)
 %   vitreous and the RPE, respectively. Can be thought as the % of deviation
 %   from those parametesr. Values outside [0,100] are expected.
 %
-%   The performance might be somewhat slow due to the necessity of loopting 
+%   The performance might be somewhat slow due to the necessity of looping 
 %   through all the A-scans. There might be computational improvements using 
 %   poly2mask but that needs to be adapted to handle NaNs properly (usual in
 %   segmentation). It might be also cleaner to use here reflectance_map to
@@ -58,13 +58,17 @@ function bscan_norm = normalize_reflectance(bscan, seg, method)
 %   David Romero-Bascones, dromero@mondragon.edu
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
-if ismatrix(b_scan)
+if ismatrix(bscan)
     [n_axial, n_ascan] = size(bscan);
     n_bscan = 1;
 elseif ndims(bscan) == 3
     [n_axial, n_ascan, n_bscan] = size(bscan);    
 else
     error('Input b-scan must be either a 2D or a 3D matrix');
+end
+
+if any(~isfield(seg, {'ILM','IZ_RPE','BM'}))
+    error("Segmentation struct must contain 'ILM','IZ_RPE' and 'BM'");
 end
 
 bscan_norm = nan(n_axial, n_ascan, n_bscan);

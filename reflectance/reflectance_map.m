@@ -1,23 +1,27 @@
-function Z = reflectance_map(bscan, seg, metric, varargin)
+function R = reflectance_map(bscan, method, metric, seg, varargin)
 %REFLECTANCE_MAP Createa 2D map (en-face image) of each A-Scan reflectance
 %
-%   Z = reflectance_map(bscan, )
-%   Detail explanation goes here
+%   R = reflectance_map(bscan, method, metric, seg, varargin)
+%   Creates a 2D point map of reflectance. Reflectance may be derived from
+%   raw voxel intensities, normalized intensities or attenuation
+%   coefficient.
 %
 %   Input arguments:
 %  
 %   'bscan'          3D Volume with b-scans images.          
-%     
-%   'seg'            Struct with boundary segmentation data (in voxel units
-%                    measured from the top of each B-Scan). The dimensions must
-%                    match the provided volume (bscan).
 %
+%   'method'         Method to compute reflectance.
+%                    Default = 'raw'
+%                    Options = ['raw', 'normalized', 'attenuation']
 %
-%   'metric'         Reflectivity metric to be used. See references for a
-%                    detailed description.
+%   'metric'         Metric to be used.
 %                    Default = 'mean'
 %                    Options = ['mean', 'total', 'layer_index']
-%
+%     
+%   'seg'            Struct with boundary segmentation data (in voxel units
+%                    measured from the top of each B-Scan). The dimensions
+%                    must match the provided volume (bscan). If not
+%                    provided, all the voxels in each ascan are used.
 %
 %   'varargin'       Optional parameters from the list:
 %
@@ -39,24 +43,27 @@ function Z = reflectance_map(bscan, seg, metric, varargin)
 %
 %   Output arguments:
 %  
-%   'Z'              2D matrix with reflectance values.        
+%   'R'              2D matrix with reflectance values.        
 %  
 %
 %   
 %   Notes
 %   -----
-%   NFL_RPE_att method relies on several assumptions about scattering
-%   properties of the layers [1].
+%   When using 'normalized', reflectance is corrected based on the vitreous
+%   and the RPE layer. See normalize_reflectance.m for details.
+%   
+%   Attenuation coefficient computation relies on several assumptions on
+%   the optical properties of the tissue. See compute_attenuation.m for
+%   details.
+%
+%   'layer_index' metric is described in [1]. It includes a sort of
+%   normalization at a bscan level (the 99 percentile is used for 
+%   normalization).
 %
 %
 %   References
 %   ----------
-%   [1] van der Schoot J. et al., "The Effect of Glaucoma on the Optical
-%   Attenuation Coefficient of the Retinal Nerve Fiber Layer in Spectral Domain
-%   Optical Coherence Tomography Images", IOVS, 2012
-%   doi: https://doi.org/10.1167/iovs.11-8436.
-%
-%   [2] Varga et al., "Investigating Tissue Optical Properties and Texture
+%   [1] Varga et al., "Investigating Tissue Optical Properties and Texture
 %   Descriptors of the Retina in Patients with Multiple Sclerosis", PLos One,
 %   2015
 %
@@ -67,102 +74,110 @@ function Z = reflectance_map(bscan, seg, metric, varargin)
 %   % Basic reflectance map calculation
 %
 %     [header, seg, bscan] = read_vol('my_file.vol');
-%     Z = reflectance_map(bscan, seg, 'MR', 'ILM', 'RPE')   
+%     R = reflectance_map(bscan, seg, 'MR', 'ILM', 'RPE')   
 %
 %  
 %   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
-
+%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
 if nargin < 2
-    error("This function requires at least 3 input parameters");
-elseif nargin == 2
+    method = 'raw';
+end
+if nargin < 3
     metric = 'mean';
-elseif nargin == 4
+end
+if nargin < 4
+    seg = []; 
+end
+if nargin == 5
     scale_z = varargin{1};
-elseif nargin == 5
+elseif nargin == 6
     top = varargin{1};
     bottom = varargin{2};    
     top_seg = seg.(top);
     bottom_seg = seg.(bottom);
-elseif nargin == 6
+elseif nargin == 7
     scale_z = varargin{1};
     top = varargin{2};
     bottom = varargin{3};    
     top_seg = seg.(top);
     bottom_seg = seg.(bottom);
-elseif nargin >6
-    error("This function takes a maximum of 5 input arguments");
+elseif nargin > 7
+    error("This function takes a maximum of 7 input arguments");
 end
 
 [~, n_ascan, n_bscan] = size(bscan);
 
+switch method
+    case 'raw'
+        disp(''); % Do nothing        
+    case 'normalized'        
+        bscan = normalize_reflectance(bscan, seg, 'bscan'); 
+    case 'attenuation'
+        bscan = compute_attenuation(bscan, scale_z, 'vermeer_2014');
+    otherwise
+        error("Unknown reflectance method");
+end
+
+R = nan(n_bscan, n_ascan);
+    
+% Loop through all a-scans computing the desired metric.
 switch metric
     case 'mean'
-        % Construct mean-reflectance map by looping through all A-Scans
-        MR = nan(n_bscan, n_ascan);
-
+        if isempty(seg)
+            % Permute to return a [n_bscan n_ascan] matrix
+            R = permute(squeeze(nanmean(bscan)),[2 1]);
+            return;
+        end
         
         for b=1:n_bscan
             for a=1:n_ascan
                 roi = round(top_seg(b, a):bottom_seg(b, a));
                 if isempty(roi) | isnan(roi)
                     warning('unable to compute A-Scan layer roi');
-                    MR(b, a) = nan;
+                    R(b, a) = nan;
                 else
-                    MR(b, a) = mean(bscan(roi, a, b));
+                    R(b, a) = mean(bscan(roi, a, b));
                 end
             end
         end
-        Z = MR;
     
     case 'total'
-        % Construct total-reflectance map by looping through all A-Scans
-        TR = nan(n_bscan, n_ascan);
+        if isempty(seg)
+            R = permute(squeeze(nansum(bscan)),[2 1]);
+            return;
+        end
+        
         for b=1:n_bscan
             for a=1:n_ascan
                 roi = round(top_seg(b, a):bottom_seg(b, a));
                 if isempty(roi) | isnan(roi)
                     warning('unable to compute A-Scan layer roi');
-                    TR(b, a) = nan;
+                    R(b, a) = nan;
                 else
-                    TR(b, a) = sum(bscan(roi, a, b));
+                    R(b, a) = sum(bscan(roi, a, b));
                 end
             end
         end
-        Z = TR;
         
-    case 'total_Varga'
-        Thickness = scale_z * abs(top - bottom);        
-        TR = MR .* Thickness / scale_z;        
-        Z = TR;                
+% Deprecated: it is basically the same as total reflectance
+%     case 'total_Varga'
+%         Thickness = scale_z * abs(top - bottom);        
+%         TR = MR .* Thickness / scale_z;        
+%         Z = TR;                
         
-    case 'layer_index'
-        LI = nan(n_bscan, n_ascan);
+    case 'layer_index' % See [1]   
+        if isempty(seg)
+            error("layer_index method requires segmentation as input");
+        end
         
         Thickness = get_thickness_map(top, bottom, header);
+        MR = reflectance_map(bscan, 'raw', 'mean', seg, top, bottom);
         
         for b=1:n_bscan
             Isa = prctile(reshape(bscan(:,:,b),1,[]), 99);
-            LI(b,:) = MR(b,:).*Thickness(b,:)/Isa;
+            R(b,:) = MR(b,:).*Thickness(b,:)/Isa;
         end        
-        Z = LI;
-    case 'NFL_RPE_att'
-        % See reference [1] Van der Schoot et al. (IOVS, 2012)
-        beta = 2.3; % Empirically computed. Might not work for all.
-        
-        % NFL thickness in mm
-        d = scale_z * abs(seg.ILM - seg.NFL_GCL);
-        
-        % Total reflectance
-        T_nfl = reflectance_map(bscan, seg, 'total', scale_z, 'ILM', 'NFL_GCL');
-        T_rpe = reflectance_map(bscan, seg, 'total', scale_z, 'IDZ_RPE', 'BM');
-        
-        R = T_nfl./T_rpe;
-        att = log(R/beta + 1)./(2*d);
-        
-        Z = att;
     otherwise
         error("Specified reflectivity metric is not supported");
 end
-
