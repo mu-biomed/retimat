@@ -1,4 +1,4 @@
-function [x_fovea, y_fovea] = find_fovea(X, Y, TRT, method)
+function [x_fovea, y_fovea] = find_fovea(X, Y, TRT, method, max_d)
 %FIND_FOVEA Find foveal center based on total retinal thickness (TRT) map
 %
 %   [x_fovea, y_fovea] = template(X, Y, TRT, method)
@@ -13,8 +13,11 @@ function [x_fovea, y_fovea] = find_fovea(X, Y, TRT, method)
 %   'TRT'            Matrix with total retinal thickness values.            
 %  
 %   'method'         Method used to find the foveal center.
-%                    Default is: 'smooth_min'
+%                    Default: 'smooth_min'
 %                    Options: ['none', 'min', 'resample_min', 'smooth_min']
+%   
+%   'max_d'          Maximum alignment error.
+%                    Default: 0.85
 %
 %
 %   Output arguments:
@@ -50,6 +53,13 @@ function [x_fovea, y_fovea] = find_fovea(X, Y, TRT, method)
 %   David Romero-Bascones, dromero@mondragon.edu
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
 
+if nargin == 3
+    method = 'smooth_min';
+end
+if nargin <= 4
+    max_d = 0.85;
+end
+
 switch method
     case 'none'
         x_fovea = 0;
@@ -57,20 +67,20 @@ switch method
     
     case 'min'
         % Search only in the central region
-        roi_radius = 0.85; 
+        roi_radius = max_d; 
         [~, rho] = cart2pol(X, Y);
         TRT(rho > roi_radius) = Inf;        
         [x_fovea, y_fovea] = find_min(X, Y, TRT);
         
      case 'resample_min'
         % Interpolate to a small regular grid 
-        [X, Y, TRT] = resample_map(X, Y, TRT, 'regular', 'max_d', 0.85, ...
+        [X, Y, TRT] = resample_map(X, Y, TRT, 'regular', 'max_d', max_d, ...
                                    'n_point', 50);        
         [x_fovea, y_fovea] = find_min(X, Y, TRT);
          
     case 'smooth_min'        
         % Interpolate to small regular grid 
-        [X, Y, TRT] = resample_map(X, Y, TRT, 'regular', 'max_d', 0.85, ...
+        [X, Y, TRT] = resample_map(X, Y, TRT, 'regular', 'max_d', max_d, ...
                                    'n_point', 50);
         
         % Smooth the TRT map with a circular kernel of 0.25 mm radius 
