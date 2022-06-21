@@ -134,7 +134,8 @@ switch metric
             for a=1:n_ascan
                 roi = round(top_seg(b, a):bottom_seg(b, a));
                 if isempty(roi) | isnan(roi)
-                    warning('unable to compute A-Scan layer roi');
+                    % ommiting this warning as there are many NaNs
+                    % warning('unable to compute A-Scan layer roi');
                     R(b, a) = nan;
                 else
                     R(b, a) = mean(bscan(roi, a, b));
