@@ -126,7 +126,7 @@ switch metric
     case 'mean'
         if isempty(seg)
             % Permute to return a [n_bscan n_ascan] matrix
-            R = permute(squeeze(nanmean(bscan)),[2 1]);
+            R = permute(squeeze(mean(bscan,'omitnan')),[2 1]);
             return;
         end
         
@@ -144,7 +144,7 @@ switch metric
     
     case 'total'
         if isempty(seg)
-            R = permute(squeeze(nansum(bscan)),[2 1]);
+            R = permute(squeeze(sum(bscan, 'omitnan')),[2 1]);
             return;
         end
         
