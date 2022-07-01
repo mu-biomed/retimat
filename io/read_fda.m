@@ -65,16 +65,16 @@ more_chunks = true;
 while more_chunks
     chunk_name_size = fread(fid,1,'*uint8');
     
-    if chunk_name_size == 0
-        break; 
-    else
-       chunks(i).name = char(fread(fid, chunk_name_size, '*uint8')'); 
-       disp(chunks(i).name);
-       chunks(i).size = fread(fid, 1, '*uint32'); % Bytes!
-       chunks(i).pos = ftell(fid);       
-       fseek(fid, chunks(i).pos + chunks(i).size, 'bof');
-       i = i + 1;
-    end    
+    if isempty(chunk_name_size) | chunk_name_size == 0
+        break;
+    end
+    
+    chunks(i).name = char(fread(fid, chunk_name_size, '*uint8')');
+    disp(chunks(i).name);
+    chunks(i).size = fread(fid, 1, '*uint32'); % Bytes!
+    chunks(i).pos = ftell(fid);       
+    fseek(fid, chunks(i).pos + chunks(i).size, 'bof');
+    i = i + 1;        
 end
 chunks = struct2table(chunks);
 
@@ -102,30 +102,56 @@ fclose(fid);
 
 function header = read_header(fid, chunks)
 
-data = read_chunk(fid, chunks,'@CAPTURE_INFO_02');
+% First header part
+idx = find(strcmp(chunks.name, '@CAPTURE_INFO_02'));
+fseek(fid, chunks.pos(idx), 'bof');
+data = read_chunk(fid, '@CAPTURE_INFO_02');
+
 header.eye = data.eye;
 header.scan_date = datetime(data.year, data.month, data.day, ...
                             data.hour,data.minute,data.second);
 
-data = read_chunk(fid, chunks,'@FDA_FILE_INFO');
-A = 2;
+% Second header part (not very useful)                        
+idx = find(strcmp(chunks.name, '@FDA_FILE_INFO'));
+fseek(fid, chunks.pos(idx), 'bof');
+data = read_chunk(fid, '@FDA_FILE_INFO');
+
+header.version = data.version;
        
-
 function seg = read_segmentation(fid, chunks)
+% Stored in multiple @CONTOUR_INFO chunks (one per segmented boundary)
+% 
+% Boundary names are as follows (when there are four only):
+% RETINA_1: ILM
+% RETINA_2: RPE superior boundary
+% RETINA_3: between RPE and BM
+% RETINA_4: BM
+%
+% Segmentation is measured in pixels from the bottom of the image
+% (as opposed to Spectralis). For plotting use n_axial - seg.layer
 
-data = read_chunk(fid, chunks,'@CONTOUR_INFO');
-seg = data.seg;
+idx = find(strcmp(chunks.name, '@CONTOUR_INFO'));
+n_seg_chunk = length(idx);
+if n_seg_chunk == 0
+    seg = [];
+    return;
+end
+
+seg = struct;
+for i=1:n_seg_chunk
+    fseek(fid, chunks.pos(idx(i)), 'bof');
+    data = read_chunk(fid, '@CONTOUR_INFO');   
+    seg.(data.id) = data.seg;
+end
         
 function bscan = read_bscan(fid, chunks)
 
-data = read_chunk(fid, chunks,'@IMG_JPEG');
+idx = find(strcmp(chunks.name, '@IMG_JPEG'));
+fseek(fid, chunks.pos(idx), 'bof');
+data = read_chunk(fid, '@IMG_JPEG');
 bscan = data.bscan;
 
-function data = read_chunk(fid, chunks, chunk_name)
-
-% Locate chunk
-idx = find(strcmp(chunks.name, chunk_name));
-fseek(fid, chunks.pos(idx), 'bof');
+function data = read_chunk(fid, chunk_name)
 
 data = struct();
 switch chunk_name
@@ -164,14 +190,17 @@ switch chunk_name
         data.n_bscan = fread(fid, 1, '*uint32');  % height
         data.size    = fread(fid, 1, '*uint32'); % useful?
         
+        data.id(data.id == 0) = ' ';  % necessary to trim it later
+        data.id = strtrim(data.id);
+        
         n_voxel = data.n_ascan * data.n_bscan;
-        if type == 0
+        if data.type == 0
             seg = fread(fid, n_voxel, '*uint16');
         else
             seg = fread(fid, n_voxel, '*float64');
         end
                 
-        data.seg = reshape(seg, n_ascan, n_bscan); % reshape it        
+        data.seg = reshape(seg, data.n_ascan, data.n_bscan); % reshape it        
         data.seg_version = fread(fid, 32, '*char')';
         
     case '@CONTOUR_MASK_INFO'
