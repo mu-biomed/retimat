@@ -1,10 +1,10 @@
 function [header, segment, bscan, slo] = read_vol(file, varargin)
-%read_vol Read .vol file exported from Spectralis OCT (Heidelberg Engineering)
+%READ_VOL Read a .vol file from Spectralis OCT (Heidelberg Engineering)
 %
 %   [header, segment, bscan, slo] = read_vol(file, options)
 %
 %   This function reads the header, segmentation and image information 
-%   contained in the .vol files. 
+%   contained in a .vol file. 
 %
 %   Input arguments:
 %  

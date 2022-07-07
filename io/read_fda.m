@@ -1,29 +1,32 @@
 function [header, seg, bscan, fundus] = read_fda(file)
-%FUNCTIONNAME Summary of this function goes here
+%READ_FDA Read Topcon OCT files (fda)
 %
-%   Usage example OUT = template(IN1)
-%   Detail explanation goes here
+%   [header, seg, bscan, fundus] = read_fda(file)
+%
+%   This function reads the header, segmentation and image information 
+%   contained in a .fda file. 
 %
 %   Input arguments:
 %  
-%   'ARG1'           Description of the argument. Type and purpose.          
-%  
-%                    Accepted values
-%
-%                    Default: 
-%            
+%   'file'           Path of the .fda file to read.
 %  
 %  
 %   Output arguments:
 %  
-%   'ARG1'           Description of the argument. Type and purpose.          
+%   'header'         Structure with .fda file header values.          
 %  
+%   'segment'        Segmenation data stored in the .fda file.
+%
+%   'bscan'          3D single image with B-Scans.
+%
+%   'fundus'         2D fundus image.
 %
 %   
 %   Notes
 %   -----
-%   Important usage informationAnother name for a gray-level co-occurrence matrix is a gray-level
-%   spatial dependence matrix.
+%   This code is mostly based on [1,2], which were developed by reverse 
+%   engineering fda files. Therefore, data read using this function may be
+%   incomplete.
 %
 %
 %   References
@@ -34,27 +37,27 @@ function [header, seg, bscan, fundus] = read_fda(file)
 %   [2] OCT-Converter
 %   https://github.com/marksgraham/OCT-Converter
 %
+%
 %   Example
 %   ---------      
 %   % Read fda file
 %
-%     [GLCMS,SI] = graycomatrix(I,'NumLevels',9,'G',[])
+%     [header, seg] = read_fda(file)
 %     
-%
 %  
 %   David Romero-Bascones, dromero@mondragon.edu
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
-% close all;clc;clearvars;
-% file = '../data_private/149989.fda'; % star
-% file = '../data_private/149990.fda'; % raster
+if ~isfile(file)
+    error('Unable to find the file. Check the path.');
+end
 
 fid = fopen(file);
 
 % Preliminary values (not very useful for analysis)
 type     = fread(fid, 4, '*char')';
 fixation = fread(fid, 3, '*char')';
-unknown1 = fread(fid, 1, '*uint32');
+unknown1 = fread(fid, 1, '*uint32');  
 unknown2 = fread(fid, 1, '*uint32');
 
 % Discover all chunks (name-size-position)
@@ -78,25 +81,22 @@ while more_chunks
 end
 chunks = struct2table(chunks);
 
-% Read header-related things first
+% Data reading (using corresponding chunks)
 header = read_header(fid, chunks);
 if nargout == 1
     return
 end
 
-% Read segmentation
 seg = read_segmentation(fid, chunks);
 if nargout == 2
     return
 end
 
-% Read B-Scan
 bscan = read_bscan(fid, chunks);
 if nargout == 3
     return
 end
 
-% Read fundus
 fundus = read_fundus(fid, chunks);
 fclose(fid);
 
@@ -153,14 +153,49 @@ bscan = data.bscan;
 
 function data = read_chunk(fid, chunk_name)
 
+% Known chunks:
+% '@CAPTURE_INFO_02': eye, date
+% '@CONTOUR_INFO': segmentation data
+% '@FDA_FILE_INFO'
+% '@HW_INFO_03'
+% '@IMG_FUNDUS'
+% '@IMG_JPEG'
+% '@IMG_TRC_02'
+% '@PARAM_SCAN_04'
+% '@PATIENT_INFO_02'
+% '@PATIENT_INFO_02'
+%
+%
+% Unknown chunks:
+% '@ANGIO_TRACKING_INFO'
+% '@ANTERIOR_CALIB_INFO'
+% '@ALIGN_INFO'
+% '@CONTOUR_MASK_INFO'
+% '@EFFECTIVE_SCAN_RANGE'
+% '@FAST_Q2_INFO'
+% '@FDA_DISC_SEGMENTATION'
+% '@FOCUS_MOTOR_INFO'
+% '@GLA_LITTMANN_01'
+% '@IMG_EN_FACE'
+% '@IMG_MOT_COMP_03'
+% '@IMG_PROJECTION'
+% '@MAIN_MODULE_INFO'
+% '@PARAM_EN_FACE'
+% '@PARAM_OBS_02'
+% '@PARAM_TRC'
+% '@PARAM_TRC_02'        
+% '@PATIENTEXT_INFO'
+% '@REF_IMG_SCAN'
+% '@REGIST_INFO'
+% '@REPORT_INFO'
+% '@RESULT_CORNEA_CURVE'
+% '@SCAN_POS_COMP_DATA'
+% '@THUMBNAIL'
+% '@TOPQEXT_INFO'
+           
+
 data = struct();
 switch chunk_name
-    
-    case '@ANGIO_TRACKING_INFO'
-        
-    case '@ANTERIOR_CALIB_INFO'
-    
-    case '@ALIGN_INFO'
 
     case '@CAPTURE_INFO_02'
         eye = fread(fid, 1, '*uint8');
@@ -202,23 +237,11 @@ switch chunk_name
                 
         data.seg = reshape(seg, data.n_ascan, data.n_bscan); % reshape it        
         data.seg_version = fread(fid, 32, '*char')';
-        
-    case '@CONTOUR_MASK_INFO'
-        
-    case '@EFFECTIVE_SCAN_RANGE'
-        
-    case '@FAST_Q2_INFO'
-            
-    case '@FDA_DISC_SEGMENTATION'
-        
+   
     case '@FDA_FILE_INFO'
         data.info1   = fread(fid, 1, '*uint32');
         data.info2   = fread(fid, 1, '*uint32');
         data.version = fread(fid, 32, '*char')';        
-
-    case '@FOCUS_MOTOR_INFO'
-        
-    case '@GLA_LITTMANN_01'
         
     case '@HW_INFO_03'
         data.model_name = char(fread(fid, 16, '*uint8')');        
@@ -233,8 +256,6 @@ switch chunk_name
         data.build_second = fread(fid, 1, '*uint16');        
         data.zeros2 = fread(fid, 8, '*uint8');        
         data.version_numbers = fread(fid, 5*16, '*uint8');        
-        
-    case '@IMG_EN_FACE'
         
     case '@IMG_FUNDUS'
         data.width          = fread(fid, 1, '*uint32');
@@ -285,10 +306,6 @@ switch chunk_name
         end
         delete(temp_file);       
         
-    case '@IMG_MOT_COMP_03'
-
-    case '@IMG_PROJECTION'
-
     case '@IMG_TRC_02'
         % Grayscale fundus image (lower quality)
         % It is store twice
@@ -312,13 +329,7 @@ switch chunk_name
         
         % No need to have 3 dimensions (it is grayscale not RGB)
         fundus = fundus(:,:,1);       
-        
-    case '@MAIN_MODULE_INFO'
-
-    case '@PARAM_EN_FACE'
-
-    case '@PARAM_OBS_02'
-        
+                
     case '@PARAM_SCAN_04'
         data.unknown = fread(fid, 6, '*uint16');
         
@@ -330,17 +341,11 @@ switch chunk_name
 %         unknown2 = fread(fid, 2, '*float64');
 %         unknown3 = fread(fid, 2, '*float64');
         
-    case '@PARAM_TRC'
-        
-    case '@PARAM_TRC_02'        
-
-    case '@PATIENTEXT_INFO'
-        
     case '@PATIENT_INFO_02'
         id          = char(fread(fid, 32, '*uint8'))';
         name        = char(fread(fid, 32, '*uint8'))';
         surname     = char(fread(fid, 32, '*uint8'))';
-        zeros1        = fread(fid, 8, '*uint8');
+        zeros1      = fread(fid, 8, '*uint8');
         
         date_flag   = fread(fid, 1, '*uint8'); % gender?
         
@@ -348,29 +353,14 @@ switch chunk_name
         birth_month = fread(fid, 1, '*uint16');
         birth_day   = fread(fid, 1, '*uint16');
         
-        zeros2  = fread(fid, 504, '*uint16');
-        
+        zeros2  = fread(fid, 504, '*uint16');        
         
     case '@PATIENT_INFO_03'
         % Apparently encoded to hide patient information
         
         unknown  = fread(fid, 2, '*uint16');
         id       = fread(fid, 1, '*uint16');
-            
-    case '@REF_IMG_SCAN'
-        
-    case '@REGIST_INFO'
-               
-    case '@REPORT_INFO'
-    
-    case '@RESULT_CORNEA_CURVE'
-
-    case '@SCAN_POS_COMP_DATA'
-        
-    case '@THUMBNAIL'
-        
-    case '@TOPQEXT_INFO'
-        
+                    
     otherwise
         warning(['Chunk:' chunk_name ' is unknown. Unable to read']);
 end
