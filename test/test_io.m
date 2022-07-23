@@ -48,3 +48,24 @@ clc;close all;
 file = 'PNYU001E_Macular Cube 512x128_4-12-2018_16-18-22_OS_sn15113_lslo.bin';
 I = read_bin(file);
 imshow(I);
+
+%% read fda
+clc;close all;
+file = '../data_private/test_3.fda';
+[header, seg, bscan, fundus] = read_fda(file, true);
+
+% ib = size(bscan,3)/2;
+% imagesc(bscan(:,:,ib)); hold on;colormap(gray)
+% boundaries = fields(seg);
+% idx = 1:10;
+% for i=idx
+%     plot(size(bscan,1) - seg.(boundaries{i})(:,ib), 'LineWidth',2);
+% end
+% legend(boundaries(idx));
+
+en_face = squeeze(mean(bscan,1)).';
+trt = seg.RNFL_GCL - seg.IPL_INL;
+
+subplot(131); imshow(fundus);
+subplot(132); imagesc(en_face); colormap(gca, 'gray');
+subplot(133); imagesc(trt);

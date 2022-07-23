@@ -1,4 +1,4 @@
-function [header, seg, bscan, fundus] = read_fda(file)
+function [header, seg, bscan, fundus] = read_fda(file, verbose)
 %READ_FDA Read Topcon OCT files (fda)
 %
 %   [header, seg, bscan, fundus] = read_fda(file)
@@ -9,7 +9,8 @@ function [header, seg, bscan, fundus] = read_fda(file)
 %   Input arguments:
 %  
 %   'file'           Path of the .fda file to read.
-%  
+%
+%   'verbose'        If true, reading info is displayed.
 %  
 %   Output arguments:
 %  
@@ -24,7 +25,7 @@ function [header, seg, bscan, fundus] = read_fda(file)
 %   
 %   Notes
 %   -----
-%   This code is mostly based on [1,2], which were developed by reverse 
+%   This code is heavily based on [1,2], which were developed by reverse 
 %   engineering fda files. Therefore, data read using this function may be
 %   incomplete.
 %
@@ -48,19 +49,23 @@ function [header, seg, bscan, fundus] = read_fda(file)
 %   David Romero-Bascones, dromero@mondragon.edu
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
+if nargin == 1
+    verbose = false;
+end
+
 if ~isfile(file)
     error('Unable to find the file. Check the path.');
 end
 
 fid = fopen(file);
 
-% Preliminary values (not very useful for analysis)
+%% Preliminary values (not very useful for analysis)
 type     = fread(fid, 4, '*char')';
 fixation = fread(fid, 3, '*char')';
 unknown1 = fread(fid, 1, '*uint32');  
 unknown2 = fread(fid, 1, '*uint32');
 
-% Discover all chunks (name-size-position)
+%% Discover all chunks (name-size-position)
 chunks = struct;
 i = 1;
 
@@ -72,16 +77,20 @@ while more_chunks
         break;
     end
     
-    chunks(i).name = char(fread(fid, chunk_name_size, '*uint8')');
-    disp(chunks(i).name);
+    chunks(i).name = char(fread(fid, chunk_name_size, '*uint8')');    
     chunks(i).size = fread(fid, 1, '*uint32'); % Bytes!
     chunks(i).pos = ftell(fid);       
     fseek(fid, chunks(i).pos + chunks(i).size, 'bof');
-    i = i + 1;        
+    
+    i = i + 1;
 end
 chunks = struct2table(chunks);
 
-% Data reading (using corresponding chunks)
+if verbose
+    disp([num2str(size(chunks,1)) ' chunks found in file']);
+    disp(chunks.name);
+end
+%% Data reading (using corresponding chunks)
 header = read_header(fid, chunks);
 if nargout == 1
     return
@@ -121,15 +130,27 @@ header.version = data.version;
 function seg = read_segmentation(fid, chunks)
 % Stored in multiple @CONTOUR_INFO chunks (one per segmented boundary)
 % 
-% Boundary names are as follows (when there are four only):
-% RETINA_1: ILM
-% RETINA_2: RPE superior boundary
-% RETINA_3: between RPE and BM
-% RETINA_4: BM
+% Boundary names are defined to match the APOSTEL 2.0 convention:
+% https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8279566/figure/F2/
 %
 % Segmentation is measured in pixels from the bottom of the image
 % (as opposed to Spectralis). For plotting use n_axial - seg.layer
 
+boundary_name = struct('RETINA_1',       'ILM',...
+                       'RETINA_2',       'IZ_RPE',...
+                       'RETINA_3',       'MZ_EZ',...
+                       'RETINA_4',       'BM',...
+                       'MULTILAYERS_1',  'ILM',...
+                       'MULTILAYERS_2',  'RNFL_GCL',...
+                       'MULTILAYERS_3',  'GCL_IPL',...
+                       'MULTILAYERS_4',  'IPL_INL',...
+                       'MULTILAYERS_5',  'MZ_EZ',...
+                       'MULTILAYERS_6',  'IZ_RPE',...
+                       'MULTILAYERS_7',  'BM',...
+                       'MULTILAYERS_8',  'INL_OPL',...
+                       'MULTILAYERS_9',  'ELM',...
+                       'MULTILAYERS_10', 'CSI');
+               
 idx = find(strcmp(chunks.name, '@CONTOUR_INFO'));
 n_seg_chunk = length(idx);
 if n_seg_chunk == 0
@@ -141,7 +162,13 @@ seg = struct;
 for i=1:n_seg_chunk
     fseek(fid, chunks.pos(idx(i)), 'bof');
     data = read_chunk(fid, '@CONTOUR_INFO');   
-    seg.(data.id) = data.seg;
+    
+    z = double(data.seg);   % uint16 -> double
+    z(z > 10000) = nan;     % invalid values -> NaN
+    z = permute(z, [2 1]);  % arange it into [bscan x ascan]
+    z = flip(z, 1);         % flip top-bottom
+    
+    seg.(boundary_name.(data.id)) = z;
 end
         
 function bscan = read_bscan(fid, chunks)
@@ -150,6 +177,14 @@ idx = find(strcmp(chunks.name, '@IMG_JPEG'));
 fseek(fid, chunks.pos(idx), 'bof');
 data = read_chunk(fid, '@IMG_JPEG');
 bscan = data.bscan;
+
+function fundus = read_fundus(fid, chunks)
+
+idx = find(strcmp(chunks.name, '@IMG_FUNDUS'));
+fseek(fid, chunks.pos(idx), 'bof');
+data = read_chunk(fid, '@IMG_FUNDUS');
+
+fundus = data.fundus;
 
 function data = read_chunk(fid, chunk_name)
 
@@ -264,9 +299,9 @@ switch chunk_name
         data.num_slices     = fread(fid, 1, '*uint32');
         data.val            = fread(fid, 1, '*uint32');        
         data.size           = fread(fid, 1, '*uint32');        
-        data.fundus_bytes   = fread(fid, size, '*uint8');
+        data.fundus_bytes   = fread(fid, data.size, '*uint8');
 
-        % Ugly trick to decode jp2
+        % Ugly trick to decode JPEG
         temp_file = 'temp.jpg';
         fid2 = fopen(temp_file, 'wb');
         fwrite(fid2, data.fundus_bytes, 'uint8');             
