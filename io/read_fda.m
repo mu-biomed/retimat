@@ -1,4 +1,4 @@
-function [header, seg, bscan, fundus] = read_fda(file, verbose)
+function [header, seg, bscan, fundus] = read_fda(file, verbose, coordinates)
 %READ_FDA Read Topcon OCT files (fda)
 %
 %   [header, seg, bscan, fundus] = read_fda(file)
@@ -12,6 +12,9 @@ function [header, seg, bscan, fundus] = read_fda(file, verbose)
 %
 %   'verbose'        If true, reading info is displayed.
 %  
+%   'coordinates'    If true, A-scan coordinates are returned.
+%
+%
 %   Output arguments:
 %  
 %   'header'         Structure with .fda file header values.          
@@ -27,7 +30,7 @@ function [header, seg, bscan, fundus] = read_fda(file, verbose)
 %   -----
 %   This code is heavily based on [1,2], which were developed by reverse 
 %   engineering fda files. Therefore, data read using this function may be
-%   incomplete.
+%   incomplete/incorrect.
 %
 %
 %   References
@@ -52,7 +55,9 @@ function [header, seg, bscan, fundus] = read_fda(file, verbose)
 if nargin == 1
     verbose = false;
 end
-
+if nargin < 2
+    coordinates = false;
+end
 if ~isfile(file)
     error('Unable to find the file. Check the path.');
 end
