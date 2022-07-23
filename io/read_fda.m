@@ -113,19 +113,49 @@ function header = read_header(fid, chunks)
 
 % First header part
 idx = find(strcmp(chunks.name, '@CAPTURE_INFO_02'));
-fseek(fid, chunks.pos(idx), 'bof');
-data = read_chunk(fid, '@CAPTURE_INFO_02');
+if isempty(idx)
+    warning("@CAPTURE_INFO_02 chunk was not found, header will be incomplete");    
+else
+    fseek(fid, chunks.pos(idx), 'bof');
+    data = read_chunk(fid, '@CAPTURE_INFO_02');
 
-header.eye = data.eye;
-header.scan_date = datetime(data.year, data.month, data.day, ...
-                            data.hour,data.minute,data.second);
+    header.eye       = data.eye;
+    header.scan_date = datetime(data.year, data.month, data.day, ...
+                                data.hour,data.minute,data.second);
+end
 
 % Second header part (not very useful)                        
 idx = find(strcmp(chunks.name, '@FDA_FILE_INFO'));
 fseek(fid, chunks.pos(idx), 'bof');
 data = read_chunk(fid, '@FDA_FILE_INFO');
-
 header.version = data.version;
+
+% Dimensions
+idx = find(strcmp(chunks.name, '@PARAM_SCAN_04'));
+if isempty(idx)
+    warning("@PARAM_SCAN_04 chunk was not found. header will be incomplete");    
+else
+    fseek(fid, chunks.pos(idx), 'bof');
+    data = read_chunk(fid, '@PARAM_SCAN_04');
+
+    header.size_x   = data.size_x;
+    header.size_y   = data.size_y;
+    header.scale_z  = data.scale_z;
+    header.n_bscan  = data.n_bscan;
+    header.fixation = data.fixation;
+end
+
+% More dimensions
+idx = find(strcmp(chunks.name, '@IMG_MOT_COMP_03'));
+if isempty(idx)
+    warning("@IMG_MOT_COMP_03 chunk was not found. header will be incomplete");    
+else
+    fseek(fid, chunks.pos(idx), 'bof');
+    data = read_chunk(fid, '@IMG_MOT_COMP_03');
+
+    header.n_axial = data.n_axial;
+    header.n_ascan = data.n_ascan;
+end
        
 function seg = read_segmentation(fid, chunks)
 % Stored in multiple @CONTOUR_INFO chunks (one per segmented boundary)
@@ -234,7 +264,7 @@ switch chunk_name
 
     case '@CAPTURE_INFO_02'
         eye = fread(fid, 1, '*uint8');
-        if eye==0
+        if eye == 0
             data.eye = 'OD';
         elseif eye == 1
             data.eye = 'OS';
@@ -279,17 +309,17 @@ switch chunk_name
         data.version = fread(fid, 32, '*char')';        
         
     case '@HW_INFO_03'
-        data.model_name = char(fread(fid, 16, '*uint8')');        
-        data.serial_number = fread(fid, 16, '*uint8');        
-        data.zeros = fread(fid, 32, '*uint8');        
-        data.version = fread(fid, 16, '*uint8');        
-        data.build_year = fread(fid, 1, '*uint16');        
-        data.build_month = fread(fid, 1, '*uint16');        
-        data.build_day = fread(fid, 1, '*uint16');        
-        data.build_hour = fread(fid, 1, '*uint16');        
-        data.build_minute = fread(fid, 1, '*uint16');        
-        data.build_second = fread(fid, 1, '*uint16');        
-        data.zeros2 = fread(fid, 8, '*uint8');        
+        data.model_name      = char(fread(fid, 16, '*uint8')');        
+        data.serial_number   = fread(fid, 16, '*uint8');        
+        data.zeros           = fread(fid, 32, '*uint8');        
+        data.version         = fread(fid, 16, '*uint8');        
+        data.build_year      = fread(fid, 1, '*uint16');        
+        data.build_month     = fread(fid, 1, '*uint16');        
+        data.build_day       = fread(fid, 1, '*uint16');        
+        data.build_hour      = fread(fid, 1, '*uint16');        
+        data.build_minute    = fread(fid, 1, '*uint16');        
+        data.build_second    = fread(fid, 1, '*uint16');        
+        data.zeros2          = fread(fid, 8, '*uint8');        
         data.version_numbers = fread(fid, 5*16, '*uint8');        
         
     case '@IMG_FUNDUS'
@@ -314,7 +344,17 @@ switch chunk_name
 
     case '@IMG_JPEG'
         % Read preliminary data
-        data.type     = fread(fid, 1, '*uint8');
+        scan_pattern  = fread(fid, 1, '*uint8');
+        
+        switch scan_pattern
+            case 2
+                data.scan_pattern = 'star';                
+            case 3
+                data.scan_pattern = 'raster';
+            otherwise
+                data.scan_pattern = 'unknown';
+        end
+        
         data.unknown1 = fread(fid, 1, '*uint32');
         data.unknown2 = fread(fid, 1, '*uint32');
         data.n_ascan  = fread(fid, 1, '*uint32');  % width
@@ -341,9 +381,18 @@ switch chunk_name
         end
         delete(temp_file);       
         
+    case '@IMG_MOT_COMP_03'
+        data.unknown        = fread(fid, 1, '*uchar');
+        data.n_ascan        = fread(fid, 1, '*uint32');
+        data.n_axial        = fread(fid, 1, '*uint32');
+        data.bits_per_pixel = fread(fid, 1, '*uint32');
+        data.n_slices       = fread(fid, 1, '*uint32');
+        data.unknown        = fread(fid, 1, '*uchar');
+        data.size        = fread(fid, 1, '*uchar');
+        
     case '@IMG_TRC_02'
         % Grayscale fundus image (lower quality)
-        % It is store twice
+        % It is stored twice
         % Probably not very useful
         width = fread(fid, 1, '*uint32');
         height = fread(fid, 1, '*uint32');
@@ -366,15 +415,36 @@ switch chunk_name
         fundus = fundus(:,:,1);       
                 
     case '@PARAM_SCAN_04'
-        data.unknown = fread(fid, 6, '*uint16');
         
-        data.size_x = fread(fid, 1, '*float64');
-        data.size_y = fread(fid, 1, '*float64');
+        data.unknown  = fread(fid, 3, '*uint8');  % first is always three
+        
+        fixation      = fread(fid, 1, '*uint8');
+        switch fixation
+            case 0
+                data.fixation = 'center';
+            case 1
+                data.fixation = 'onh';                
+            case 2
+                data.fixation = 'macula';                
+            case 3
+                data.fixation = 'wide';
+            case 16
+                data.fixation = 'external';
+            otherwise
+                data.fixation = 'unknown';
+        end
+        
+        data.unknown = fread(fid, 8, '*uint8');  % first is always three
+
+        data.size_x  = fread(fid, 1, '*float64');
+        data.size_y  = fread(fid, 1, '*float64');
         data.scale_z = fread(fid, 1, '*float64');
-%         scale_x = fread(fid, 4, '*float64');
         
-%         unknown2 = fread(fid, 2, '*float64');
-%         unknown3 = fread(fid, 2, '*float64');
+        zeros        = fread(fid, 16, '*uint8');
+        unknown      = fread(fid, 1,  '*float64');
+        zeros        = fread(fid, 1,  '*uint8');        
+        unknown      = fread(fid, 1,  '*uint16');
+        data.n_bscan = fread(fid, 1,  '*uint16');
         
     case '@PATIENT_INFO_02'
         id          = char(fread(fid, 32, '*uint8'))';

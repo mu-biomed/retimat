@@ -51,7 +51,7 @@ imshow(I);
 
 %% read fda
 clc;close all;
-file = '../data_private/test_3.fda';
+file = '../data_private/test_1.fda';
 [header, seg, bscan, fundus] = read_fda(file, true);
 
 % ib = size(bscan,3)/2;
