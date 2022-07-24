@@ -1,18 +1,22 @@
-function [header, seg, bscan, fundus] = read_fda(file, verbose, coordinates)
+function [header, seg, bscan, fundus] = read_fda(file, varargin)
 %READ_FDA Read Topcon OCT files (fda)
 %
 %   [header, seg, bscan, fundus] = read_fda(file)
 %
-%   This function reads the header, segmentation and image information 
-%   contained in a .fda file. 
+%   Reads the header, segmentation and images (bscan + fundus) contained in  
+%   an .fda Topcon file. 
 %
 %   Input arguments:
 %  
 %   'file'           Path of the .fda file to read.
 %
-%   'verbose'        If true, reading info is displayed.
+%   'varargin'       Optional flags from the list:
+%
+%                    'verbose': If provided, reading info is displayed.
 %  
-%   'coordinates'    If true, A-scan coordinates are returned.
+%                    'coordinates': If provided A-scan coordinates are 
+%                    returned. This only works if the scanning pattern is
+%                    horizontal raster (pending to implement others).
 %
 %
 %   Output arguments:
@@ -32,6 +36,10 @@ function [header, seg, bscan, fundus] = read_fda(file, verbose, coordinates)
 %   engineering fda files. Therefore, data read using this function may be
 %   incomplete/incorrect.
 %
+%   The reading process is as follows:
+%   1. Identify data chunks present in file (not all are always present)
+%   2. Read specific chunks with the relevant information
+%
 %
 %   References
 %   ----------
@@ -46,29 +54,25 @@ function [header, seg, bscan, fundus] = read_fda(file, verbose, coordinates)
 %   ---------      
 %   % Read fda file
 %
-%     [header, seg] = read_fda(file)
+%     [header, seg, bscan, fundus] = read_fda(file)
 %     
 %  
 %   David Romero-Bascones, dromero@mondragon.edu
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
-if nargin == 1
-    verbose = false;
-end
-if nargin < 2
-    coordinates = false;
-end
+verbose     = any(strcmp('verbose', varargin));
+coordinates = any(strcmp('coordinates', varargin));
+
 if ~isfile(file)
     error('Unable to find the file. Check the path.');
 end
 
 fid = fopen(file);
 
-%% Preliminary values (not very useful for analysis)
-type     = fread(fid, 4, '*char')';
-fixation = fread(fid, 3, '*char')';
-unknown1 = fread(fid, 1, '*uint32');  
-unknown2 = fread(fid, 1, '*uint32');
+%% Preliminary values (not useful)
+type     = fread(fid, 4, '*char')';  % FOCT
+fixation = fread(fid, 3, '*char')';  % FDA (not really fixation)
+unknown  = fread(fid, 2, '*uint32');  
 
 %% Discover all chunks (name-size-position)
 chunks = struct;
@@ -83,7 +87,7 @@ while more_chunks
     end
     
     chunks(i).name = char(fread(fid, chunk_name_size, '*uint8')');    
-    chunks(i).size = fread(fid, 1, '*uint32'); % Bytes!
+    chunks(i).size = fread(fid, 1, '*uint32');  % Bytes!
     chunks(i).pos = ftell(fid);       
     fseek(fid, chunks(i).pos + chunks(i).size, 'bof');
     
@@ -95,8 +99,14 @@ if verbose
     disp([num2str(size(chunks,1)) ' chunks found in file']);
     disp(chunks.name);
 end
+
 %% Data reading (using corresponding chunks)
 header = read_header(fid, chunks);
+if coordinates
+    header = get_coordinates(header);
+end
+header = reorder_header(header);
+
 if nargout == 1
     return
 end
@@ -115,8 +125,10 @@ fundus = read_fundus(fid, chunks);
 fclose(fid);
 
 function header = read_header(fid, chunks)
+% We construct a header with data from different chunks
+% Important parameters are eye, fixation , pattern and dimensions
 
-% First header part
+% 1. Eye + scan date
 idx = find(strcmp(chunks.name, '@CAPTURE_INFO_02'));
 if isempty(idx)
     warning("@CAPTURE_INFO_02 chunk was not found, header will be incomplete");    
@@ -129,13 +141,15 @@ else
                                 data.hour,data.minute,data.second);
 end
 
-% Second header part (not very useful)                        
+% 2. Version (not very useful)                        
 idx = find(strcmp(chunks.name, '@FDA_FILE_INFO'));
-fseek(fid, chunks.pos(idx), 'bof');
-data = read_chunk(fid, '@FDA_FILE_INFO');
-header.version = data.version;
+if ~isempty(idx)
+    fseek(fid, chunks.pos(idx), 'bof');
+    data = read_chunk(fid, '@FDA_FILE_INFO');
+    header.version = deblank(data.version);
+end
 
-% Dimensions
+% 3. Some dimensions
 idx = find(strcmp(chunks.name, '@PARAM_SCAN_04'));
 if isempty(idx)
     warning("@PARAM_SCAN_04 chunk was not found. header will be incomplete");    
@@ -145,23 +159,70 @@ else
 
     header.size_x   = data.size_x;
     header.size_y   = data.size_y;
-    header.scale_z  = data.scale_z;
-    header.n_bscan  = data.n_bscan;
+    header.scale_z  = data.scale_z * 1e-3;  % in mm
+    header.n_bscan  = double(data.n_bscan);
     header.fixation = data.fixation;
+    
+    header.scale_y  = header.size_y / (header.n_bscan - 1);
 end
 
-% More dimensions
-idx = find(strcmp(chunks.name, '@IMG_MOT_COMP_03'));
+% 4. More dimensions (from B-Scan image chunk itself)
+idx = find(strcmp(chunks.name, '@IMG_JPEG'));
 if isempty(idx)
-    warning("@IMG_MOT_COMP_03 chunk was not found. header will be incomplete");    
+    warning("@IMG_JPEG chunk was not found. header will be incomplete");    
 else
     fseek(fid, chunks.pos(idx), 'bof');
-    data = read_chunk(fid, '@IMG_MOT_COMP_03');
 
-    header.n_axial = data.n_axial;
-    header.n_ascan = data.n_ascan;
+    scan_pattern  = fread(fid, 1, '*uint8');
+    switch scan_pattern
+        case 0
+            header.scan_pattern = 'line';                            
+        case 2
+            header.scan_pattern = 'raster_h';                
+        case 3
+            header.scan_pattern = 'star';
+        case 6
+            header.scan_pattern = 'raster_v';
+        case 7
+            header.scan_pattern = '7_line';
+        case 11
+            header.scan_pattern = 'two_5_line';
+        otherwise
+            header.scan_pattern = 'unknown';
+    end
+    
+    unknown         = fread(fid, 2, '*uint32');        
+    header.n_ascan  = double(fread(fid, 1, '*uint32'));  % width
+    header.n_axial  = double(fread(fid, 1, '*uint32'));  % height
+    header.n_bscan  = double(fread(fid, 1, '*uint32'));  % num_slices
+    
+    header.scale_x  = header.size_x / (header.n_ascan -1);
+    header.size_z   = header.scale_z * header.n_axial; 
+end     
+      
+function header_ord = reorder_header(header)
+% Reorder header fields alphabetically to read them easier
+vars = fields(header);
+vars = sort(vars);
+
+for i=1:length(vars)
+    header_ord.(vars{i}) = header.(vars{i});
 end
-       
+
+function header = get_coordinates(header)
+switch header.scan_pattern
+    case 'raster_h'
+        x_max = header.size_x/2;
+        y_max = header.size_y/2;
+
+        x_range = linspace(-x_max, x_max, header.n_ascan);
+        y_range = linspace(y_max, -y_max, header.n_bscan);
+
+        [header.X, header.Y] = meshgrid(x_range, y_range);    
+     otherwise
+        warning('Coordinate computation for this pattern not implemented yet');
+end
+
 function seg = read_segmentation(fid, chunks)
 % Stored in multiple @CONTOUR_INFO chunks (one per segmented boundary)
 % 
@@ -393,7 +454,7 @@ switch chunk_name
         data.bits_per_pixel = fread(fid, 1, '*uint32');
         data.n_slices       = fread(fid, 1, '*uint32');
         data.unknown        = fread(fid, 1, '*uchar');
-        data.size        = fread(fid, 1, '*uchar');
+        data.size           = fread(fid, 1, '*uchar');
         
     case '@IMG_TRC_02'
         % Grayscale fundus image (lower quality)

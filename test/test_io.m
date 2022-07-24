@@ -51,21 +51,13 @@ imshow(I);
 
 %% read fda
 clc;close all;
-file = '../data_private/test_1.fda';
-[header, seg, bscan, fundus] = read_fda(file, true);
-
-% ib = size(bscan,3)/2;
-% imagesc(bscan(:,:,ib)); hold on;colormap(gray)
-% boundaries = fields(seg);
-% idx = 1:10;
-% for i=idx
-%     plot(size(bscan,1) - seg.(boundaries{i})(:,ib), 'LineWidth',2);
-% end
-% legend(boundaries(idx));
+file = '../data_private/test_0.fda';
+[header, seg, bscan, fundus] = read_fda(file, 'verbose', 'coordinates');
 
 en_face = squeeze(mean(bscan,1)).';
-trt = seg.RNFL_GCL - seg.IPL_INL;
+trt = seg.ILM - seg.BM;
 
-subplot(131); imshow(fundus);
-subplot(132); imagesc(en_face); colormap(gca, 'gray');
-subplot(133); imagesc(trt);
+subplot(141); imshow(fundus);
+subplot(142); imagesc(en_face); colormap(gca, 'gray');
+subplot(143); imagesc(trt);
+subplot(144); surf(header.X, header.Y, trt,'EdgeColor','none');view(0,90);
