@@ -126,7 +126,7 @@ switch metric
     case 'mean'
         if isempty(seg)
             % Permute to return a [n_bscan n_ascan] matrix
-            R = permute(squeeze(nanmean(bscan)),[2 1]);
+            R = permute(squeeze(mean(bscan,'omitnan')),[2 1]);
             return;
         end
         
@@ -134,7 +134,9 @@ switch metric
             for a=1:n_ascan
                 roi = round(top_seg(b, a):bottom_seg(b, a));
                 if isempty(roi) | isnan(roi)
-                    warning('unable to compute A-Scan layer roi');
+
+                    % ommiting this warning as there are many NaNs
+                    % warning('unable to compute A-Scan layer roi');
                     R(b, a) = nan;
                 else
                     R(b, a) = mean(bscan(roi, a, b));
@@ -144,7 +146,8 @@ switch metric
     
     case 'total'
         if isempty(seg)
-            R = permute(squeeze(nansum(bscan)),[2 1]);
+
+            R = permute(squeeze(sum(bscan, 'omitnan')),[2 1]);
             return;
         end
         

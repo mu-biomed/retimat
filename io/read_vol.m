@@ -95,35 +95,35 @@ read_slo = nargout == 4;
 fid = fopen(file);
  
 % Read header
-version = fread(fid, 12, '*int8');
-n_ascan = fread(fid, 1, '*int32');
-n_bscan = fread(fid, 1, '*int32');
-n_axial = fread(fid, 1, '*int32');
-scale_x = fread(fid, 1, '*double');
-scale_y = fread(fid, 1, '*double');
-scale_z = fread(fid, 1, '*double');
-size_x_slo = fread(fid, 1, '*int32');
-size_y_slo = fread(fid, 1, '*int32');
-scale_x_slo = fread(fid, 1, '*double');
-scale_y_slo = fread(fid, 1, '*double');
-fov_slo = fread(fid, 1, '*int32');
-scan_focus = fread(fid, 1, '*double');
-eye = char(fread(fid, 4, '*uchar')');
-exam_time = fread(fid, 1, '*int64');
-scan_pattern = fread(fid, 1, '*int32');
+version        = fread(fid, 12, '*int8');
+n_ascan        = fread(fid, 1, '*int32');
+n_bscan        = fread(fid, 1, '*int32');
+n_axial        = fread(fid, 1, '*int32');
+scale_x        = fread(fid, 1, '*double');
+scale_y        = fread(fid, 1, '*double');
+scale_z        = fread(fid, 1, '*double');
+size_x_slo     = fread(fid, 1, '*int32');
+size_y_slo     = fread(fid, 1, '*int32');
+scale_x_slo    = fread(fid, 1, '*double');
+scale_y_slo    = fread(fid, 1, '*double');
+fov_slo        = fread(fid, 1, '*int32');
+scan_focus     = fread(fid, 1, '*double');
+eye            = char(fread(fid, 4, '*uchar')');
+exam_time      = fread(fid, 1, '*int64');
+scan_pattern   = fread(fid, 1, '*int32');
 bscan_hdr_size = fread(fid, 1, '*int32');
-id = char(fread(fid, 16, '*uchar')');
-reference_id = char(fread(fid, 16, '*uchar')');
-pid = fread(fid, 1, '*int32');
-patient_id = char(fread(fid, 21, '*uchar')');
-padding = fread(fid, 3, '*int8');
-birth_date = fread(fid, 1, '*double');
-vid = fread(fid, 1, '*int32');
-visit_id = char(fread(fid, 24, '*uchar')');
-visit_date = fread(fid, 1, '*double');
-grid_type = fread(fid, 1, '*int32');
-grid_offset = fread(fid, 1, '*int32');
-spare = fread(fid, 1832, '*int8');
+id             = char(fread(fid, 16, '*uchar')');
+reference_id   = char(fread(fid, 16, '*uchar')');
+pid            = fread(fid, 1, '*int32');
+patient_id     = char(fread(fid, 21, '*uchar')');
+padding        = fread(fid, 3, '*int8');
+birth_date     = fread(fid, 1, '*double');
+vid            = fread(fid, 1, '*int32');
+visit_id       = char(fread(fid, 24, '*uchar')');
+visit_date     = fread(fid, 1, '*double');
+grid_type      = fread(fid, 1, '*int32');
+grid_offset    = fread(fid, 1, '*int32');
+spare          = fread(fid, 1832, '*int8');
  
 if verbose
     disp('---------------------------------------------');
@@ -309,7 +309,7 @@ if full_header
     header.end_x = end_x;
     header.end_y = end_y;
     header.n_seg = n_seg;
-    header.shit = shift;
+    header.shift = shift;
     header.off_seg = off_seg;
 end
 

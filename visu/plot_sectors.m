@@ -73,7 +73,18 @@ switch Sectors.type
         axis equal;
         axis off;
     case 'pie'
-        warning(["Not implemented yet"]);        
+        n_sect = Sectors.n_sect;
+        radius = Sectors.radius;
+        theta_0 = Sectors.theta_0;
+        
+        theta_edge = linspace(theta_0, theta_0+2*pi, n_sect+1);
+        n_point = 20;
+        for i_sect=1:n_sect
+            plot_pie(theta_edge(i_sect), theta_edge(i_sect+1), radius,...
+                     n_point, Z(i_sect));                                     
+        end
+        axis equal;
+%         axis off;
     case 'wedge'
         radius = Sectors.radius;
         n_angle = Sectors.n_angle;
@@ -127,7 +138,7 @@ patch(x, y, z, 'linestyle', 'none');
 line(x, y, 'Color','black');
 end
 
-function plot_pie(th0, th1, radius, N)
+function plot_pie(th0, th1, radius, N, z)
 
 % A pie is made of 3 segments
 
