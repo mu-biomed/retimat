@@ -118,12 +118,14 @@ while current ~=0% List of chunks
         type       = fread(fid, 1, '*uint32');
         unknown11  = fread(fid, 1, '*uint32');
 
-        chunks(i_chunk).type  = type;
-        chunks(i_chunk).pos   = pos;
-        chunks(i_chunk).start = start;
-        chunks(i_chunk).size  = size;
-        
-        i_chunk = i_chunk + 1;
+        if size > 0
+            chunks(i_chunk).type  = type;
+            chunks(i_chunk).pos   = pos;
+            chunks(i_chunk).start = start;
+            chunks(i_chunk).size  = size;
+
+            i_chunk = i_chunk + 1;
+        end
     end
 
     disp(['Read element ' num2str(i_main)]);
@@ -133,14 +135,25 @@ end
 
 chunks = struct2table(chunks);
 
-chunk_id = 11;
+chunk_header_size = 60;
+
+chunk_id = 59;
 idx = find(chunks.type == chunk_id);
 
 for i=1:length(idx)
     fseek(fid, chunks.start(idx(i)), -1);
-%     laterality = fread(fid, chunks.size(idx(i)), '*uchar');
-%     disp(char(laterality)');
-    parse_chunk(fid, chunk_id);
+    fread(fid, chunk_header_size, '*uint8');
+    x = fread(fid, chunks.size(idx(i)), '*char')';
+    disp(x);
+    
+    fseek(fid, chunks.start(idx(i)), -1);
+    fread(fid, chunk_header_size, '*uint8');
+    x8 = fread(fid, chunks.size(idx(i)), '*uint8')';
+    x16 = fread(fid, chunks.size(idx(i))/2, '*uint16')';
+    x32 = fread(fid, chunks.size(idx(i))/3, '*uint32')';
+   %     disp(laterality');
+    
+%     parse_chunk(fid, chunk_id);
 
     
 end
@@ -168,14 +181,33 @@ switch type
     case 3
         text = fread(fid, 12, '*char');
         
-    case 10019  % segmentation
-        unknown = fread(fid, 1, '*uint32');
+    case 7
+        eye = fread(fid, 1, '*char');
         
+    case 9 % patient info
+        name       = deblank(string(fread(fid, 31, '*char')'));
+        surname    = deblank(string(fread(fid, 66, '*char')'));
+        birth_date = fread(fid, 1, '*uint32');
+        sex        = fread(fid, 1, '*char');
+        
+        birth_date = (birth_date/64) - 14558805;  % to julian date
+        birth_date = datetime(birth_date, 'ConvertFrom', 'juliandate');
+                 
     case 11
         unknown    = fread(fid, 14, '*char');
         laterality = fread(fid, 1, '*char');
         unknown    = fread(fid, 14, '*uint8');
+  
+    case 13
+        device = fread(fid, 260, '*char')';
         
+    case 52
+        code = fread(fid, 97, '*char');
+    case 53
+        code = fread(fid, 97, '*char');        
+    case 10019  % segmentation
+        unknown = fread(fid, 1, '*uint32');
+
     case 1073741824  % image data
         size       = fread(fid, 1, '*int32');
         image_type = fread(fid, 1, '*int32');
@@ -208,6 +240,9 @@ switch type
             otherwise
                 warning('Unknown image type');
         end
+    case  1073751825 % looks like a time series
+%         unknown = fread(fid, 300,'*uint8');
+        
     otherwise
         error("Unknown chunk type");
 end
