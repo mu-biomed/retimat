@@ -43,39 +43,41 @@ I = im2double(I);
 I_filt = medfilt2(I, [5, 5]); %% original Maitane [15,15]
 
 % Top Hat
-se_size = 75;
+se_size = 10;  % 74
 se = strel('disk',se_size);
 I_th = imtophat(padarray(I_filt,[se_size*2,se_size*2]), se); % fix this
 I_th = I_th(se_size*2+1:se_size*2+n, se_size*2+1:se_size*2+m); % fix this
- 
+
+%% Segmentation
 switch vasculature
     case 'macro'
         
     % Otsu's threshold
-    th  = graythresh(I_th) * 1.7; %% original (1.75)
+    th    = graythresh(I_th); %% original (1.75)
     seg_1 = I_th > th;
 
     % Open
-    se  = strel('disk', 15); %disc 12 
+    se  = strel('disk', 5); %disc 12, 15
     seg_2 = imopen(seg_1, se);
 
     % Reconstruir
     seg_3 = imreconstruct(seg_2, seg_1);
 
-    seg_4 = bwareaopen(seg_3, 5000);
+    seg_4 = bwareaopen(seg_3, 1000); %% 5000
 
 
     if verbose
         n_row = 2;
         n_col = 4;
         
-        subplot(n_row, n_col, 1); images(I);      title('Original');
-        subplot(n_row, n_col, 2); images(I_filt); title('Filtering');
-        subplot(n_row, n_col, 3); images(I_th);   title('Top - Hat');
-        subplot(n_row, n_col, 4); images(seg_1);  title('Binarized');
-        subplot(n_row, n_col, 5); images(seg_2);      title('imopen');
-        subplot(n_row, n_col, 5); images(seg_3);      title('imreconstruct');
-        subplot(n_row, n_col, 5); images(seg_4);      title('bwareaopen');
+        subplot(n_row, n_col, 1); imagesc(I);      title('Original');
+        subplot(n_row, n_col, 2); imagesc(I_filt); title('Filtering');
+        subplot(n_row, n_col, 3); imagesc(I_th);   title('Top - Hat');
+        subplot(n_row, n_col, 4); imagesc(seg_1);  title('Binarized');
+        subplot(n_row, n_col, 5); imagesc(seg_2);  title('imopen');
+        subplot(n_row, n_col, 6); imagesc(seg_3);  title('imreconstruct');
+        subplot(n_row, n_col, 7); imagesc(seg_4);  title('bwareaopen');
+        colormap(gray);
     end
        
     seg = seg_4;
