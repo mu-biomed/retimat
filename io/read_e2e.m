@@ -1,4 +1,4 @@
-% function [header, segment, bscan, slo] = read_e2e(file, varargin)
+function [header, segment, bscan, slo] = read_e2e(file, varargin)
 %read_e2e Read .e2e file exported from Spectralis OCT (Heidelberg Engineering)
 %
 %   [header, segment, bscan, slo] = read_e2e(file, options)
@@ -64,10 +64,13 @@
 %   David Romero-Bascones, dromero@mondragon.edu
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
-close all;clc;clearvars;
+% close all;clc;clearvars;
 
 % file = '/home/david/GITHUB/retimat/data_private/oct_1.e2e';
-file = 'C:/Users/dromero/Desktop/GITHUB/retimat/data_private/oct_1.e2e';
+% file = 'C:/Users/dromero/Desktop/GITHUB/retimat/data_private/oct_1.e2e';
+
+NA_FLAG = 4294967295;
+CHUNK_HEADER_SIZE = 60;
 
 fid = fopen(file, 'rb', 'l');
  
@@ -118,7 +121,11 @@ while current ~=0% List of chunks
         type       = fread(fid, 1, '*uint32');
         unknown11  = fread(fid, 1, '*uint32');
 
-        if size > 0
+        if size > -10
+            
+            chunks(i_chunk).patient_id = patient_id;
+            chunks(i_chunk).series_id = series_id;
+            chunks(i_chunk).slice_id = slice_id;
             chunks(i_chunk).type  = type;
             chunks(i_chunk).pos   = pos;
             chunks(i_chunk).start = start;
@@ -133,30 +140,57 @@ while current ~=0% List of chunks
     i_main = i_main + 1;
 end
 
+verbose = false;
 chunks = struct2table(chunks);
 
-chunk_header_size = 60;
+% Get number of patients 4294967295 = 2^32 - 1 (all ones means not applicable)
+patients = unique(chunks.patient_id);
+patients(patients == NA_FLAG) = [];
+n_patient = lengtth(patients);
 
-match = search_by_value(fid, chunks, 49, {'*uint32'});
-match = struct2table(match);
+if n_patient > 1
+    error(['Number of patients in file is > 1 (' num2str(n_patient) ')']);        
+end
 
-chunk_id = 512;
+% Get number of series per subject
+series_id = unique(chunks.series);
+series_id(series_id == NA_FLAG) = [];
+n_series = length(series_id);
+
+if verbose
+    disp(['Number of series (images) in file: ' num2str(n_series)]);
+end
+
+% Read patient data first
+
+% Parse each series separately
+% for i_series = 1:n_series
+%     chunks_series = chunks(chunks.series_id == series_id(i_series),:);
+% end
+
+% match = search_by_value(fid, chunks, 39.9414, {'*float32'})
+% match = search_by_value(fid, chunks, 34.2144, {'*float32'})
+% match = search_by_value(fid, chunks, 21.0941, {'*single'})
+
+% match = struct2table(match);
+
+chunk_id = 10004;
 idx = find(chunks.type == chunk_id);
 
 for i=1:length(idx)
     fseek(fid, chunks.start(idx(i)), -1);
-    fread(fid, chunk_header_size, '*uint8');
-    x = fread(fid, chunks.size(idx(i)), '*char')';
-    disp(x);
+%     fread(fid, CHUNK_HEADER_SIZE, '*uint8');
+%     x = fread(fid, chunks.size(idx(i)), '*char')';
+%     disp(x);
     
-    fseek(fid, chunks.start(idx(i)), -1);
-    fread(fid, chunk_header_size, '*uint8');
-    x8 = fread(fid, chunks.size(idx(i)), '*uint8')';
-    x16 = fread(fid, chunks.size(idx(i))/2, '*uint16')';
-    x32 = fread(fid, chunks.size(idx(i))/3, '*uint32')';
+%     fseek(fid, chunks.start(idx(i)), -1);
+%     fread(fid, CHUNK_HEADER_SIZE, '*uint8');
+%     x8 = fread(fid, chunks.size(idx(i)), '*uint8')';
+%     x16 = fread(fid, chunks.size(idx(i))/2, '*uint16')';
+%     x32 = fread(fid, chunks.size(idx(i))/3, '*uint32')';
    %     disp(laterality');
     
-%     parse_chunk(fid, chunk_id);
+    parse_chunk(fid, chunk_id);
 
     
 end
@@ -180,6 +214,40 @@ for i=1:size(chunks,1)
     types_all = {};
     for j=1:length(types)
         switch types{j}
+            case '*float32'
+                x{end+1} = fread(fid, n_bytes/4, '*float32');
+                
+                fseek(fid, start, -1);
+                fread(fid, 61, '*uint8');                
+                x{end+1} = fread(fid, n_bytes/4, '*float32');
+                
+                fseek(fid, start, -1);
+                fread(fid, 62, '*uint8');                
+                x{end+1} = fread(fid, n_bytes/4, '*float32');
+                
+                fseek(fid, start, -1);                
+                fread(fid, 63, '*uint8');
+                x{end+1} = fread(fid, n_bytes/4, '*float32');       
+                
+                types_all(end+1:end+4) = {'*single_0','*single_1','*single_2','*single_3'};
+
+            case '*single'
+                x{end+1} = fread(fid, n_bytes/4, '*single');
+                
+                fseek(fid, start, -1);
+                fread(fid, 61, '*uint8');                
+                x{end+1} = fread(fid, n_bytes/4, '*single');
+                
+                fseek(fid, start, -1);
+                fread(fid, 62, '*uint8');                
+                x{end+1} = fread(fid, n_bytes/4, '*single');
+                
+                fseek(fid, start, -1);                
+                fread(fid, 63, '*uint8');
+                x{end+1} = fread(fid, n_bytes/4, '*single');       
+                
+                types_all(end+1:end+4) = {'*single_0','*single_1','*single_2','*single_3'};
+
             case '*uint8'
                 x{end+1} = fread(fid, n_bytes, '*uint8');
                 types_all{end+1} = '*uint8';
@@ -212,7 +280,8 @@ for i=1:size(chunks,1)
     end
     
     for j=1:length(x)
-        idx = find(x{j} == value);
+%         idx = find(x{j} == value);
+        idx = find(abs(x{j} - value)<= 0.0001);
         
         for ii=1:length(idx)
             match(i_match).idx = i;
@@ -224,7 +293,7 @@ for i=1:size(chunks,1)
         end
     end
 end
-end
+
 
 function data = parse_chunk(fid, type)
 
@@ -233,9 +302,9 @@ unknown    = fread(fid, 2, '*uint32');
 pos        = fread(fid, 1, '*uint32');
 c_size     = fread(fid, 1, '*uint32');
 zero       = fread(fid, 1, '*uint32');
-patient_id = fread(fid, 1, '*uint32');
-study_id   = fread(fid, 1, '*uint32');
-series_id  = fread(fid, 1, '*uint32');
+patient_id = fread(fid, 1, '*int32');
+study_id   = fread(fid, 1, '*int32');
+series_id  = fread(fid, 1, '*int32');
 slice_id   = fread(fid, 1, '*uint32');
 ind        = fread(fid, 1, '*uint16');
 unknown2   = fread(fid, 1, '*uint16');
@@ -272,6 +341,11 @@ switch type
         code = fread(fid, 97, '*char');
     case 53
         code = fread(fid, 97, '*char');        
+        
+    case 10004
+        unknown = fread(fid, 39, '*single');
+        quality = fread(fid, 1, '*single')
+        
     case 10019  % segmentation
         unknown = fread(fid, 1, '*uint32');
 
@@ -312,5 +386,4 @@ switch type
         
     otherwise
         error("Unknown chunk type");
-end
 end
