@@ -1,10 +1,10 @@
 % function [header, segment, bscan, slo] = read_e2e(file, varargin)
-%read_vol Read .e2e file exported from Spectralis OCT (Heidelberg Engineering)
+%read_e2e Read .e2e file exported from Spectralis OCT (Heidelberg Engineering)
 %
 %   [header, segment, bscan, slo] = read_e2e(file, options)
 %
 %   This function reads the header, segmentation and image information 
-%   contained in the .vol files. 
+%   contained in the .e2e/.E2E files. 
 %
 %   Input arguments:
 %  
@@ -137,7 +137,10 @@ chunks = struct2table(chunks);
 
 chunk_header_size = 60;
 
-chunk_id = 59;
+match = search_by_value(fid, chunks, 49, {'*uint32'});
+match = struct2table(match);
+
+chunk_id = 512;
 idx = find(chunks.type == chunk_id);
 
 for i=1:length(idx)
@@ -158,6 +161,70 @@ for i=1:length(idx)
     
 end
 
+
+function match = search_by_value(fid, chunks, value, types)
+
+match = struct;
+i_match = 1;
+for i=1:size(chunks,1)
+    chunk_type = chunks.type(i);
+    start   = chunks.start(i);
+    n_bytes = chunks.size(i);
+
+    disp(['Chunk ' num2str(i) '/' num2str(size(chunks,1))]);
+    
+    fseek(fid, start, -1);
+    fread(fid, 60, '*uint8');
+    
+    x = {};
+    types_all = {};
+    for j=1:length(types)
+        switch types{j}
+            case '*uint8'
+                x{end+1} = fread(fid, n_bytes, '*uint8');
+                types_all{end+1} = '*uint8';
+            case '*uint16'
+                x{end+1} = fread(fid, n_bytes/2, '*uint16');
+                
+                fseek(fid, start, -1);
+                fread(fid, 61, '*uint8');
+                x{end+1} = fread(fid, n_bytes/2, '*uint16');
+                
+                types_all(end+1:end+2) = {'*uint16_0','*uint16_1'};
+            case '*uint32'
+                x{end+1} = fread(fid, n_bytes/4, '*int32');
+                
+                fseek(fid, start, -1);
+                fread(fid, 61, '*uint8');                
+                x{end+1} = fread(fid, n_bytes/4, '*int32');
+                
+                fseek(fid, start, -1);
+                fread(fid, 62, '*uint8');                
+                x{end+1} = fread(fid, n_bytes/4, '*int32');
+                
+                fseek(fid, start, -1);                
+                fread(fid, 63, '*uint8');
+                x{end+1} = fread(fid, n_bytes/4, '*int32');
+                
+                
+                types_all(end+1:end+4) = {'*uint32_0','*uint32_1','*uint32_2','*uint32_3'};
+        end                
+    end
+    
+    for j=1:length(x)
+        idx = find(x{j} == value);
+        
+        for ii=1:length(idx)
+            match(i_match).idx = i;
+            match(i_match).chunk_type = chunk_type;
+            match(i_match).data_type = types_all{j};
+            match(i_match).pos = idx(ii);
+                        
+            i_match = i_match + 1;
+        end
+    end
+end
+end
 
 function data = parse_chunk(fid, type)
 
