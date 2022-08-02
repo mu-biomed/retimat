@@ -1,4 +1,4 @@
-function [header, segment, bscan, fundus] = read_e2e(file, varargin)
+function [header, seg, bscan, fundus] = read_e2e(file, varargin)
 %read_e2e Read .e2e file exported from Spectralis OCT (Heidelberg Engineering)
 %
 %   [header, segment, bscan, slo] = read_e2e(file, options)
@@ -30,7 +30,7 @@ function [header, segment, bscan, fundus] = read_e2e(file, varargin)
 %  
 %   'header'         Structure with .vol file header values.          
 %  
-%   'segment'        Segmenation data stored in the .vol file.
+%   'seg'            Segmenation data stored in the .vol file.
 %
 %   'bscan'          3D single image with B-Scans.
 %
@@ -69,10 +69,13 @@ function [header, segment, bscan, fundus] = read_e2e(file, varargin)
 % file = '/home/david/GITHUB/retimat/data_private/oct_1.e2e';
 % file = 'C:/Users/dromero/Desktop/GITHUB/retimat/data_private/oct_1.e2e';
 
-global SEG_FLAG IMAGE_FLAG NA_FLAG
-SEG_FLAG   = 10019;
-IMAGE_FLAG = 1073741824;
-NA_FLAG    = 4294967295;
+global SEG_FLAG IMAGE_FLAG NA_FLAG QUALITY_FLAG PATIENT_FLAG EYE_FLAG 
+PATIENT_FLAG = 9;
+EYE_FLAG     = 11;
+QUALITY_FLAG = 1004;
+SEG_FLAG     = 10019;
+IMAGE_FLAG   = 1073741824;
+NA_FLAG      = 4294967295;
 CHUNK_HEADER_SIZE = 60;
 
 fid = fopen(file, 'rb', 'l');
@@ -345,8 +348,9 @@ for i_bscan=1:n_bscan
 end  
     
 function data = parse_chunk(fid, type)
-global SEG_FLAG IMAGE_FLAG
+global SEG_FLAG IMAGE_FLAG PATIENT_FLAG QUALITY_FLAG EYE_FLAG
 
+% We can probably skip chunk header as that info is not really useful
 magic4     = string(fread(fid, 12, '*char')');
 unknown    = fread(fid, 2, '*uint32');
 pos        = fread(fid, 1, '*uint32');
@@ -368,7 +372,7 @@ switch type
     case 7
         eye = fread(fid, 1, '*char');
         
-    case 9 % patient info
+    case PATIENT_FLAG % patient info
         name       = deblank(string(fread(fid, 31, '*char')'));
         surname    = deblank(string(fread(fid, 66, '*char')'));
         birth_date = fread(fid, 1, '*uint32');
@@ -377,7 +381,7 @@ switch type
         birth_date = (birth_date/64) - 14558805;  % to julian date
         birth_date = datetime(birth_date, 'ConvertFrom', 'juliandate');
                  
-    case 11
+    case EYE_FLAG
         unknown = fread(fid, 14, '*char');
         eye     = fread(fid, 1, '*char');  % Laterality
         unknown = fread(fid, 14, '*uint8');
@@ -398,9 +402,9 @@ switch type
     case 53
         code = fread(fid, 97, '*char');        
         
-    case 10004
+    case QUALITY_FLAG
         unknown = fread(fid, 39, '*single');
-        quality = fread(fid, 1, '*single')
+        quality = fread(fid, 1, '*single');
         
     case SEG_FLAG  % segmentation
         unknown = fread(fid, 1, '*uint32');
