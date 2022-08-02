@@ -1,4 +1,4 @@
-function [header, segment, bscan, slo] = read_e2e(file, varargin)
+function [header, segment, bscan, fundus] = read_e2e(file, varargin)
 %read_e2e Read .e2e file exported from Spectralis OCT (Heidelberg Engineering)
 %
 %   [header, segment, bscan, slo] = read_e2e(file, options)
@@ -69,6 +69,7 @@ function [header, segment, bscan, slo] = read_e2e(file, varargin)
 % file = '/home/david/GITHUB/retimat/data_private/oct_1.e2e';
 % file = 'C:/Users/dromero/Desktop/GITHUB/retimat/data_private/oct_1.e2e';
 
+global SEG_FLAG IMAGE_FLAG NA_FLAG
 SEG_FLAG   = 10019;
 IMAGE_FLAG = 1073741824;
 NA_FLAG    = 4294967295;
@@ -168,45 +169,20 @@ end
 % Parse each series separately
 bscan = cell(1, n_series);
 for i_series = 1:n_series
+    chunks_series = chunks(chunks.series_id == series_id(i_series),:);
+
     %% Header
     
     
     
     %% Bscan 
-     chunks_series = chunks(chunks.series_id == series_id(i_series),:);
+    bscan{i_series} = read_bscan(fid, chunks_series, verbose);
+    
      
-     is_image = chunks_series.type == IMAGE_FLAG;
-     is_bscan = chunks_series.bscan_id ~= NA_FLAG;
-     
-     bscan_id = chunks_series.bscan_id(is_image & is_bscan);     
-     n_bscan = length(bscan_id);
-     
-     if verbose
-         disp(['Series ' num2str(i_series) ' has ' num2str(n_bscan) ' bscans']);
-     end
-     
-     bscan_id = sort(bscan_id);
-     
-     for i_bscan=1:n_bscan
-         is_bscan = chunks_series.bscan_id == bscan_id(i_bscan);
-         
-         start = chunks_series.start(is_bscan & is_image);
-         fseek(fid, start, -1);
-         
-         data = parse_chunk(fid, IMAGE_FLAG);
-         
-         % This can be eliminated if the header is built before
-         if i_bscan == 1
-            bscan{i_series} = nan(data.n_axial, data.n_ascan, n_bscan);             
-         end
-         
-         bscan{i_series}(:, :, i_bscan) = data.bscan;
-     end     
-     
-     %% Segmentation
+    %% Segmentation
      
      
-     %% Fundus
+    %% Fundus
      
      
 end
@@ -337,8 +313,39 @@ for i=1:size(chunks,1)
     end
 end
 
+function bscan = read_bscan(fid, chunks_series, verbose)
+global IMAGE_FLAG NA_FLAG
 
+is_image = chunks_series.type == IMAGE_FLAG;
+is_bscan = chunks_series.bscan_id ~= NA_FLAG;
+     
+bscan_id = chunks_series.bscan_id(is_image & is_bscan);     
+n_bscan = length(bscan_id);
+
+if verbose
+    disp(['Reading ' num2str(n_bscan) ' bscans']);
+end
+     
+bscan_id = sort(bscan_id);
+     
+for i_bscan=1:n_bscan
+    is_bscan = chunks_series.bscan_id == bscan_id(i_bscan);
+
+    start = chunks_series.start(is_bscan & is_image);
+    fseek(fid, start, -1);
+
+    data = parse_chunk(fid, IMAGE_FLAG);
+
+    % This can be eliminated if the header is built before
+    if i_bscan == 1
+       bscan = nan(data.n_axial, data.n_ascan, n_bscan);             
+    end
+
+    bscan(:, :, i_bscan) = data.bscan;
+end  
+    
 function data = parse_chunk(fid, type)
+global SEG_FLAG IMAGE_FLAG
 
 magic4     = string(fread(fid, 12, '*char')');
 unknown    = fread(fid, 2, '*uint32');
@@ -371,10 +378,18 @@ switch type
         birth_date = datetime(birth_date, 'ConvertFrom', 'juliandate');
                  
     case 11
-        unknown    = fread(fid, 14, '*char');
-        laterality = fread(fid, 1, '*char');
-        unknown    = fread(fid, 14, '*uint8');
+        unknown = fread(fid, 14, '*char');
+        eye     = fread(fid, 1, '*char');  % Laterality
+        unknown = fread(fid, 14, '*uint8');
   
+        if eye == 'L'
+            data.eye = 'OS';
+        elseif eye == 'R'
+            data.eye = 'OD';
+        else
+            warning("Unknown laterality value");
+            data.eye = 'unknown';
+        end
     case 13
         device = fread(fid, 260, '*char')';
         
@@ -400,11 +415,11 @@ switch type
                 width  = fread(fid, 1, '*int32');
                 height = fread(fid, 1, '*int32');
                 bytes  = fread(fid, n_pixel, '*uint8');
-                I = reshape(bytes, [height width]);
-                permute(I, [2 1]);
-                imagesc(I);
                 
-                data.fundus     = I;
+                fundus = reshape(bytes, [height width]);
+                permute(fundus, [2 1]);
+                
+                data.fundus     = fundus;
                 data.n_x_fundus = width;
                 data.n_y_fundus = height;
             case 35652097 % b-scan 
@@ -419,17 +434,14 @@ switch type
                 mantissa = bin2dec(bin(:, 7:end));
                 a        = (1 + mantissa) / (2^10);
                 b        = 2 .^ (exponent - 63);
-                I        = a .* b;
+                bscan    = a .* b;
                 
-                I = reshape(I, [n_ascan n_axial]);
-                I = permute(I, [2 1]);
-%                 close all;
-%                 imagesc(I.^0.25);
-%                 disp('');
-            
+                bscan = reshape(bscan, [n_ascan n_axial]);
+                bscan = permute(bscan, [2 1]);
+
                 data.n_ascan = n_ascan;
                 data.n_axial = n_axial;
-                data.bscan   = I;
+                data.bscan   = bscan;
             otherwise
                 warning('Unknown image type');
         end
