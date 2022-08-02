@@ -34,7 +34,7 @@ function [header, segment, bscan, slo] = read_e2e(file, varargin)
 %
 %   'bscan'          3D single image with B-Scans.
 %
-%   'slo'            2D fundus image.
+%   'fundus'         2D fundus image.
 %   
 %
 %   Notes
@@ -69,7 +69,9 @@ function [header, segment, bscan, slo] = read_e2e(file, varargin)
 % file = '/home/david/GITHUB/retimat/data_private/oct_1.e2e';
 % file = 'C:/Users/dromero/Desktop/GITHUB/retimat/data_private/oct_1.e2e';
 
-NA_FLAG = 4294967295;
+SEG_FLAG   = 10019;
+IMAGE_FLAG = 1073741824;
+NA_FLAG    = 4294967295;
 CHUNK_HEADER_SIZE = 60;
 
 fid = fopen(file, 'rb', 'l');
@@ -115,7 +117,7 @@ while current ~=0% List of chunks
         patient_id = fread(fid, 1, '*uint32');
         study_id   = fread(fid, 1, '*uint32');
         series_id  = fread(fid, 1, '*uint32');
-        slice_id   = fread(fid, 1, '*uint32');
+        bscan_id   = fread(fid, 1, '*uint32');
         unknown    = fread(fid, 1, '*uint16');
         zero2      = fread(fid, 1, '*uint16');
         type       = fread(fid, 1, '*uint32');
@@ -124,12 +126,12 @@ while current ~=0% List of chunks
         if size > -10
             
             chunks(i_chunk).patient_id = patient_id;
-            chunks(i_chunk).series_id = series_id;
-            chunks(i_chunk).slice_id = slice_id;
-            chunks(i_chunk).type  = type;
-            chunks(i_chunk).pos   = pos;
-            chunks(i_chunk).start = start;
-            chunks(i_chunk).size  = size;
+            chunks(i_chunk).series_id  = series_id;
+            chunks(i_chunk).bscan_id   = bscan_id;
+            chunks(i_chunk).type       = type;
+            chunks(i_chunk).pos        = pos;
+            chunks(i_chunk).start      = start;
+            chunks(i_chunk).size       = size;
 
             i_chunk = i_chunk + 1;
         end
@@ -140,20 +142,20 @@ while current ~=0% List of chunks
     i_main = i_main + 1;
 end
 
-verbose = false;
+verbose = true;
 chunks = struct2table(chunks);
 
 % Get number of patients 4294967295 = 2^32 - 1 (all ones means not applicable)
 patients = unique(chunks.patient_id);
 patients(patients == NA_FLAG) = [];
-n_patient = lengtth(patients);
+n_patient = length(patients);
 
 if n_patient > 1
     error(['Number of patients in file is > 1 (' num2str(n_patient) ')']);        
 end
 
 % Get number of series per subject
-series_id = unique(chunks.series);
+series_id = unique(chunks.series_id);
 series_id(series_id == NA_FLAG) = [];
 n_series = length(series_id);
 
@@ -164,9 +166,50 @@ end
 % Read patient data first
 
 % Parse each series separately
-% for i_series = 1:n_series
-%     chunks_series = chunks(chunks.series_id == series_id(i_series),:);
-% end
+bscan = cell(1, n_series);
+for i_series = 1:n_series
+    %% Header
+    
+    
+    
+    %% Bscan 
+     chunks_series = chunks(chunks.series_id == series_id(i_series),:);
+     
+     is_image = chunks_series.type == IMAGE_FLAG;
+     is_bscan = chunks_series.bscan_id ~= NA_FLAG;
+     
+     bscan_id = chunks_series.bscan_id(is_image & is_bscan);     
+     n_bscan = length(bscan_id);
+     
+     if verbose
+         disp(['Series ' num2str(i_series) ' has ' num2str(n_bscan) ' bscans']);
+     end
+     
+     bscan_id = sort(bscan_id);
+     
+     for i_bscan=1:n_bscan
+         is_bscan = chunks_series.bscan_id == bscan_id(i_bscan);
+         
+         start = chunks_series.start(is_bscan & is_image);
+         fseek(fid, start, -1);
+         
+         data = parse_chunk(fid, IMAGE_FLAG);
+         
+         % This can be eliminated if the header is built before
+         if i_bscan == 1
+            bscan{i_series} = nan(data.n_axial, data.n_ascan, n_bscan);             
+         end
+         
+         bscan{i_series}(:, :, i_bscan) = data.bscan;
+     end     
+     
+     %% Segmentation
+     
+     
+     %% Fundus
+     
+     
+end
 
 % match = search_by_value(fid, chunks, 39.9414, {'*float32'})
 % match = search_by_value(fid, chunks, 34.2144, {'*float32'})
@@ -305,13 +348,11 @@ zero       = fread(fid, 1, '*uint32');
 patient_id = fread(fid, 1, '*int32');
 study_id   = fread(fid, 1, '*int32');
 series_id  = fread(fid, 1, '*int32');
-slice_id   = fread(fid, 1, '*uint32');
+bscan_id   = fread(fid, 1, '*uint32');
 ind        = fread(fid, 1, '*uint16');
 unknown2   = fread(fid, 1, '*uint16');
 c_type     = fread(fid, 1, '*uint32');
 unknown3   = fread(fid, 1, '*uint32');
-
-disp(series_id);
 
 switch type
     case 3
@@ -346,26 +387,33 @@ switch type
         unknown = fread(fid, 39, '*single');
         quality = fread(fid, 1, '*single')
         
-    case 10019  % segmentation
+    case SEG_FLAG  % segmentation
         unknown = fread(fid, 1, '*uint32');
 
-    case 1073741824  % image data
-        size       = fread(fid, 1, '*int32');
+    case IMAGE_FLAG  % image data
+        data_size  = fread(fid, 1, '*int32');
         image_type = fread(fid, 1, '*int32');
         n_pixel    = fread(fid, 1, '*int32');
-        width      = fread(fid, 1, '*int32');
-        height     = fread(fid, 1, '*int32');
         
         switch image_type
             case 33620481 % fundus
-                bytes = fread(fid, n_pixel, '*uint8');
+                width  = fread(fid, 1, '*int32');
+                height = fread(fid, 1, '*int32');
+                bytes  = fread(fid, n_pixel, '*uint8');
                 I = reshape(bytes, [height width]);
                 permute(I, [2 1]);
                 imagesc(I);
                 
-            case 35652097 % b-scan                
-                bytes = fread(fid, n_pixel, '*uint16');
+                data.fundus     = I;
+                data.n_x_fundus = width;
+                data.n_y_fundus = height;
+            case 35652097 % b-scan 
+                n_axial = fread(fid, 1, '*int32');
+                n_ascan = fread(fid, 1, '*int32');
+                bytes   = fread(fid, n_pixel, '*uint16');
                 
+                % Next three lines are very slow. 
+                % Try to think of a faster implementation
                 bin      = dec2bin(bytes);
                 exponent = bin2dec(bin(:, 1:6));
                 mantissa = bin2dec(bin(:, 7:end));
@@ -373,11 +421,15 @@ switch type
                 b        = 2 .^ (exponent - 63);
                 I        = a .* b;
                 
-                I = reshape(I, [height width]);
+                I = reshape(I, [n_ascan n_axial]);
                 I = permute(I, [2 1]);
-                close all;
-                imagesc(I.^0.25);
-                disp('');
+%                 close all;
+%                 imagesc(I.^0.25);
+%                 disp('');
+            
+                data.n_ascan = n_ascan;
+                data.n_axial = n_axial;
+                data.bscan   = I;
             otherwise
                 warning('Unknown image type');
         end
