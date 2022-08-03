@@ -168,22 +168,25 @@ if verbose
 end
 
 % Read patient data first
+patient_header = read_patient_data(fid, chunks);
 
 % Parse each series separately
-bscan = cell(1, n_series);
+header = cell(1, n_series);
+bscan  = cell(1, n_series);
+seg    = cell(1, n_series);
+fundus = cell(1, n_series);
 for i_series = 1:n_series
     chunks_series = chunks(chunks.series_id == series_id(i_series),:);
 
     %% Header
-    
-    
-    
+    header{i_series} = read_header(fid, chunks_series, patient_header);
+        
     %% Bscan 
-    bscan{i_series} = read_bscan(fid, chunks_series, verbose);
+%     bscan{i_series} = read_bscan(fid, chunks_series, verbose);
     
      
     %% Segmentation
-     
+    seg{i_series} = read_segmentation(fid, chunks_series);
      
     %% Fundus
      
@@ -316,6 +319,24 @@ for i=1:size(chunks,1)
     end
 end
 
+function header = read_patient_data(fid, chunks)
+global PATIENT_FLAG
+
+start = chunks.start(chunks.type == PATIENT_FLAG);
+fseek(fid, start, -1);
+header = parse_chunk(fid, PATIENT_FLAG);
+
+function header = read_header(fid, chunks, header)
+global EYE_FLAG
+
+start = chunks.start(chunks.type == EYE_FLAG);
+fseek(fid, start(1), -1);
+data = parse_chunk(fid, EYE_FLAG);
+
+header.eye = data.eye;
+
+% To be filled to read scale, dimensions, quality...
+
 function bscan = read_bscan(fid, chunks_series, verbose)
 global IMAGE_FLAG NA_FLAG
 
@@ -347,6 +368,41 @@ for i_bscan=1:n_bscan
     bscan(:, :, i_bscan) = data.bscan;
 end  
     
+function seg = read_segmentation(fid, chunks)
+global SEG_FLAG NA_FLAG
+layer_names = {'ILM',     'BM',      'RNFL_GCL', 'GCL_IPL', ...
+               'IPL_INL', 'INL_OPL', 'OPL_ONL', 'unknown', 'ELM', ...
+               'unknown', 'unknown', 'unknown','unknown','unknown', ...
+               'MZ_EZ',   'OSP_IZ',  'IZ_RPE'};
+           
+is_seg = chunks.type == SEG_FLAG;
+
+bscan_id = unique(chunks.bscan_id);
+bscan_id(bscan_id == NA_FLAG) = [];
+n_bscan  = length(bscan_id);
+
+seg = struct;
+for i_bscan=1:n_bscan
+    is_bscan = chunks.bscan_id == bscan_id(i_bscan);
+    
+    start = chunks.start(is_seg & is_bscan);
+    n_layer = length(start);
+    for i_layer=1:n_layer
+        fseek(fid, start(i_layer), -1);
+        data = parse_chunk(fid, SEG_FLAG);        
+        
+        layer = layer_names{data.layer_id + 1};
+        seg.(layer)(i_bscan, :) = data.seg;
+    end
+end
+
+% Invalid values coded as 0 --> better have nan to avoid wrong computations
+layer_names = fields(seg);
+for i_layer=1:length(layer_names)
+    layer = layer_names{i_layer};
+    seg.(layer)(seg.(layer) == 0) = nan;
+end
+
 function data = parse_chunk(fid, type)
 global SEG_FLAG IMAGE_FLAG PATIENT_FLAG QUALITY_FLAG EYE_FLAG
 
@@ -373,14 +429,26 @@ switch type
         eye = fread(fid, 1, '*char');
         
     case PATIENT_FLAG % patient info
-        name       = deblank(string(fread(fid, 31, '*char')'));
-        surname    = deblank(string(fread(fid, 66, '*char')'));
+        name       = deblank(fread(fid, 31, '*char')');
+        surname    = deblank(fread(fid, 66, '*char')');
         birth_date = fread(fid, 1, '*uint32');
         sex        = fread(fid, 1, '*char');
         
         birth_date = (birth_date/64) - 14558805;  % to julian date
         birth_date = datetime(birth_date, 'ConvertFrom', 'juliandate');
-                 
+        
+        data.name       = name;
+        data.surname    = surname;
+        data.birth_date = birth_date;
+        
+        if sex == 'M'
+            data.sex = 'male';
+        elseif sex == 'F'
+            data.sex = 'female';
+        else
+            data.sex = 'unknown';
+        end        
+        
     case EYE_FLAG
         unknown = fread(fid, 14, '*char');
         eye     = fread(fid, 1, '*char');  % Laterality
@@ -407,7 +475,16 @@ switch type
         quality = fread(fid, 1, '*single');
         
     case SEG_FLAG  % segmentation
-        unknown = fread(fid, 1, '*uint32');
+        unknown  = fread(fid, 1, '*uint32');
+        layer_id = fread(fid, 1, '*uint32');
+        unknown  = fread(fid, 1, '*uint32');
+        n_ascan  = fread(fid, 1, '*uint32');
+        
+        seg      = fread(fid, n_ascan, '*float32');
+        
+        data.layer_id = layer_id;
+        data.n_ascan  = n_ascan;
+        data.seg      = seg;
 
     case IMAGE_FLAG  % image data
         data_size  = fread(fid, 1, '*int32');
