@@ -80,74 +80,8 @@ CHUNK_HEADER_SIZE = 60;
 
 fid = fopen(file, 'rb', 'l');
  
-% Read header
-magic1   = string(fread(fid, 12, '*char')');
-version1 = fread(fid, 1, '*uint32');
-unknown1 = fread(fid, 9, '*uint16');
-unknown2 = fread(fid, 1, '*uint16');
-
-% Directory
-magic2      = string(fread(fid, 12, '*char')');
-version2    = fread(fid, 1, '*uint32');
-unknown3    = fread(fid, 9, '*uint16');
-unknown4    = fread(fid, 1, '*uint16');
-num_entries = fread(fid, 1, '*uint32');
-current     = fread(fid, 1, '*uint32');
-zeros2      = fread(fid, 1, '*uint32');
-unknown5    = fread(fid, 1, '*uint32');
-
-chunks = struct;
-i_main = 1;
-i_chunk = 1;
-while current ~=0% List of chunks
-    fseek(fid, current, -1);
-
-    magic3       = string(fread(fid, 12, '*char')');
-    version3     = fread(fid, 1, '*uint32');
-    unknown6     = fread(fid, 9, '*uint16');
-    unknown7     = fread(fid, 1, '*uint16');
-    num_entries2 = fread(fid, 1, '*uint32');
-    unknown8     = fread(fid, 1, '*uint32');
-    prev         = fread(fid, 1, '*uint32');
-    unknown9     = fread(fid, 1, '*uint32');
-
-    current = prev;
-
-    for i=1:num_entries2
-        pos        = fread(fid, 1, '*uint32');
-        start      = fread(fid, 1, '*uint32');
-        size       = fread(fid, 1, '*uint32');
-        zero       = fread(fid, 1, '*uint32');
-        patient_id = fread(fid, 1, '*uint32');
-        study_id   = fread(fid, 1, '*uint32');
-        series_id  = fread(fid, 1, '*uint32');
-        bscan_id   = fread(fid, 1, '*uint32');
-        unknown    = fread(fid, 1, '*uint16');
-        zero2      = fread(fid, 1, '*uint16');
-        type       = fread(fid, 1, '*uint32');
-        unknown11  = fread(fid, 1, '*uint32');
-
-        if size > -10
-            
-            chunks(i_chunk).patient_id = patient_id;
-            chunks(i_chunk).series_id  = series_id;
-            chunks(i_chunk).bscan_id   = bscan_id;
-            chunks(i_chunk).type       = type;
-            chunks(i_chunk).pos        = pos;
-            chunks(i_chunk).start      = start;
-            chunks(i_chunk).size       = size;
-
-            i_chunk = i_chunk + 1;
-        end
-    end
-
-    disp(['Read element ' num2str(i_main)]);
-    
-    i_main = i_main + 1;
-end
-
 verbose = true;
-chunks = struct2table(chunks);
+chunks = discover_chunks(fid);
 
 % Get number of patients 4294967295 = 2^32 - 1 (all ones means not applicable)
 patients = unique(chunks.patient_id);
@@ -317,6 +251,75 @@ for i=1:size(chunks,1)
         end
     end
 end
+
+function chunks = discover_chunks(fid)
+% Read header
+magic1   = string(fread(fid, 12, '*char')');
+version1 = fread(fid, 1, '*uint32');
+unknown1 = fread(fid, 9, '*uint16');
+unknown2 = fread(fid, 1, '*uint16');
+
+% Directory
+magic2      = string(fread(fid, 12, '*char')');
+version2    = fread(fid, 1, '*uint32');
+unknown3    = fread(fid, 9, '*uint16');
+unknown4    = fread(fid, 1, '*uint16');
+num_entries = fread(fid, 1, '*uint32');
+current     = fread(fid, 1, '*uint32');
+zeros2      = fread(fid, 1, '*uint32');
+unknown5    = fread(fid, 1, '*uint32');
+
+chunks = struct;
+i_main = 1;
+i_chunk = 1;
+while current ~=0% List of chunks
+    fseek(fid, current, -1);
+
+    magic3       = string(fread(fid, 12, '*char')');
+    version3     = fread(fid, 1, '*uint32');
+    unknown6     = fread(fid, 9, '*uint16');
+    unknown7     = fread(fid, 1, '*uint16');
+    num_entries2 = fread(fid, 1, '*uint32');
+    unknown8     = fread(fid, 1, '*uint32');
+    prev         = fread(fid, 1, '*uint32');
+    unknown9     = fread(fid, 1, '*uint32');
+
+    current = prev;
+
+    for i=1:num_entries2
+        pos        = fread(fid, 1, '*uint32');
+        start      = fread(fid, 1, '*uint32');
+        size       = fread(fid, 1, '*uint32');
+        zero       = fread(fid, 1, '*uint32');
+        patient_id = fread(fid, 1, '*uint32');
+        study_id   = fread(fid, 1, '*uint32');
+        series_id  = fread(fid, 1, '*uint32');
+        bscan_id   = fread(fid, 1, '*uint32');
+        unknown    = fread(fid, 1, '*uint16');
+        zero2      = fread(fid, 1, '*uint16');
+        type       = fread(fid, 1, '*uint32');
+        unknown11  = fread(fid, 1, '*uint32');
+
+        if size > -10
+            
+            chunks(i_chunk).patient_id = patient_id;
+            chunks(i_chunk).series_id  = series_id;
+            chunks(i_chunk).bscan_id   = bscan_id;
+            chunks(i_chunk).type       = type;
+            chunks(i_chunk).pos        = pos;
+            chunks(i_chunk).start      = start;
+            chunks(i_chunk).size       = size;
+
+            i_chunk = i_chunk + 1;
+        end
+    end
+
+    disp(['Read element ' num2str(i_main)]);
+    
+    i_main = i_main + 1;
+end
+
+chunks = struct2table(chunks);
 
 function header = read_patient_data(fid, chunks)
 global PATIENT_FLAG
