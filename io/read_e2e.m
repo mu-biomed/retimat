@@ -183,8 +183,7 @@ for i_series = 1:n_series
         
     %% Bscan 
 %     bscan{i_series} = read_bscan(fid, chunks_series, verbose);
-    
-     
+
     %% Segmentation
     seg{i_series} = read_segmentation(fid, chunks_series);
      
@@ -506,14 +505,17 @@ switch type
             case 35652097 % b-scan 
                 n_axial = fread(fid, 1, '*int32');
                 n_ascan = fread(fid, 1, '*int32');
-                bytes   = fread(fid, n_pixel, '*uint16');
+                bytes   = double(fread(fid, n_pixel, '*uint16'));
                 
-                % Next three lines are very slow. 
-                % Try to think of a faster implementation
-                bin      = dec2bin(bytes);
-                exponent = bin2dec(bin(:, 1:6));
-                mantissa = bin2dec(bin(:, 7:end));
-                a        = (1 + mantissa) / (2^10);
+                % Old implementation (intuitive but very slow)
+                %  bin      = dec2bin(bytes);
+                %  exponent = bin2dec(bin(:, 1:6));
+                %  mantissa = bin2dec(bin(:, 7:end));
+                
+                exponent = floor(bytes / 2^10);
+                mantissa = mod(bytes, 2^10);
+
+                a        = (1 + mantissa) / 2^10;
                 b        = 2 .^ (exponent - 63);
                 bscan    = a .* b;
                 
