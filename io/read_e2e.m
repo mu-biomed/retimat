@@ -106,10 +106,10 @@ bscan  = cell(1, n_series);
 seg    = cell(1, n_series);
 fundus = cell(1, n_series);
 for i_series = 1:n_series
-    chunks_series = chunks(chunks.series_id == series_id(i_series),:);
+%     chunks_series = chunks(chunks.series_id == series_id(i_series),:);
 
     %% Header
-    header{i_series} = read_header(fid, chunks_series, patient_header);
+%     header{i_series} = read_header(fid, chunks_series, patient_header);
         
     %% Bscan 
 %     bscan{i_series} = read_bscan(fid, chunks_series, verbose);
@@ -118,11 +118,11 @@ for i_series = 1:n_series
 %     seg{i_series} = read_segmentation(fid, chunks_series);
      
     %% Fundus
-    fundus = read_fundus(fid, chunks_series); 
+%     fundus{i_series} = read_fundus(fid, chunks_series); 
      
 end
 
-% match = search_by_value(fid, chunks, 39.9414, {'*float32'})
+match = search_by_value(fid, chunks, 43474, {'*uint32'})
 % match = search_by_value(fid, chunks, 34.2144, {'*float32'})
 % match = search_by_value(fid, chunks, 21.0941, {'*single'})
 
@@ -147,104 +147,6 @@ for i=1:length(idx)
     parse_chunk(fid, chunk_id);
 
     
-end
-
-function match = search_by_value(fid, chunks, value, types)
-
-match = struct;
-i_match = 1;
-for i=1:size(chunks,1)
-    chunk_type = chunks.type(i);
-    start   = chunks.start(i);
-    n_bytes = chunks.size(i);
-
-    disp(['Chunk ' num2str(i) '/' num2str(size(chunks,1))]);
-    
-    fseek(fid, start, -1);
-    fread(fid, 60, '*uint8');
-    
-    x = {};
-    types_all = {};
-    for j=1:length(types)
-        switch types{j}
-            case '*float32'
-                x{end+1} = fread(fid, n_bytes/4, '*float32');
-                
-                fseek(fid, start, -1);
-                fread(fid, 61, '*uint8');                
-                x{end+1} = fread(fid, n_bytes/4, '*float32');
-                
-                fseek(fid, start, -1);
-                fread(fid, 62, '*uint8');                
-                x{end+1} = fread(fid, n_bytes/4, '*float32');
-                
-                fseek(fid, start, -1);                
-                fread(fid, 63, '*uint8');
-                x{end+1} = fread(fid, n_bytes/4, '*float32');       
-                
-                types_all(end+1:end+4) = {'*single_0','*single_1','*single_2','*single_3'};
-
-            case '*single'
-                x{end+1} = fread(fid, n_bytes/4, '*single');
-                
-                fseek(fid, start, -1);
-                fread(fid, 61, '*uint8');                
-                x{end+1} = fread(fid, n_bytes/4, '*single');
-                
-                fseek(fid, start, -1);
-                fread(fid, 62, '*uint8');                
-                x{end+1} = fread(fid, n_bytes/4, '*single');
-                
-                fseek(fid, start, -1);                
-                fread(fid, 63, '*uint8');
-                x{end+1} = fread(fid, n_bytes/4, '*single');       
-                
-                types_all(end+1:end+4) = {'*single_0','*single_1','*single_2','*single_3'};
-
-            case '*uint8'
-                x{end+1} = fread(fid, n_bytes, '*uint8');
-                types_all{end+1} = '*uint8';
-            case '*uint16'
-                x{end+1} = fread(fid, n_bytes/2, '*uint16');
-                
-                fseek(fid, start, -1);
-                fread(fid, 61, '*uint8');
-                x{end+1} = fread(fid, n_bytes/2, '*uint16');
-                
-                types_all(end+1:end+2) = {'*uint16_0','*uint16_1'};
-            case '*uint32'
-                x{end+1} = fread(fid, n_bytes/4, '*int32');
-                
-                fseek(fid, start, -1);
-                fread(fid, 61, '*uint8');                
-                x{end+1} = fread(fid, n_bytes/4, '*int32');
-                
-                fseek(fid, start, -1);
-                fread(fid, 62, '*uint8');                
-                x{end+1} = fread(fid, n_bytes/4, '*int32');
-                
-                fseek(fid, start, -1);                
-                fread(fid, 63, '*uint8');
-                x{end+1} = fread(fid, n_bytes/4, '*int32');
-                
-                
-                types_all(end+1:end+4) = {'*uint32_0','*uint32_1','*uint32_2','*uint32_3'};
-        end                
-    end
-    
-    for j=1:length(x)
-%         idx = find(x{j} == value);
-        idx = find(abs(x{j} - value)<= 0.0001);
-        
-        for ii=1:length(idx)
-            match(i_match).idx = i;
-            match(i_match).chunk_type = chunk_type;
-            match(i_match).data_type = types_all{j};
-            match(i_match).pos = idx(ii);
-                        
-            i_match = i_match + 1;
-        end
-    end
 end
 
 function chunks = discover_chunks(fid)
