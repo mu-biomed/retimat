@@ -64,10 +64,7 @@ function [header, seg, bscan, fundus] = read_e2e(file, varargin)
 %   David Romero-Bascones, dromero@mondragon.edu
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
-% close all;clc;clearvars;
-
-% file = '/home/david/GITHUB/retimat/data_private/oct_1.e2e';
-% file = 'C:/Users/dromero/Desktop/GITHUB/retimat/data_private/oct_1.e2e';
+verbose = true;
 
 global SEG_FLAG IMAGE_FLAG NA_FLAG QUALITY_FLAG PATIENT_FLAG EYE_FLAG 
 PATIENT_FLAG = 9;
@@ -80,7 +77,6 @@ CHUNK_HEADER_SIZE = 60;
 
 fid = fopen(file, 'rb', 'l');
  
-verbose = true;
 chunks = discover_chunks(fid);
 
 % Get number of patients 4294967295 = 2^32 - 1 (all ones means not applicable)
@@ -119,10 +115,10 @@ for i_series = 1:n_series
 %     bscan{i_series} = read_bscan(fid, chunks_series, verbose);
 
     %% Segmentation
-    seg{i_series} = read_segmentation(fid, chunks_series);
+%     seg{i_series} = read_segmentation(fid, chunks_series);
      
     %% Fundus
-     
+    fundus = read_fundus(fid, chunks_series); 
      
 end
 
@@ -152,7 +148,6 @@ for i=1:length(idx)
 
     
 end
-
 
 function match = search_by_value(fid, chunks, value, types)
 
@@ -339,13 +334,13 @@ header.eye = data.eye;
 
 % To be filled to read scale, dimensions, quality...
 
-function bscan = read_bscan(fid, chunks_series, verbose)
+function bscan = read_bscan(fid, chunks, verbose)
 global IMAGE_FLAG NA_FLAG
 
-is_image = chunks_series.type == IMAGE_FLAG;
-is_bscan = chunks_series.bscan_id ~= NA_FLAG;
+is_image = chunks.type == IMAGE_FLAG;
+is_bscan = chunks.bscan_id ~= NA_FLAG;
      
-bscan_id = chunks_series.bscan_id(is_image & is_bscan);     
+bscan_id = chunks.bscan_id(is_image & is_bscan);     
 n_bscan = length(bscan_id);
 
 if verbose
@@ -355,9 +350,9 @@ end
 bscan_id = sort(bscan_id);
      
 for i_bscan=1:n_bscan
-    is_bscan = chunks_series.bscan_id == bscan_id(i_bscan);
+    is_bscan = chunks.bscan_id == bscan_id(i_bscan);
 
-    start = chunks_series.start(is_bscan & is_image);
+    start = chunks.start(is_bscan & is_image);
     fseek(fid, start, -1);
 
     data = parse_chunk(fid, IMAGE_FLAG);
@@ -370,6 +365,18 @@ for i_bscan=1:n_bscan
     bscan(:, :, i_bscan) = data.bscan;
 end  
     
+function fundus = read_fundus(fid, chunks)
+global IMAGE_FLAG NA_FLAG
+
+is_image     = chunks.type == IMAGE_FLAG;
+is_not_bscan = chunks.bscan_id == NA_FLAG;
+
+start = chunks.start(is_image & is_not_bscan);
+fseek(fid, start, -1);
+
+data   = parse_chunk(fid, IMAGE_FLAG);
+fundus = data.fundus;
+     
 function seg = read_segmentation(fid, chunks)
 global SEG_FLAG NA_FLAG
 layer_names = {'ILM',     'BM',      'RNFL_GCL', 'GCL_IPL', ...
@@ -499,8 +506,8 @@ switch type
                 height = fread(fid, 1, '*int32');
                 bytes  = fread(fid, n_pixel, '*uint8');
                 
-                fundus = reshape(bytes, [height width]);
-                permute(fundus, [2 1]);
+                fundus = reshape(bytes, [width height]);
+                fundus = permute(fundus, [2 1]);
                 
                 data.fundus     = fundus;
                 data.n_x_fundus = width;
