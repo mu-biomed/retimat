@@ -42,7 +42,9 @@ function [header, seg, bscan, fundus] = read_e2e(file, varargin)
 %   Spectralis OCT data can be exported into both E2E and vol format. We
 %   recommend using the latter as it provides a better access to the header
 %   information.
-%
+%   
+%   Doubles must be coded using some weird mantissa as with unsigned float
+%   16. Given the precision in .vol I suspect it must have 64 bits.
 %
 %   References
 %   ----------
@@ -106,47 +108,21 @@ bscan  = cell(1, n_series);
 seg    = cell(1, n_series);
 fundus = cell(1, n_series);
 for i_series = 1:n_series
-%     chunks_series = chunks(chunks.series_id == series_id(i_series),:);
+    chunks_series = chunks(chunks.series_id == series_id(i_series),:);
 
     %% Header
-%     header{i_series} = read_header(fid, chunks_series, patient_header);
-        
+    header{i_series} = read_header(fid, chunks_series, patient_header);
+    header{i_series}.scale_z = 0.003971669759974; % not found in data
+    
     %% Bscan 
-%     bscan{i_series} = read_bscan(fid, chunks_series, verbose);
+    bscan{i_series} = read_bscan(fid, chunks_series, verbose);
 
     %% Segmentation
-%     seg{i_series} = read_segmentation(fid, chunks_series);
+    seg{i_series} = read_segmentation(fid, chunks_series);
      
     %% Fundus
-%     fundus{i_series} = read_fundus(fid, chunks_series); 
+    fundus{i_series} = read_fundus(fid, chunks_series); 
      
-end
-
-match = search_by_value(fid, chunks, 43474, {'*uint32'})
-% match = search_by_value(fid, chunks, 34.2144, {'*float32'})
-% match = search_by_value(fid, chunks, 21.0941, {'*single'})
-
-% match = struct2table(match);
-
-chunk_id = 10004;
-idx = find(chunks.type == chunk_id);
-
-for i=1:length(idx)
-    fseek(fid, chunks.start(idx(i)), -1);
-%     fread(fid, CHUNK_HEADER_SIZE, '*uint8');
-%     x = fread(fid, chunks.size(idx(i)), '*char')';
-%     disp(x);
-    
-%     fseek(fid, chunks.start(idx(i)), -1);
-%     fread(fid, CHUNK_HEADER_SIZE, '*uint8');
-%     x8 = fread(fid, chunks.size(idx(i)), '*uint8')';
-%     x16 = fread(fid, chunks.size(idx(i))/2, '*uint16')';
-%     x32 = fread(fid, chunks.size(idx(i))/3, '*uint32')';
-   %     disp(laterality');
-    
-    parse_chunk(fid, chunk_id);
-
-    
 end
 
 function chunks = discover_chunks(fid)
@@ -197,7 +173,7 @@ while current ~=0% List of chunks
         type       = fread(fid, 1, '*uint32');
         unknown11  = fread(fid, 1, '*uint32');
 
-        if size > -10
+        if size > 0
             
             chunks(i_chunk).patient_id = patient_id;
             chunks(i_chunk).series_id  = series_id;
@@ -427,9 +403,9 @@ switch type
                 exponent = floor(bytes / 2^10);
                 mantissa = mod(bytes, 2^10);
 
-                a        = (1 + mantissa) / 2^10;
-                b        = 2 .^ (exponent - 63);
-                bscan    = a .* b;
+                a     = 1 + mantissa/2^10;
+                b     = 2 .^ (exponent - 63);
+                bscan = a .* b;
                 
                 bscan = reshape(bscan, [n_ascan n_axial]);
                 bscan = permute(bscan, [2 1]);
