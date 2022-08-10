@@ -109,28 +109,15 @@ seg    = cell(1, n_series);
 fundus = cell(1, n_series);
 
 for i_series = 1:n_series
-    
-
     chunks_series = chunks(chunks.series_id == series_id(i_series),:);
 
-%     idx = find(chunks_series.type == BSCAN_META_FLAG);
-%     for i=1:length(idx)
-%         fseek(fid, chunks_series.start(idx(i)),-1);
-%         parse_chunk(fid, BSCAN_META_FLAG);
-%     end
-
-    %% Header
     header{i_series} = read_header(fid, chunks_series, patient_header);
     
-    %% Bscan 
-    bscan{i_series} = read_bscan(fid, chunks_series, verbose);
+    bscan{i_series}  = read_bscan(fid, chunks_series, verbose);
 
-    %% Segmentation
-    seg{i_series} = read_segmentation(fid, chunks_series);
+    seg{i_series}    = read_segmentation(fid, chunks_series);
      
-    %% Fundus
-    fundus{i_series} = read_fundus(fid, chunks_series); 
-     
+    fundus{i_series} = read_fundus(fid, chunks_series);      
 end
 
 function chunks = discover_chunks(fid)
@@ -239,9 +226,6 @@ for ii=1:length(bscan_id)
     header.quality(ii)   = data.quality;
     header.n_average(ii) = data.n_average;
 end
-
-
-% To be filled to read scale, dimensions, quality...
 
 function bscan = read_bscan(fid, chunks, verbose)
 global IMAGE_FLAG NA_FLAG
