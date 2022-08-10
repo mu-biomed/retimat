@@ -42,9 +42,6 @@ function [header, seg, bscan, fundus] = read_e2e(file, varargin)
 %   Spectralis OCT data can be exported into both E2E and vol format. We
 %   recommend using the latter as it provides a better access to the header
 %   information.
-%   
-%   Doubles must be coded using some weird mantissa as with unsigned float
-%   16. Given the precision in .vol I suspect it must have 64 bits.
 %
 %   References
 %   ----------
@@ -52,15 +49,15 @@ function [header, seg, bscan, fundus] = read_e2e(file, varargin)
 %
 %   Examples
 %   ---------      
-%   % Read all the information in a .vol file
+%   % Read all the information in a .e2e/.E2E file
 %
-%     file = 'my_oct.vol';
-%     [header, segment, bscan, slo] = read_vol(file)
+%     file = 'my_oct.e2e';
+%     [header, segment, bscan, fundus] = read_e2e(file)
 %     
 %
-%   % Read only the header (faster) of the .vol file
-%     file = 'my_oct.vol';
-%     header = read_vol(file)
+%   % Read only the header (faster) of the .e2e/.E2E file
+%     file = 'my_oct.e2e';
+%     header = read_e2e(file)
 %
 %
 %   David Romero-Bascones, dromero@mondragon.edu
@@ -484,8 +481,12 @@ switch type
             otherwise
                 warning('Unknown image type');
         end
-    case  1073751825 % looks like a time series
+    case 1073751825 % looks like a time series
 %         unknown = fread(fid, 300,'*uint8');
+        
+    case 1073751826
+        unknown = fread(fid, 4, '*uint32');
+        nx_fundus = fread(fid, 1, '*uint32');
         
     otherwise
         error("Unknown chunk type");
