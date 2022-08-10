@@ -68,13 +68,13 @@ function [header, seg, bscan, fundus] = read_e2e(file, varargin)
 
 verbose = true;
 
-global SEG_FLAG IMAGE_FLAG NA_FLAG QUALITY_FLAG PATIENT_FLAG EYE_FLAG 
-PATIENT_FLAG = 9;
-EYE_FLAG     = 11;
-QUALITY_FLAG = 1004;
-SEG_FLAG     = 10019;
-IMAGE_FLAG   = 1073741824;
-NA_FLAG      = 4294967295;
+global SEG_FLAG IMAGE_FLAG NA_FLAG BSCAN_META_FLAG PATIENT_FLAG EYE_FLAG 
+PATIENT_FLAG    = 9;
+EYE_FLAG        = 11;
+BSCAN_META_FLAG = 10004;
+SEG_FLAG        = 10019;
+IMAGE_FLAG      = 1073741824;
+NA_FLAG         = 4294967295;
 CHUNK_HEADER_SIZE = 60;
 
 fid = fopen(file, 'rb', 'l');
@@ -107,12 +107,20 @@ header = cell(1, n_series);
 bscan  = cell(1, n_series);
 seg    = cell(1, n_series);
 fundus = cell(1, n_series);
+
 for i_series = 1:n_series
+    
+
     chunks_series = chunks(chunks.series_id == series_id(i_series),:);
+
+%     idx = find(chunks_series.type == BSCAN_META_FLAG);
+%     for i=1:length(idx)
+%         fseek(fid, chunks_series.start(idx(i)),-1);
+%         parse_chunk(fid, BSCAN_META_FLAG);
+%     end
 
     %% Header
     header{i_series} = read_header(fid, chunks_series, patient_header);
-    header{i_series}.scale_z = 0.003971669759974; % not found in data
     
     %% Bscan 
     bscan{i_series} = read_bscan(fid, chunks_series, verbose);
@@ -202,13 +210,36 @@ fseek(fid, start, -1);
 header = parse_chunk(fid, PATIENT_FLAG);
 
 function header = read_header(fid, chunks, header)
-global EYE_FLAG
+global EYE_FLAG BSCAN_META_FLAG
 
 start = chunks.start(chunks.type == EYE_FLAG);
 fseek(fid, start(1), -1);
 data = parse_chunk(fid, EYE_FLAG);
 
 header.eye = data.eye;
+
+bscan_id = find(chunks.type == BSCAN_META_FLAG);
+[~, idx] = sort(chunks.bscan_id(bscan_id));
+bscan_id = bscan_id(idx);
+
+for ii=1:length(bscan_id)
+    start = chunks.start(bscan_id(ii));
+    fseek(fid, start(1), -1);
+    data = parse_chunk(fid, BSCAN_META_FLAG);
+
+    if ii == 1
+        header.n_bscan   = data.n_bscan;
+        header.n_ascan   = data.n_ascan;
+        header.n_axial   = data.n_axial;
+        header.scale_z   = data.scale_z;
+        header.fixation  = data.fixation;
+        header.scan_date = data.scan_date; % we can have it for each bscan
+    end
+    
+    header.quality(ii)   = data.quality;
+    header.n_average(ii) = data.n_average;
+end
+
 
 % To be filled to read scale, dimensions, quality...
 
@@ -291,7 +322,7 @@ for i_layer=1:length(layer_names)
 end
 
 function data = parse_chunk(fid, type)
-global SEG_FLAG IMAGE_FLAG PATIENT_FLAG QUALITY_FLAG EYE_FLAG
+global SEG_FLAG IMAGE_FLAG PATIENT_FLAG BSCAN_META_FLAG EYE_FLAG
 
 % We can probably skip chunk header as that info is not really useful
 magic4     = string(fread(fid, 12, '*char')');
@@ -357,10 +388,63 @@ switch type
     case 53
         code = fread(fid, 97, '*char');        
         
-    case QUALITY_FLAG
-        unknown = fread(fid, 39, '*single');
-        quality = fread(fid, 1, '*single');
+    case BSCAN_META_FLAG
+        unknown1 = fread(fid, 1, '*uint32'); %% always 20(20 kHz scan speed maybe)
         
+        n_axial   = fread(fid, 1, '*uint32');
+        n_ascan1  = fread(fid, 1, '*uint32');        
+        pos_x1    = fread(fid, 1, '*float');
+        pos_y1    = fread(fid, 1, '*float');
+        pos_x2    = fread(fid, 1, '*float');
+        pos_y2    = fread(fid, 1, '*float');
+
+        zero1     = fread(fid, 1, '*uint32');
+        unknown2  = fread(fid, 1, '*float');  %
+        
+        scale_z   = fread(fid, 1, '*float');
+        
+        unknown3  = fread(fid, 1, '*float');
+        zero2     = fread(fid, 1, '*uint32');        
+        unknown4  = fread(fid, 2, '*float');
+        zero3     = fread(fid, 1, '*uint32');
+        
+        n_ascan2  = fread(fid, 1, '*uint32');
+        n_bscan   = fread(fid, 1, '*uint32');
+        bscan_id  = fread(fid, 1, '*uint32');
+        fixation  = fread(fid, 1, '*uint32');
+
+        center_x  = fread(fid, 1, '*float');
+        center_y  = fread(fid, 1, '*float');
+
+        unknown5  = fread(fid, 1, '*uint32');
+        scan_date = fread(fid, 1, '*int64'); %% exam_time in read_vol()
+        unknown6  = fread(fid, 6, '*uint32');
+        n_average = fread(fid, 1, '*uint32');
+        unknown7  = fread(fid, 8, '*uint32');
+
+        quality   = fread(fid, 1, '*single');
+        
+        data.n_ascan   = n_ascan1;
+        data.n_bscan   = n_bscan;
+        data.n_axial   = n_axial;        
+        data.scale_z   = scale_z;
+        data.quality   = quality;
+        data.n_average = n_average;
+        
+        % Transform date to dates and add offset since 1600/12/31 (unsure)
+        data.scan_date = datestr(double(scan_date)/(1e7*60*60*24) + 584755 + 2/24); 
+        
+        if fixation == 1
+            data.fixation = 'macula';
+        elseif fixation == 2
+            data.fixation = 'disk';
+            if data.n_bscan == 0  % don't know why peripapillar are saved as 0
+                data.n_bscan = 1;
+            end
+        else
+            data.fixation = 'unknown';
+        end
+                
     case SEG_FLAG  % segmentation
         unknown  = fread(fid, 1, '*uint32');
         layer_id = fread(fid, 1, '*uint32');
