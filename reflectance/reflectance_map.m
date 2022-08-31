@@ -134,6 +134,7 @@ switch metric
             for a=1:n_ascan
                 roi = round(top_seg(b, a):bottom_seg(b, a));
                 if isempty(roi) | isnan(roi)
+
                     % ommiting this warning as there are many NaNs
                     % warning('unable to compute A-Scan layer roi');
                     R(b, a) = nan;
@@ -145,6 +146,7 @@ switch metric
     
     case 'total'
         if isempty(seg)
+
             R = permute(squeeze(sum(bscan, 'omitnan')),[2 1]);
             return;
         end
