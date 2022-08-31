@@ -48,3 +48,7 @@ clc;close all;
 file = 'PNYU001E_Macular Cube 512x128_4-12-2018_16-18-22_OS_sn15113_lslo.bin';
 I = read_bin(file);
 imshow(I);
+
+%% read e2e
+file = '../data_private/oct_1.e2e';
+[header, seg, bscan, fundus] = read_e2e(file, 'verbose');

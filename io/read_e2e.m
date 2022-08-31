@@ -11,20 +11,9 @@ function [header, seg, bscan, fundus] = read_e2e(file, varargin)
 %   'file'           String containing the path to the .vol file to be read.          
 %  
 %   'varargin'       Optional parameters from the list:
-%                       
-%                    'visu': Visualize the scanning patter along with B-Scans
-%                    and slo image.
-%                       
+%                                              
 %                    'verbose': Display header info during read.
 %
-%                    'full_header': Retrieve the original header with all the
-%                    parameters (By default only a few important parameters are
-%                    retrieved).
-%
-%                    'coordinates': retrieve fundus and A-Scan X, Y coordinates
-%
-%                    'raw_voxel': return raw pixel reflectance instead of
-%                    visualization-adapted values.
 %
 %   Output arguments:
 %  
@@ -39,14 +28,25 @@ function [header, seg, bscan, fundus] = read_e2e(file, varargin)
 %
 %   Notes
 %   -----
+%   This function was developed based on the previous reverse engineering 
+%   attempts [1-3] and is not an official file reader. Therefore, some of 
+%   the information retrieved can be incorrect/incomplete.
+%   
+%   Scan focus, scale_x, scale_y and acquisition pattern not found yet.
+%
 %   Spectralis OCT data can be exported into both E2E and vol format. We
-%   recommend using the latter as it provides a better access to the header
-%   information.
+%   recommend using the latter as it is easier to parse and it only stores
+%   a single eye and acquisition. 
 %
 %   References
 %   ----------
-%   [1] 
+%   [1] uocte documentation
+%   https://bitbucket.org/uocte/uocte/wiki/Topcon%20File%20Format
 %
+%   [2] OCT-Converter, https://github.com/marksgraham/OCT-Converter
+%   
+%   [3] LibE2E, https://github.com/neurodial/LibE2E
+%   
 %   Examples
 %   ---------      
 %   % Read all the information in a .e2e/.E2E file
@@ -63,7 +63,7 @@ function [header, seg, bscan, fundus] = read_e2e(file, varargin)
 %   David Romero-Bascones, dromero@mondragon.edu
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
-verbose = true;
+verbose = any(strcmp('verbose', varargin));
 
 global SEG_FLAG IMAGE_FLAG NA_FLAG BSCAN_META_FLAG PATIENT_FLAG EYE_FLAG 
 PATIENT_FLAG    = 9;
@@ -71,14 +71,14 @@ EYE_FLAG        = 11;
 BSCAN_META_FLAG = 10004;
 SEG_FLAG        = 10019;
 IMAGE_FLAG      = 1073741824;
-NA_FLAG         = 4294967295;
+NA_FLAG         = 4294967295; % = 2^32 - 1 (all ones, means not applicable)
 CHUNK_HEADER_SIZE = 60;
 
 fid = fopen(file, 'rb', 'l');
  
-chunks = discover_chunks(fid);
+chunks = discover_chunks(fid, verbose);
 
-% Get number of patients 4294967295 = 2^32 - 1 (all ones means not applicable)
+% Get number of patients 
 patients = unique(chunks.patient_id);
 patients(patients == NA_FLAG) = [];
 n_patient = length(patients);
@@ -117,7 +117,7 @@ for i_series = 1:n_series
     fundus{i_series} = read_fundus(fid, chunks_series);      
 end
 
-function chunks = discover_chunks(fid)
+function chunks = discover_chunks(fid, verbose)
 % Read header
 magic1   = string(fread(fid, 12, '*char')');
 version1 = fread(fid, 1, '*uint32');
@@ -165,8 +165,7 @@ while current ~=0% List of chunks
         type       = fread(fid, 1, '*uint32');
         unknown11  = fread(fid, 1, '*uint32');
 
-        if size > 0
-            
+        if size > 0            
             chunks(i_chunk).patient_id = patient_id;
             chunks(i_chunk).series_id  = series_id;
             chunks(i_chunk).bscan_id   = bscan_id;
@@ -179,7 +178,9 @@ while current ~=0% List of chunks
         end
     end
 
-    disp(['Read element ' num2str(i_main)]);
+    if verbose
+        disp(['Read element ' num2str(i_main)]);
+    end
     
     i_main = i_main + 1;
 end
@@ -338,7 +339,7 @@ switch type
         
         data.name       = name;
         data.surname    = surname;
-        data.birth_date = birth_date;
+        data.birth_date = datestr(birth_date);
         
         if sex == 'M'
             data.sex = 'male';
