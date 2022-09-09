@@ -126,6 +126,10 @@ grid_type      = fread(fid, 1, '*int32');
 grid_offset    = fread(fid, 1, '*int32');
 spare          = fread(fid, 1832, '*int8');
  
+if any([n_bscan n_ascan] > 10000) | any([n_bscan n_ascan] <= 0)
+    warning(['Scan dimensions are unnormal: [', num2str(n_bscan),',',num2str(n_ascan), ']. File might be corrupt.']);
+end
+
 if verbose
     disp('---------------------------------------------');
     disp(['           Version: ' char(version')]);
@@ -158,18 +162,50 @@ if verbose
     disp('---------------------------------------------');
 end
 
-% Read fundus image (slo)
-fseek(fid, 2048, -1 );
+% Build the header
+header.n_ascan     = double(n_ascan);
+header.n_bscan     = double(n_bscan);
+header.n_axial     = double(n_axial);
+header.scale_x     = scale_x;
+header.scale_y     = scale_y;
+header.scale_z     = scale_z;
 
+header.size_x_slo  = double(size_x_slo);
+header.size_y_slo  = double(size_y_slo);
+header.scale_x_slo = scale_x_slo;
+header.scale_y_slo = scale_y_slo;
+header.fov_slo     = fov_slo;
+
+header.patient_id  = deblank(patient_id); % remove trailing whitespaces
+header.eye         = deblank(eye);
+header.scan_focus  = scan_focus;
+
+switch scan_pattern
+    case 2
+        header.scan_type = 'peripapillary';
+    case 3
+        header.scan_type = 'macula_raster';
+    case 5
+        header.scan_type = 'macula_star';
+    otherwise
+        header.scan_type = 'unknown';
+end
+
+if ~any([read_slo read_seg read_bscan full_header coordinates])
+    return
+end
+
+% Read fundus image (slo)
 if read_slo
+    fseek(fid, 2048, -1 );
     slo = fread(fid, size_x_slo*size_y_slo, '*uint8');
     slo = reshape(slo, size_x_slo, size_y_slo);
     slo = slo';
 end
  
 % Read BScans, A-Scan coordinates and boundary segmentation
-fseek(fid, 2048+(size_x_slo*size_y_slo), -1);
 if read_bscan
+    fseek(fid, 2048+(size_x_slo*size_y_slo), -1);
     bscan=zeros(n_axial, n_ascan, n_bscan, 'single');
 end
 
@@ -254,36 +290,6 @@ for i_bscan = 1:n_bscan
 end
 
 fclose(fid);
-
-% Build the header
-
-header.n_ascan     = double(n_ascan);
-header.n_bscan     = double(n_bscan);
-header.n_axial     = double(n_axial);
-header.scale_x     = scale_x;
-header.scale_y     = scale_y;
-header.scale_z     = scale_z;
-
-header.size_x_slo  = double(size_x_slo);
-header.size_y_slo  = double(size_y_slo);
-header.scale_x_slo = scale_x_slo;
-header.scale_y_slo = scale_y_slo;
-header.fov_slo     = fov_slo;
-
-header.patient_id  = deblank(patient_id); % remove trailing whitespaces
-header.eye         = deblank(eye);
-header.scan_focus  = scan_focus;
-
-switch scan_pattern
-    case 2
-        header.scan_type = 'peripapillary';
-    case 3
-        header.scan_type = 'macula_raster';
-    case 5
-        header.scan_type = 'macula_star';
-    otherwise
-        header.scan_type = 'unknown';
-end
 
 % Return the entire header only if required
 if full_header
