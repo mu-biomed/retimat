@@ -49,9 +49,6 @@ function [header, bscan] = read_img(file, scan_size, get_coord)
 %  is in the x direction (aligned with the center B-scan). Unfortunately,
 %  they are not in good alignment with the volumetric data.
 %
-%   References
-%   ----------
-%   [1] 
 %
 %   Example 
 %   ---------      
@@ -153,7 +150,7 @@ if get_coord
     % Apparently
     % OD: already pointing nasal
     % OS: need to flip
-    if strcmp(header.eye,'OD')
+    if strcmp(header.eye, 'OD')
         x_range = linspace(-x_max, x_max, header.n_ascan);
     else
         x_range = linspace(x_max, -x_max, header.n_ascan);
@@ -184,7 +181,7 @@ header.pid = C{1}{1}; % patient ID
 
 % 2. Scan type and volume dimensions
 if isempty(C{2}{1})
-    warning("Could not obtain info from filename");
+    warning("Could not obtain info from file name");
     return;
 end
 scan_data = C{2}{1};

@@ -1,7 +1,7 @@
-function [header, segment, bscan, slo] = read_vol(file, varargin)
+function [header, segment, bscan, fundus] = read_vol(file, varargin)
 %READ_VOL Read a .vol file from Spectralis OCT (Heidelberg Engineering)
 %
-%   [header, segment, bscan, slo] = read_vol(file, options)
+%   [header, segment, bscan, fundus] = read_vol(file, options)
 %
 %   This function reads the header, segmentation and image information 
 %   contained in a .vol file. 
@@ -13,7 +13,7 @@ function [header, segment, bscan, slo] = read_vol(file, varargin)
 %   'varargin'       Optional parameters from the list:
 %                       
 %                    'visu': Visualize the scanning patter along with B-Scans
-%                    and slo image.
+%                    and fundus image (slo).
 %                       
 %                    'verbose': Display header info during read.
 %
@@ -34,7 +34,7 @@ function [header, segment, bscan, slo] = read_vol(file, varargin)
 %
 %   'bscan'          3D single image with B-Scans.
 %
-%   'slo'            2D fundus image.
+%   'fundus'            2D fundus image.
 %   
 %
 %   Notes
@@ -52,13 +52,11 @@ function [header, segment, bscan, slo] = read_vol(file, varargin)
 %   ---------      
 %   % Read all the information in a .vol file
 %
-%     file = 'my_oct.vol';
-%     [header, segment, bscan, slo] = read_vol(file)
+%     [header, segment, bscan, fundus] = read_vol('my_oct.vol')
 %     
-%
 %   % Read only the header (faster) of the .vol file
-%     file = 'my_oct.vol';
-%     header = read_vol(file)
+%
+%     header = read_vol('my_oct.vol')
 %
 %
 %   Originally writen by Radim Kolar, Brno University, Czech Republic
@@ -80,19 +78,16 @@ function [header, segment, bscan, slo] = read_vol(file, varargin)
 %   dromero@mondragon.edu
 
 
-% Configure visualization options
-
 visu        = any(strcmp('visu', varargin));
 verbose     = any(strcmp('verbose', varargin));
 full_header = any(strcmp('full_header', varargin));
 coordinates = any(strcmp('coordinates', varargin));
 raw_pixel   = any(strcmp('raw_pixel', varargin));
 
-read_seg   = nargout >= 2;
-read_bscan = nargout >= 3; 
-read_slo   = nargout == 4;
+read_seg    = nargout >= 2;
+read_bscan  = nargout >= 3; 
+read_fundus = nargout == 4;
 
-% Open the file
 fid = fopen(file);
  
 % Read header
@@ -103,11 +98,11 @@ n_axial        = fread(fid, 1, '*int32');
 scale_x        = fread(fid, 1, '*double');
 scale_y        = fread(fid, 1, '*double');
 scale_z        = fread(fid, 1, '*double');
-size_x_slo     = fread(fid, 1, '*int32');
-size_y_slo     = fread(fid, 1, '*int32');
-scale_x_slo    = fread(fid, 1, '*double');
-scale_y_slo    = fread(fid, 1, '*double');
-fov_slo        = fread(fid, 1, '*int32');
+size_x_fundus  = fread(fid, 1, '*int32');
+size_y_fundus  = fread(fid, 1, '*int32');
+scale_x_fundus = fread(fid, 1, '*double');
+scale_y_fundus = fread(fid, 1, '*double');
+fov_fundus     = fread(fid, 1, '*int32');
 scan_focus     = fread(fid, 1, '*double');
 eye            = char(fread(fid, 4, '*uchar')');
 exam_time      = fread(fid, 1, '*int64');
@@ -127,7 +122,9 @@ grid_offset    = fread(fid, 1, '*int32');
 spare          = fread(fid, 1832, '*int8');
  
 if any([n_bscan n_ascan] > 10000) | any([n_bscan n_ascan] <= 0)
-    warning(['Scan dimensions are unnormal: [', num2str(n_bscan),',',num2str(n_ascan), ']. File might be corrupt.']);
+    msg = ['Scan dimensions are unnormal: [', num2str(n_bscan), ',', ...
+           num2str(n_ascan), ']. File might be corrupt.'];
+    warning(msg);
 end
 
 if verbose
@@ -139,11 +136,11 @@ if verbose
     disp(['            ScaleX: ' num2str(scale_x) ' mm']);
     disp(['            ScaleY: ' num2str(scale_y) ' mm']);
     disp(['            ScaleZ: ' num2str(scale_z) ' mm']);
-    disp(['          SizeXSlo: ' num2str(size_x_slo)]);
-    disp(['          SizeYSlo: ' num2str(size_y_slo)]);
-    disp(['         ScaleXSlo: ' num2str(scale_x_slo) ' mm']);
-    disp(['         ScaleYSlo: ' num2str(scale_y_slo) ' mm']);
-    disp(['FieldSizeSlo (FOV): ' num2str(fov_slo) 'deg']);
+    disp(['          SizeXSlo: ' num2str(size_x_fundus)]);
+    disp(['          SizeYSlo: ' num2str(size_y_fundus)]);
+    disp(['         ScaleXSlo: ' num2str(scale_x_fundus) ' mm']);
+    disp(['         ScaleYSlo: ' num2str(scale_y_fundus) ' mm']);
+    disp(['       Fundus FOV): ' num2str(fov_fundus) 'deg']);
     disp(['         ScanFocus: ' num2str(scan_focus) ' dpt']);
     disp(['               Eye: ' char(eye)]);
     disp(['          ExamTime: ' datestr(double(exam_time(1)/(1e7*60*60*24)+584755+(2/24)))]);
@@ -163,22 +160,20 @@ if verbose
 end
 
 % Build the header
-header.n_ascan     = double(n_ascan);
-header.n_bscan     = double(n_bscan);
-header.n_axial     = double(n_axial);
-header.scale_x     = scale_x;
-header.scale_y     = scale_y;
-header.scale_z     = scale_z;
-
-header.size_x_slo  = double(size_x_slo);
-header.size_y_slo  = double(size_y_slo);
-header.scale_x_slo = scale_x_slo;
-header.scale_y_slo = scale_y_slo;
-header.fov_slo     = fov_slo;
-
-header.patient_id  = deblank(patient_id); % remove trailing whitespaces
-header.eye         = deblank(eye);
-header.scan_focus  = scan_focus;
+header.n_ascan        = double(n_ascan);
+header.n_bscan        = double(n_bscan);
+header.n_axial        = double(n_axial);
+header.scale_x        = scale_x;
+header.scale_y        = scale_y;
+header.scale_z        = scale_z;
+header.size_x_fundus  = double(size_x_fundus);
+header.size_y_fundus  = double(size_y_fundus);
+header.scale_x_fundus = scale_x_fundus;
+header.scale_y_fundus = scale_y_fundus;
+header.fov_fundus     = fov_fundus;
+header.patient_id     = deblank(patient_id);
+header.eye            = deblank(eye);
+header.scan_focus     = scan_focus;
 
 switch scan_pattern
     case 2
@@ -191,21 +186,21 @@ switch scan_pattern
         header.scan_type = 'unknown';
 end
 
-if ~any([read_slo read_seg read_bscan full_header coordinates])
+if ~any([read_fundus read_seg read_bscan full_header coordinates])
     return
 end
 
-% Read fundus image (slo)
-if read_slo
-    fseek(fid, 2048, -1 );
-    slo = fread(fid, size_x_slo*size_y_slo, '*uint8');
-    slo = reshape(slo, size_x_slo, size_y_slo);
-    slo = slo';
+% Read fundus image 
+if read_fundus
+    fseek(fid, 2048, -1);
+    fundus = fread(fid, size_x_fundus * size_y_fundus, '*uint8');
+    fundus = reshape(fundus, size_x_fundus, size_y_fundus);
+    fundus = fundus';
 end
  
 % Read BScans, A-Scan coordinates and boundary segmentation
 if read_bscan
-    fseek(fid, 2048+(size_x_slo*size_y_slo), -1);
+    fseek(fid, 2048+(size_x_fundus * size_y_fundus), -1);
     bscan=zeros(n_axial, n_ascan, n_bscan, 'single');
 end
 
@@ -236,7 +231,7 @@ for i_bscan = 1:n_bscan
     ii = i_bscan - 1;
    
     % Read Bscan/Ascan positions in SLO image    
-    fseek(fid, 16 + 2048 + (size_x_slo*size_y_slo)+(ii*(bscan_hdr_size+n_ascan*n_axial*4)), -1);
+    fseek(fid, 16 + 2048 + (size_x_fundus*size_y_fundus)+(ii*(bscan_hdr_size+n_ascan*n_axial*4)), -1);
     start_x(i_bscan) = fread(fid, 1, '*double'); 
     start_y(i_bscan) = fread(fid, 1, '*double');  
     end_x(i_bscan)   = fread(fid, 1, '*double');
@@ -250,7 +245,7 @@ for i_bscan = 1:n_bscan
         
     % Read Bscan (images)    
     if read_bscan
-        fseek(fid, bscan_hdr_size + 2048 + (size_x_slo*size_y_slo) + (ii*(bscan_hdr_size+n_ascan*n_axial*4)), -1);
+        fseek(fid, bscan_hdr_size + 2048 + (size_x_fundus*size_y_fundus) + (ii*(bscan_hdr_size+n_ascan*n_axial*4)), -1);
         oct = fread(fid, n_ascan*n_axial, '*float32');
         oct = reshape(oct, n_ascan, n_axial);
         
@@ -266,7 +261,7 @@ for i_bscan = 1:n_bscan
     end
          
     % Read segmentation     
-    fseek(fid, 256 + 2048 + (size_x_slo*size_y_slo) + (ii*(bscan_hdr_size+n_ascan*n_axial*4)), -1);
+    fseek(fid, 256 + 2048 + (size_x_fundus*size_y_fundus) + (ii*(bscan_hdr_size+n_ascan*n_axial*4)), -1);
     if read_seg
         seg = (fread(fid, n_seg(i_bscan)*n_ascan, '*float' ))';
         
@@ -326,10 +321,10 @@ end
 if coordinates    
     known_scan_types = {'macula_raster','macula_star','peripapillary'};
     if any(strcmp(header.scan_type, known_scan_types))
-        [X_slo, Y_slo, X_oct, Y_oct] = get_coordinates(header, start_x, start_y, ...
+        [X_fun, Y_fun, X_oct, Y_oct] = get_coordinates(header, start_x, start_y, ...
         end_x, end_y);
-        header.X_slo = X_slo;
-        header.Y_slo = Y_slo;
+        header.X_fun = X_fun;
+        header.Y_fun = Y_fun;
         header.X_oct = X_oct;
         header.Y_oct = Y_oct;
     else
@@ -364,13 +359,13 @@ if visu
     scrsz = get(0,'ScreenSize');
     figure('Position',[1 0 scrsz(3) scrsz(4)-70]);
     subplot(1,2,1);
-    imshow(slo);
+    imshow(fundus);
 
     for i_bscan = 1:n_bscan       
-        start_x_px = round(start_x(i_bscan)/scale_x_slo); %StartX in pixels
-        start_y_px = round(start_y(i_bscan)/scale_y_slo); %StartY in pixels
-        end_x_px   = round(end_x(i_bscan)/scale_x_slo); %EndX in pixels
-        end_y_px   = round(end_y(i_bscan)/scale_y_slo); %EndY in pixels
+        start_x_px = round(start_x(i_bscan)/scale_x_fundus); %StartX in pixels
+        start_y_px = round(start_y(i_bscan)/scale_y_fundus); %StartY in pixels
+        end_x_px   = round(end_x(i_bscan)/scale_x_fundus); %EndX in pixels
+        end_y_px   = round(end_y(i_bscan)/scale_y_fundus); %EndY in pixels
         
         subplot(1,2,1); 
         hold on;
@@ -382,28 +377,28 @@ if visu
     end
 end
 
-function [X_slo, Y_slo, X_oct, Y_oct] = get_coordinates(header, start_x, ...
+function [X_fun, Y_fun, X_oct, Y_oct] = get_coordinates(header, start_x, ...
     start_y, end_x, end_y)
 % Compute X,Y coordinates of fundus image and each A-Scan.
 % Axis convention
 % - X: left to right
 % - Y: inferior to superior
 
-size_x_slo  = double(header.size_x_slo);
-size_y_slo  = double(header.size_y_slo);
-scale_x_slo = header.scale_x_slo;
-scale_y_slo = header.scale_y_slo;
-n_ascan     = header.n_ascan;
-n_bscan     = header.n_bscan;
+size_x_fundus  = double(header.size_x_fundus);
+size_y_fundus  = double(header.size_y_fundus);
+scale_x_fundus = header.scale_x_fundus;
+scale_y_fundus = header.scale_y_fundus;
+n_ascan        = header.n_ascan;
+n_bscan        = header.n_bscan;
 
 % 1. Define fundus coordinate grid. Initial origin is at upper-left corner of
 % the image and B-Scan delimiting values are in mm values
-x_range_slo    = linspace(0, scale_x_slo * (size_x_slo - 1), size_x_slo);
-y_range_slo    = linspace(0, scale_y_slo * (size_y_slo - 1), size_y_slo);   
-[X_slo, Y_slo] = meshgrid(x_range_slo, y_range_slo);
+x_range_fundus    = linspace(0, scale_x_fundus * (size_x_fundus - 1), size_x_fundus);
+y_range_fundus    = linspace(0, scale_y_fundus * (size_y_fundus - 1), size_y_fundus);   
+[X_fun, Y_fun] = meshgrid(x_range_fundus, y_range_fundus);
 
 % 2. Revert the y axis (we want y axis in inferior-superior direction)
-Y_slo   = -Y_slo;
+Y_fun   = -Y_fun;
 start_y = -start_y;
 end_y   = -end_y;
 
@@ -411,12 +406,12 @@ end_y   = -end_y;
 % 3. Set coordinate origin at the center of the fundus image
 %------------------------------------------------------------------------------
 % Distance to fundus image center
-x_offset = scale_x_slo * (size_x_slo - 1)/2;
-y_offset = -scale_y_slo * (size_y_slo - 1)/2;
+x_offset = scale_x_fundus * (size_x_fundus - 1)/2;
+y_offset = -scale_y_fundus * (size_y_fundus - 1)/2;
 
 % Translate all coordinates (fundus + start/end A-scans)
-X_slo   = X_slo - x_offset;
-Y_slo   = Y_slo - y_offset;
+X_fun   = X_fun - x_offset;
+Y_fun   = Y_fun - y_offset;
 start_x = start_x - x_offset;
 start_y = start_y - y_offset;
 end_x   = end_x - x_offset;
@@ -449,8 +444,8 @@ switch header.scan_type
         end
         
         % Get Y coordinate of central B-Scan (average for small differences)
-        x_oct_center = mean(X_oct(mid_bscan, mid_ascan),'all');        
-        y_oct_center = mean(Y_oct(mid_bscan, mid_ascan),'all');        
+        x_oct_center = mean(X_oct(mid_bscan, mid_ascan), 'all');        
+        y_oct_center = mean(Y_oct(mid_bscan, mid_ascan), 'all');        
         
     case 'macula_star'             
         % Compute A-Scan coordinates
@@ -505,8 +500,8 @@ end
 % -----------------------------------------------------------------------------            
 
 % Translate all coordinates
-X_slo = X_slo - x_oct_center;
-Y_slo = Y_slo - y_oct_center;
+X_fun = X_fun - x_oct_center;
+Y_fun = Y_fun - y_oct_center;
 
 X_oct = X_oct - x_oct_center;
 Y_oct = Y_oct - y_oct_center;

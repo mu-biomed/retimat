@@ -1,4 +1,4 @@
-function [header, seg, bscan, fundus] = read_e2e(file, varargin)
+function [header, segment, bscan, fundus] = read_e2e(file, varargin)
 %read_e2e Read .e2e file exported from Spectralis OCT (Heidelberg Engineering)
 %
 %   [header, segment, bscan, slo] = read_e2e(file, options)
@@ -19,7 +19,7 @@ function [header, seg, bscan, fundus] = read_e2e(file, varargin)
 %  
 %   'header'         Structure with .vol file header values.          
 %  
-%   'seg'            Segmenation data stored in the .vol file.
+%   'segment'        Segmenation data stored in the .vol file.
 %
 %   'bscan'          3D single image with B-Scans.
 %
@@ -102,7 +102,7 @@ patient_header = read_patient_data(fid, chunks);
 % Parse each series separately
 header = cell(1, n_series);
 bscan  = cell(1, n_series);
-seg    = cell(1, n_series);
+segment    = cell(1, n_series);
 fundus = cell(1, n_series);
 
 for i_series = 1:n_series
@@ -112,7 +112,7 @@ for i_series = 1:n_series
     
     bscan{i_series}  = read_bscan(fid, chunks_series, verbose);
 
-    seg{i_series}    = read_segmentation(fid, chunks_series);
+    segment{i_series}    = read_segmentation(fid, chunks_series);
      
     fundus{i_series} = read_fundus(fid, chunks_series);      
 end
@@ -268,7 +268,7 @@ fseek(fid, start, -1);
 data   = parse_chunk(fid, IMAGE_FLAG);
 fundus = data.fundus;
      
-function seg = read_segmentation(fid, chunks)
+function segment = read_segmentation(fid, chunks)
 global SEG_FLAG NA_FLAG
 layer_names = {'ILM',     'BM',      'RNFL_GCL', 'GCL_IPL', ...
                'IPL_INL', 'INL_OPL', 'OPL_ONL', 'unknown', 'ELM', ...
@@ -281,7 +281,7 @@ bscan_id = unique(chunks.bscan_id);
 bscan_id(bscan_id == NA_FLAG) = [];
 n_bscan  = length(bscan_id);
 
-seg = struct;
+segment = struct;
 for i_bscan=1:n_bscan
     is_bscan = chunks.bscan_id == bscan_id(i_bscan);
     
@@ -292,15 +292,15 @@ for i_bscan=1:n_bscan
         data = parse_chunk(fid, SEG_FLAG);        
         
         layer = layer_names{data.layer_id + 1};
-        seg.(layer)(i_bscan, :) = data.seg;
+        segment.(layer)(i_bscan, :) = data.segment;
     end
 end
 
 % Invalid values coded as 0 --> better have nan to avoid wrong computations
-layer_names = fields(seg);
+layer_names = fields(segment);
 for i_layer=1:length(layer_names)
     layer = layer_names{i_layer};
-    seg.(layer)(seg.(layer) == 0) = nan;
+    segment.(layer)(segment.(layer) == 0) = nan;
 end
 
 function data = parse_chunk(fid, type)
@@ -433,11 +433,11 @@ switch type
         unknown  = fread(fid, 1, '*uint32');
         n_ascan  = fread(fid, 1, '*uint32');
         
-        seg      = fread(fid, n_ascan, '*float32');
+        segment  = fread(fid, n_ascan, '*float32');
         
         data.layer_id = layer_id;
         data.n_ascan  = n_ascan;
-        data.seg      = seg;
+        data.segment  = segment;
 
     case IMAGE_FLAG  % image data
         data_size  = fread(fid, 1, '*int32');

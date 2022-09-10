@@ -1,7 +1,7 @@
-function [header, seg, bscan, fundus] = read_fda(file, varargin)
+function [header, segment, bscan, fundus] = read_fda(file, varargin)
 %READ_FDA Read Topcon OCT files (fda)
 %
-%   [header, seg, bscan, fundus] = read_fda(file)
+%   [header, segment, bscan, fundus] = read_fda(file)
 %
 %   Reads the header, segmentation and images (bscan + fundus) contained in  
 %   an .fda Topcon file. 
@@ -54,7 +54,7 @@ function [header, seg, bscan, fundus] = read_fda(file, varargin)
 %   ---------      
 %   % Read fda file
 %
-%     [header, seg, bscan, fundus] = read_fda(file)
+%     [header, segment, bscan, fundus] = read_fda(file)
 %     
 %  
 %   David Romero-Bascones, dromero@mondragon.edu
@@ -111,7 +111,7 @@ if nargout == 1
     return
 end
 
-seg = read_segmentation(fid, chunks);
+segment = read_segmentation(fid, chunks);
 if nargout == 2
     return
 end
@@ -223,14 +223,14 @@ switch header.scan_pattern
         warning('Coordinate computation for this pattern not implemented yet');
 end
 
-function seg = read_segmentation(fid, chunks)
+function segment = read_segmentation(fid, chunks)
 % Stored in multiple @CONTOUR_INFO chunks (one per segmented boundary)
 % 
 % Boundary names are defined to match the APOSTEL 2.0 convention:
 % https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8279566/figure/F2/
 %
 % Segmentation is measured in pixels from the bottom of the image
-% (as opposed to Spectralis). For plotting use n_axial - seg.layer
+% (as opposed to Spectralis). For plotting use n_axial - segment.layer
 
 boundary_name = struct('RETINA_1',       'ILM',...
                        'RETINA_2',       'IZ_RPE',...
@@ -250,21 +250,21 @@ boundary_name = struct('RETINA_1',       'ILM',...
 idx = find(strcmp(chunks.name, '@CONTOUR_INFO'));
 n_seg_chunk = length(idx);
 if n_seg_chunk == 0
-    seg = [];
+    segment = [];
     return;
 end
 
-seg = struct;
+segment = struct;
 for i=1:n_seg_chunk
     fseek(fid, chunks.pos(idx(i)), 'bof');
     data = read_chunk(fid, '@CONTOUR_INFO');   
     
-    z = double(data.seg);   % uint16 -> double
+    z = double(data.segment);   % uint16 -> double
     z(z > 10000) = nan;     % invalid values -> NaN
     z = permute(z, [2 1]);  % arange it into [bscan x ascan]
     z = flip(z, 1);         % flip top-bottom
     
-    seg.(boundary_name.(data.id)) = z;
+    segment.(boundary_name.(data.id)) = z;
 end
         
 function bscan = read_bscan(fid, chunks)
@@ -354,19 +354,19 @@ switch chunk_name
         data.type    = fread(fid, 1, '*uint16');
         data.n_ascan = fread(fid, 1, '*uint32');  % width
         data.n_bscan = fread(fid, 1, '*uint32');  % height
-        data.size    = fread(fid, 1, '*uint32'); % useful?
+        data.size    = fread(fid, 1, '*uint32');  % useful?
         
         data.id(data.id == 0) = ' ';  % necessary to trim it later
         data.id = strtrim(data.id);
         
         n_voxel = data.n_ascan * data.n_bscan;
         if data.type == 0
-            seg = fread(fid, n_voxel, '*uint16');
+            segment = fread(fid, n_voxel, '*uint16');
         else
-            seg = fread(fid, n_voxel, '*float64');
+            segment = fread(fid, n_voxel, '*float64');
         end
                 
-        data.seg = reshape(seg, data.n_ascan, data.n_bscan); % reshape it        
+        data.segment = reshape(segment, data.n_ascan, data.n_bscan);      
         data.seg_version = fread(fid, 32, '*char')';
    
     case '@FDA_FILE_INFO'
