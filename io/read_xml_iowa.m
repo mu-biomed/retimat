@@ -13,6 +13,7 @@ function [header, seg] = read_xml_iowa(file, coordinates)
 %   'coordinates'    If true then A-Scan coordinates are computed and 
 %                    returned as part of the header. Default is false.
 %  
+%
 %   Output arguments:
 %  
 %   'header'         Metadata related with the segmentation: version,
@@ -52,7 +53,7 @@ function [header, seg] = read_xml_iowa(file, coordinates)
 %
 %   Example
 %   ---------      
-%   % Extract data from iowa xml
+%   % Extract data from iowa xml segmentation
 %
 %     [header, seg] = read_xml_iowa('my_file_Surfaces_Iowa.xml')
 %     
@@ -63,12 +64,13 @@ function [header, seg] = read_xml_iowa(file, coordinates)
 if nargin < 2
     coordinates = false; 
 end
+
 % Read whole xml as text
 str = fileread(file);
 
 % Get OCTExplorer and executable version
 [idx1, idx2] = get_index(str, 'version');
-header.version = str(idx1(1)+9:idx2(1)-1);
+header.version      = str(idx1(1)+9:idx2(1)-1);
 header.exec_version = str(idx1(2)+9:idx2(2)-1);
 
 % Manufacturer
