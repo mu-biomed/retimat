@@ -1,4 +1,4 @@
-function [header, seg] = read_xml_iowa(file, coordinates)
+function [header, seg] = read_xml_iowa(file, varargin)
 %READ_XML_IOWA Read segmentation results obtained by OCTExplorer and IOWA
 %reference algorithm
 %
@@ -10,8 +10,13 @@ function [header, seg] = read_xml_iowa(file, coordinates)
 %   'file'           Path to xml file outputed by OCTExplorer. It usually
 %                    ends with *Surfaces_Iowa.xml
 %            
-%   'coordinates'    If true then A-Scan coordinates are computed and 
-%                    returned as part of the header. Default is false.
+%   'varargin'       Different string flags:
+%                    - 'coordinates': to return A-Scan coordinates as part
+%                       of the header.
+%                    - 'keep_names': to use layer naming convention from
+%                      OCTExplorer instead of RETIMAT.
+%                    - 'keep_nan': to keep regions with noisy segmentation
+%                       as numerical values instead of nan.
 %  
 %
 %   Output arguments:
@@ -25,12 +30,19 @@ function [header, seg] = read_xml_iowa(file, coordinates)
 %   
 %   Notes
 %   -----
-%   This function only works for macular OCT and has not been tested with
-%   either ONH acquisitions or an OCTExplorer version other than 3.8.0.
+%   This function has been only tested for macular cube OCT images and may
+%   not properly work for ONH acquisitions or an OCTExplorer version other
+%   than 3.8.0.
 %   The axes convention used in IOWA differs from the one used here:
 %   - x: horizontal (temporal - nasal)
 %   - y: vertical (inferior - superior)
 %   - z: axial (depth)
+%   Layer naming convention returned by this function differs from the one
+%   used by OCTExplorer.
+%   OCTExplorer uses different ways to determine an invalid region:
+%    - Segmentation = 0
+%    - Segmentation NA (not sure)
+%    - Undefined region chunk (full square regions I believe)
 %
 %
 %   References
@@ -61,23 +73,21 @@ function [header, seg] = read_xml_iowa(file, coordinates)
 %   David Romero-Bascones, dromero@mondragon.edu
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
-if nargin < 2
-    coordinates = false; 
-end
+coordinates = any(strcmp(varargin, 'coordinates'));
+keep_names  = any(strcmp(varargin, 'keep_names'));
+keep_nan    = any(strcmp(varargin, 'keep_nan'));
 
 % Read whole xml as text
 str = fileread(file);
 
-% Get OCTExplorer and executable version
+% Get OCTExplorer and executable version, manufacturer and laterality (eye)
 [idx1, idx2] = get_index(str, 'version');
 header.version      = str(idx1(1)+9:idx2(1)-1);
 header.exec_version = str(idx1(2)+9:idx2(2)-1);
 
-% Manufacturer
-header.manufacturer = get_field(str, 'manufacturer','str');
-
-% Eye
-header.eye = get_field(str, 'laterality','str');
+header.manufacturer = get_field(str, 'manufacturer', 'str');
+header.eye          = get_field(str, 'laterality', 'str');
+header.center_type  = get_field(str, 'center_type', 'str');
 
 % Dimensions
 [idx1, idx2] = get_index(str, 'size');
@@ -91,7 +101,7 @@ header.scale_x = get_field(str(idx1:idx2), 'x', 'num');
 header.scale_z = get_field(str(idx1:idx2), 'y', 'num');
 header.scale_y = get_field(str(idx1:idx2), 'z', 'num');
 
-% Surfaces
+% Surfaces (segmentation)
 [idx1, idx2] = get_index(str, 'surface');
 n_seg = length(idx1);
 
@@ -102,9 +112,17 @@ for i_seg=1:n_seg
     
     % Surface name
     seg_name = get_field(chunk_seg, 'name', 'str');    
-    seg_name = change_name(seg_name);
-    
+    if ~keep_names
+        seg_name = change_name(seg_name);
+    else
+        seg_name = strrep(seg_name, '(', '_'); % to avoid struct errors
+        seg_name = strrep(seg_name, ')', '_'); 
+        seg_name = strrep(seg_name, ' ', '_'); 
+        seg_name = strrep(seg_name, '-', '_');
+        seg_name = strrep(seg_name, '/', '_');        
+    end
     disp(['Reading layer: ' seg_name]);
+    
     % Get B-scans
     [idx_b1, idx_b2] = get_index(chunk_seg, 'bscan');
     n_bscan = length(idx_b1);
@@ -118,7 +136,7 @@ for i_seg=1:n_seg
         n_ascan = length(idx_a1);
         
         % Fast method
-        n_len = idx_a2 - idx_a1 -3;
+        n_len = idx_a2 - idx_a1 - 3;
         n_len_unique = unique(n_len);
         
         if length(n_len_unique) == 1
@@ -137,15 +155,35 @@ for i_seg=1:n_seg
     end
 end
 
-% Coordinates
+% Set to nan those rois labeles as undefined region due to poor quality
+if ~keep_nan    
+    [idx1, idx2] = get_index(str, 'undefined_region');
+    chunk = str(idx1:idx2);
+    [idx_a1, idx_a2] = get_index(chunk, 'x');
+    [idx_b1, idx_b2] = get_index(chunk, 'z');
+
+    n_nan = length(idx_a1);
+    ascan_nan = nan(1, n_nan);
+    bscan_nan = nan(1, n_nan);
+    for i_nan=1:n_nan
+        ascan_nan(i_nan) = str2double(chunk((idx_a1(i_nan)+3) : (idx_a2(i_nan)-1))) + 1;
+        bscan_nan(i_nan) = str2double(chunk((idx_b1(i_nan)+3) : (idx_b2(i_nan)-1))) + 1;
+    end
+
+    layers = fields(seg);
+    for i_layer=1:n_seg
+        seg.(layers{i_layer})(bscan_nan, ascan_nan) = nan;
+    end
+end
+
 if coordinates
     range_x = (header.n_ascan - 1) * header.scale_x;
     range_y = (header.n_bscan - 1) * header.scale_y;
     
-    x = linspace(-range_x/2,range_x/2,n_ascan);
-    y = linspace(-range_y/2,range_y/2,n_bscan);
+    x = linspace(-range_x/2, range_x/2, n_ascan);
+    y = linspace(-range_y/2, range_y/2, n_bscan);
     
-    [header.X_oct, header.Y_oct] = meshgrid(x,-y);
+    [header.X_oct, header.Y_oct] = meshgrid(x, -y);
 end
 
 function [idx1, idx2] = get_index(text, label)
