@@ -86,8 +86,8 @@ header.version      = str(idx1(1)+9:idx2(1)-1);
 header.exec_version = str(idx1(2)+9:idx2(2)-1);
 
 header.manufacturer = get_field(str, 'manufacturer', 'str');
-header.eye          = get_field(str, 'laterality', 'str');
-header.center_type  = get_field(str, 'center_type', 'str');
+header.eye          = get_field(str, 'laterality',   'str');
+header.fixation     = get_field(str, 'center_type',  'str');
 
 % Dimensions
 [idx1, idx2] = get_index(str, 'size');
