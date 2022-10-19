@@ -170,7 +170,7 @@ end
 % Read BScans, A-Scan coordinates and boundary segmentation
 if read_bscan
     fseek(fid, 2048+(size_x_fundus * size_y_fundus), -1);
-    bscan=zeros(n_axial, n_ascan, n_bscan, 'single');
+    bscan = zeros(n_axial, n_ascan, n_bscan, 'single');
 end
 
 start_x = zeros(1, n_bscan, 'double');
@@ -217,7 +217,8 @@ for i_bscan = 1:n_bscan
         fseek(fid, bscan_hdr_size + 2048 + (size_x_fundus*size_y_fundus) + (ii*(bscan_hdr_size+n_ascan*n_axial*4)), -1);
         oct = fread(fid, n_ascan*n_axial, '*float32');
         oct = reshape(oct, n_ascan, n_axial);
-        
+        oct = permute(oct, [2 1]);
+
         % As per Van der Schoot et al. (IOVS, 2012) normalizes the range to
         % [0,1] for visualization. To compute reflectance we need however
         % raw intensities.
@@ -225,7 +226,7 @@ for i_bscan = 1:n_bscan
             oct = oct.^0.25;  
         end
         
-        bscan(:,:,i_bscan) = oct';
+        bscan(:,:,i_bscan) = oct;
         bscan(bscan > 1e3) = nan;  % remove outliers at the edges
     end
          
