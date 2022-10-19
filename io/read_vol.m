@@ -14,14 +14,12 @@ function [header, segment, bscan, fundus] = read_vol(file, varargin)
 %                       
 %                    'visu': Visualize the scanning patter along with B-Scans
 %                    and fundus image (slo).
-%                       
-%                    'verbose': Display header info during read.
 %
 %                    'full_header': Retrieve the original header with all the
 %                    parameters (By default only a few important parameters are
 %                    retrieved).
 %
-%                    'coordinates': retrieve fundus and A-Scan X, Y coordinates
+%                    'get_coordinates': retrieve fundus and A-Scan X, Y coordinates
 %
 %                    'raw_voxel': return raw pixel reflectance instead of
 %                    visualization-adapted values.
@@ -78,11 +76,10 @@ function [header, segment, bscan, fundus] = read_vol(file, varargin)
 %   dromero@mondragon.edu
 
 
-visu        = any(strcmp('visu', varargin));
-verbose     = any(strcmp('verbose', varargin));
-full_header = any(strcmp('full_header', varargin));
-coordinates = any(strcmp('coordinates', varargin));
-raw_pixel   = any(strcmp('raw_pixel', varargin));
+visu            = any(strcmp('visu', varargin));
+full_header     = any(strcmp('full_header', varargin));
+get_coordinates = any(strcmp('get_coordinates', varargin));
+raw_pixel       = any(strcmp('raw_pixel', varargin));
 
 read_seg    = nargout >= 2;
 read_bscan  = nargout >= 3; 
@@ -127,38 +124,6 @@ if any([n_bscan n_ascan] > 10000) | any([n_bscan n_ascan] <= 0)
     warning(msg);
 end
 
-if verbose
-    disp('---------------------------------------------');
-    disp(['           Version: ' char(version')]);
-    disp(['         NumAScans: ' num2str(n_ascan)]);
-    disp(['         NumBScans: ' num2str(n_bscan)]);
-    disp(['             SizeZ: ' num2str(n_axial)]);
-    disp(['            ScaleX: ' num2str(scale_x) ' mm']);
-    disp(['            ScaleY: ' num2str(scale_y) ' mm']);
-    disp(['            ScaleZ: ' num2str(scale_z) ' mm']);
-    disp(['          SizeXSlo: ' num2str(size_x_fundus)]);
-    disp(['          SizeYSlo: ' num2str(size_y_fundus)]);
-    disp(['         ScaleXSlo: ' num2str(scale_x_fundus) ' mm']);
-    disp(['         ScaleYSlo: ' num2str(scale_y_fundus) ' mm']);
-    disp(['       Fundus FOV): ' num2str(fov_fundus) 'deg']);
-    disp(['         ScanFocus: ' num2str(scan_focus) ' dpt']);
-    disp(['               Eye: ' char(eye)]);
-    disp(['          ExamTime: ' datestr(double(exam_time(1)/(1e7*60*60*24)+584755+(2/24)))]);
-    disp(['       ScanPattern: ' num2str(scan_pattern)]);
-    disp(['      BScanHdrSize: ' num2str(bscan_hdr_size) ' bytes']);
-    disp(['                ID: ' char(id)]);
-    disp(['       ReferenceID: ' char(reference_id)]);
-    disp(['               PID: ' num2str(pid)]);
-    disp(['         PatientID: ' char(patient_id)]);
-    disp(['        Birth Date: ' datestr(birth_date+693960)]);
-    disp(['               VID: ' num2str(vid)]);
-    disp(['           VisitID: ' char(visit_id)]);
-    disp(['         VisitDate: ' datestr(double(visit_date+693960))]);
-    disp(['          GridType: ' num2str(grid_type)]);
-    disp(['        GridOffset: ' num2str(grid_offset)]);
-    disp('---------------------------------------------');
-end
-
 % Build the header
 header.n_ascan        = double(n_ascan);
 header.n_bscan        = double(n_bscan);
@@ -177,16 +142,20 @@ header.scan_focus     = scan_focus;
 
 switch scan_pattern
     case 2
-        header.scan_type = 'peripapillary';
+        header.fixation      = 'onh';
+        header.bscan_pattern = 'peripapillary';
     case 3
-        header.scan_type = 'macula_raster';
+        header.fixation      = 'macula';
+        header.bscan_pattern = 'raster';
     case 5
-        header.scan_type = 'macula_star';
+        header.fixation      = 'macula';
+        header.bscan_pattern = 'star';
     otherwise
-        header.scan_type = 'unknown';
+        header.fixation      = 'unknown';
+        header.bscan_pattern = 'unknown';        
 end
 
-if ~any([read_fundus read_seg read_bscan full_header coordinates])
+if ~any([read_fundus read_seg read_bscan full_header get_coordinates])
     return
 end
 
@@ -318,17 +287,17 @@ end
 % Compute A-Scan coordinates following the convention:
 %  X: left to right
 %  Y: inferior to superior
-if coordinates    
-    known_scan_types = {'macula_raster','macula_star','peripapillary'};
-    if any(strcmp(header.scan_type, known_scan_types))
-        [X_fun, Y_fun, X_oct, Y_oct] = get_coordinates(header, start_x, start_y, ...
-        end_x, end_y);
+if get_coordinates    
+    known_scan_types = {'raster','star','peripapillary'};
+    if any(strcmp(header.bscan_pattern, known_scan_types))
+        [X_fun, Y_fun, X_oct, Y_oct] = compute_coordinates(header, start_x, start_y,end_x, end_y);
         header.X_fun = X_fun;
         header.Y_fun = Y_fun;
         header.X_oct = X_oct;
         header.Y_oct = Y_oct;
     else
-        warning(['Unable to compute coordinates for scan_type: ' header.scan_type]);
+        warning(['Unable to compute coordinates for bscan pattern type ',...
+                 header.bscan_pattern]);
     end
 end
 
@@ -377,7 +346,7 @@ if visu
     end
 end
 
-function [X_fun, Y_fun, X_oct, Y_oct] = get_coordinates(header, start_x, ...
+function [X_fun, Y_fun, X_oct, Y_oct] = compute_coordinates(header, start_x, ...
     start_y, end_x, end_y)
 % Compute X,Y coordinates of fundus image and each A-Scan.
 % Axis convention
@@ -421,8 +390,8 @@ end_y   = end_y - y_offset;
 % 4. Compute A-Scan coordinates (in fundus image space)
 % -----------------------------------------------------------------------------
      
-switch header.scan_type
-    case 'macula_raster'          
+switch header.bscan_pattern
+    case 'raster'          
         % Compute A-Scan coordinates
         X_oct = nan(n_bscan, n_ascan);
         Y_oct = nan(n_bscan, n_ascan);
@@ -447,7 +416,7 @@ switch header.scan_type
         x_oct_center = mean(X_oct(mid_bscan, mid_ascan), 'all');        
         y_oct_center = mean(Y_oct(mid_bscan, mid_ascan), 'all');        
         
-    case 'macula_star'             
+    case 'star'             
         % Compute A-Scan coordinates
         X_oct = nan(n_bscan, n_ascan);
         Y_oct = nan(n_bscan, n_ascan);

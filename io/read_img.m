@@ -1,4 +1,4 @@
-function [header, bscan] = read_img(file, scan_size, get_coord)
+function [header, bscan] = read_img(file, scan_size, varargin)
 %READ_IMG Read data from .img files from Zeiss Cirrus scans
 %
 %   [header, bscan] = read_img(file, scan_size, get_coord)
@@ -14,8 +14,10 @@ function [header, bscan] = read_img(file, scan_size, get_coord)
 %                    convention. By default a cube of [6 6 2] mm is 
 %                    considered.
 %
-%   'get_coord'      If true it tries to compute a-scan coordinates.
-%                    Default is false. If the scan patter is unknown 
+%   'varargin'       Optional parameters from the list:
+%                       
+%                    'get_coordinates': retrieve fundus and A-Scan X, Y 
+%                    coordinates. If the scan pattern is unknown 
 %                    coordinates cannot be computed.
 %  
 %
@@ -64,9 +66,7 @@ if nargin < 2 || isempty(scan_size)
     scan_size = [6 6 2]; % assume 6mm x 6mm x 2mm cube size
 end
 
-if nargin < 3 || isempty(get_coord)
-    get_coord = false;
-end
+get_coordinates = any(strcmp('get_coordinates', varargin));
 
 % Parse file name for useful information
 [~, fname, ext] = fileparts(file);
@@ -75,17 +75,6 @@ if ~strcmp(ext,'.img')
 end
 
 header = data_from_filename(fname);               
-
-% Get volume dimensions
-% if strcmp(cube,'hidef')
-%     n_bscan = 2;
-%     if strcmp(header.scan_type,'Macular')
-%         n_ascan = 1024;
-%     elseif strcmp(header.scan_type,'Optic Disc')
-%         n_ascan = 1000;
-%     end
-% end
-
 
 % Read image data 
 fid = fopen(file);
@@ -112,10 +101,10 @@ if ~dims_header_ok & ~dims_count_ok
     bscan = A;
     return;
 elseif ~dims_header_ok & dims_count_ok
-    header.scan_type = dims.scan_type;
-    header.n_ascan = dims.n_ascan;
-    header.n_bscan = dims.n_bscan;
-    header.n_axial = dims.n_axial;
+    header.protocol = dims.protocol;
+    header.n_ascan  = dims.n_ascan;
+    header.n_bscan  = dims.n_bscan;
+    header.n_axial  = dims.n_axial;
 elseif dims_header_ok & dims_count_ok % Double check
     vals_fname = [header.n_ascan header.n_bscan header.n_axial];
     vals_vox = [dims.n_ascan dims.n_bscan dims.n_axial];
@@ -140,22 +129,8 @@ header.scale_x = scan_size(1)/(header.n_ascan - 1);
 header.scale_y = scan_size(2)/(header.n_bscan - 1);
 header.scale_z = scan_size(3)/(header.n_axial - 1);
 
-if get_coord
-    x_max = scan_size(1)./2;
-    y_max = scan_size(2)./2;
-        
-    % Pending to check carefully up-down or down-up
-    y_range = linspace(y_max, -y_max, header.n_bscan);
-    
-    % Apparently
-    % OD: already pointing nasal
-    % OS: need to flip
-    if strcmp(header.eye, 'OD')
-        x_range = linspace(-x_max, x_max, header.n_ascan);
-    else
-        x_range = linspace(x_max, -x_max, header.n_ascan);
-    end
-    [header.X, header.Y] = meshgrid(x_range, y_range);    
+if get_coordinates
+    [header.X_oct, header.Y_oct] = get_ascan_coordinates(header);
 end
 
 function header = data_from_filename(fname)
@@ -188,8 +163,10 @@ scan_data = C{2}{1};
 C2 = textscan(scan_data, '%s %s %s %s');
 
 if contains(scan_data, 'Macular Cube')
-    header.scan_type = 'macular_cube';
-
+    header.protocol      = 'Macular Cube';
+    header.fixation      = 'macula';
+    header.bscan_pattern = 'raster';
+    
     ind = strfind(C2{3}{1}, 'x');
     if length(ind)==1 & ind >1 & ind <length(C2{3}{1})
         header.n_ascan = str2double(C2{3}{1}(1:ind-1));
@@ -197,8 +174,10 @@ if contains(scan_data, 'Macular Cube')
     end
 
 elseif contains(scan_data, 'Optic Disc Cube')
-    header.scan_type = 'optic_disc_cube';
-    
+    header.protocol      = 'Optic Disc Cube';
+    header.fixation      = 'onh';
+    header.bscan_pattern = 'raster';
+
     ind = strfind(C2{4}{1}, 'x');
     if length(ind)==1 & ind >1 & ind <length(C2{4}{1})
         header.n_ascan = str2double(C2{4}{1}(1:ind-1));
@@ -206,24 +185,34 @@ elseif contains(scan_data, 'Optic Disc Cube')
     end
     
 elseif contains(scan_data, 'HD 5 Line Raster')
-    header.scan_type = '5line_raster';    
+    header.protocol      = 'HD 5 Line Raster';   
+    header.fixation      = 'unknown';  % macula probably
+    header.bscan_pattern = 'raster';
     header.n_ascan = 1024;
     header.n_bscan = 5;
 
 elseif contains(scan_data, 'HD 21 Line')
-    header.scan_type = '21line_raster_wide';    
+    header.protocol      = 'HD 21 Line';    
+    header.fixation      = 'unkwnon';  % macula probably
+    header.bscan_pattern = 'raster';
     header.n_ascan = 1024;
     header.n_bscan = 21;    
 
 elseif contains(scan_data, 'Anterior Segment Cube')
-    header.scan_type = 'anterior_segment_cube';
-   
+    header.protocol      = 'Anterior Segment Cube';
+    header.fixation      = 'anterior';
+    header.bscan_pattern = 'raster';
+    
     ind = strfind(C2{4}{1}, 'x');
     if length(ind)==1 & ind >1 & ind <length(C2{4}{1})
         header.n_ascan = str2double(C2{4}{1}(1:ind-1));
         header.n_bscan = str2double(C2{4}{1}(ind+1:end));
     end
 else
+    header.protocol      = 'unknown';
+    header.fixation      = 'unknown';
+    header.bscan_pattern = 'unknown';
+    
     warning("Could not retrieve scan type from file name");
 end
 
@@ -261,27 +250,38 @@ function  [dims_ok, dims] = guess_dimensions(n_voxel)
 dims_ok = true;
 switch n_voxel
     case 67108864
-        dims.scan_type = 'macular_cube';
+        dims.protocol      = 'Macular Cube';
+        dims.fixation      = 'macula';
+        dims.bscan_pattern = 'raster';
         dims.n_ascan = 512;
         dims.n_bscan = 128;
         dims.n_axial = 1024;
     case 40960000
-        dims.scan_type = 'optic_disc_cube';
+        dims.protocol     = 'Optic Disc Cube';
+        dims.fixation      = 'onh';
+        dims.bscan_pattern = 'raster';
         dims.n_ascan= 200;
         dims.n_bscan = 200;
         dims.n_axial = 1024;
     case 22020096
-        dims.scan_type = '21line_raster_wide';
+        dims.protocol      = 'HD 21 Line';
+        dims.fixation      = 'unknown';  % macula probably
+        dims.bscan_pattern = 'raster';
         dims.n_ascan = 1024;
         dims.n_bscan = 21;
         dims.n_axial = 1024;        
     case 20971520
-        dims.scan_type = '5line_raster_wide';
+        dims.protocol      = 'HD 5 Line Raster (wide)';
+        dims.fixation      = 'unknown';  % macula probably
+        dims.bscan_pattern = 'raster';
         dims.n_ascan = 4096;
         dims.n_bscan = 5;
         dims.n_axial = 1024;
     case 5242880
-        dims.scan_type = '5line_raster';
+        dims.protocol      = 'HD 5 Line Raster';
+        dims.fixation      = 'unknown';  % macula probably
+        dims.bscan_pattern = 'raster';
+        
         dims.n_ascan = 1024;
         dims.n_bscan = 5;
         dims.n_axial = 1024;

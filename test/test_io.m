@@ -1,12 +1,12 @@
 close all;clc;clearvars;
 addpath(genpath('..'));
 
-visu = false;
+visu = true;
 
 % Launch test suite
-test_vol_raster(visu);
-test_vol_star(visu);
-test_vol_onh(visu);
+% test_vol_raster(visu);
+% test_vol_star(visu);
+% test_vol_onh(visu);
 test_img_cube(visu);
 test_bin_cube(visu);
 test_e2e(visu);
@@ -15,7 +15,7 @@ test_fda(visu);
 
 function test_vol_raster(visu)
 file = '../data/raster.vol';
-[h, seg, bscan, slo] = read_vol(file, 'verbose', 'coordinates');
+[h, seg, bscan, slo] = read_vol(file, 'verbose', 'get_coordinates');
 
 if visu
     surf(h.X_fun, h.Y_fun, slo, 'EdgeColor', 'none');view(0,90);hold on;
@@ -28,7 +28,7 @@ end
 
 function test_vol_star(visu)
 file = '../data/star.vol';
-[h, seg, bscan, slo] = read_vol(file, 'verbose', 'coordinates');
+[h, seg, bscan, slo] = read_vol(file, 'verbose', 'get_coordinates');
 
 if visu
     surf(h.X_fun, h.Y_fun, slo, 'EdgeColor', 'none');view(0,90);hold on;
@@ -42,7 +42,7 @@ end
 
 function test_vol_onh(visu)
 file = '../data/onh.vol';
-[h, seg, bscan, slo] = read_vol(file, 'verbose', 'coordinates');
+[h, seg, bscan, slo] = read_vol(file, 'verbose', 'get_coordinates');
 
 if visu
     surf(h.X_fun, h.Y_fun, slo, 'EdgeColor', 'none');view(0,90);hold on;
@@ -59,7 +59,7 @@ file = '../data/Zeiss_Macula.img';
 % file = 'C:/Users/dromero/Desktop/PNYU001E_Macular Cube 512x128_9-22-2017_12-17-35_OD_sn13716_cube_raw.img';
 % file = 'C:/Users/dromero/Desktop/PNYU001E_HD 5 Line Raster_9-22-2017_12-22-6_OD_sn13722_lineEnhanced.img';
 % file = 'C:/Users/dromero/Desktop/PNYU001E_Optic Disc Cube 200x200_11-19-2015_14-28-52_OS_sn8004_cube_raw.img';
-[h, bscan] = read_img(file,[],true);
+[h, bscan] = read_img(file,[]);
 
 end
 
@@ -78,7 +78,7 @@ end
 
 function test_fda(visu)
 file = '../data_private/test_0.fda';
-[header, seg, bscan, fundus] = read_fda(file, 'verbose', 'coordinates');
+[header, seg, bscan, fundus] = read_fda(file, 'verbose', 'get_coordinates');
 
 en_face = squeeze(mean(bscan,1)).';
 trt = seg.ILM - seg.BM;
