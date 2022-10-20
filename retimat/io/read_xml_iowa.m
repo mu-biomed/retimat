@@ -11,8 +11,8 @@ function [header, seg] = read_xml_iowa(file, varargin)
 %                    ends with *Surfaces_Iowa.xml
 %            
 %   'varargin'       Different string flags:
-%                    - 'coordinates': to return A-Scan coordinates as part
-%                       of the header.
+%                    - 'get_coordinates': to return A-Scan coordinates as
+%                       part of the header.
 %                    - 'keep_names': to use layer naming convention from
 %                      OCTExplorer instead of RETIMAT.
 %                    - 'keep_nan': to keep regions with noisy segmentation
@@ -73,9 +73,9 @@ function [header, seg] = read_xml_iowa(file, varargin)
 %   David Romero-Bascones, dromero@mondragon.edu
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
-coordinates = any(strcmp(varargin, 'coordinates'));
-keep_names  = any(strcmp(varargin, 'keep_names'));
-keep_nan    = any(strcmp(varargin, 'keep_nan'));
+get_coordinates = any(strcmp(varargin, 'get_coordinates'));
+keep_names      = any(strcmp(varargin, 'keep_names'));
+keep_nan        = any(strcmp(varargin, 'keep_nan'));
 
 % Read whole xml as text
 str = fileread(file);
@@ -176,7 +176,7 @@ if ~keep_nan
     end
 end
 
-if coordinates
+if get_coordinates
     range_x = (header.n_ascan - 1) * header.scale_x;
     range_y = (header.n_bscan - 1) * header.scale_y;
     

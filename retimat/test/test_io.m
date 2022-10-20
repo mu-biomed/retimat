@@ -9,9 +9,9 @@ test_vol_raster(visu);
 % test_vol_onh(visu);
 % test_img_cube(visu);
 % test_bin_cube(visu);
-test_e2e(visu);
-test_fda(visu);
-test_iowa_star(visu);
+% test_e2e(visu);
+% test_fda(visu);
+% test_iowa_star(visu);
 test_iowa_raster(visu);
 
 function test_vol_raster(visu)
@@ -107,11 +107,11 @@ for i_image=1:n_image
     file_vol  = [in_dir '/' image '/' image '_OCT_Iowa.vol'];
     file_iowa = [in_dir '/' image '/' image '_Surfaces_Iowa.xml'];
         
-    [h1,seg1,bscan,slo] = read_vol(file_vol, 'coordinates');
+    [h1,seg1,bscan,slo] = read_vol(file_vol, 'get_coordinates');
     T1 = compute_thickness(seg1,layers,h1.scale_z);
 
     % IOWA loading
-    [h2,seg2] = read_xml_iowa(file_iowa, 'coordinates');
+    [h2,seg2] = read_xml_iowa(file_iowa, 'get_coordinates');
     T2 = compute_thickness(seg2, layers,h2.scale_z);
 
     for i_layer=1:n_layer
@@ -150,11 +150,11 @@ for i_image=1:n_image
     file_vol  = [in_dir '/' image '/' image '_OCT_Iowa.vol'];
     file_iowa = [in_dir '/' image '/' image '_Surfaces_Iowa.xml'];
         
-    [h1,seg1,bscan,slo] = read_vol(file_vol, 'coordinates');
+    [h1,seg1,bscan,slo] = read_vol(file_vol, 'get_coordinates');
     T1 = compute_thickness(seg1,layers,h1.scale_z);
 
     % IOWA loading
-    [h2,seg2] = read_xml_iowa(file_iowa, 'coordinates');
+    [h2,seg2] = read_xml_iowa(file_iowa, 'get_coordinates');
     T2 = compute_thickness(seg2, layers,h2.scale_z);
 
     for i_layer=1:n_layer
