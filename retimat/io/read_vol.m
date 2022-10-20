@@ -38,13 +38,9 @@ function [header, segment, bscan, fundus] = read_vol(file, varargin)
 %   Notes
 %   -----
 %   Spectralis OCT data can be exported into both E2E and vol format. We
-%   recommend using the latter as it provides a better access to the header
+%   recommend using the latter as it provides easier access to the header
 %   information.
 %
-%
-%   References
-%   ----------
-%   [1] 
 %
 %   Examples
 %   ---------      

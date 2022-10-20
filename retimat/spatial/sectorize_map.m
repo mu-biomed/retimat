@@ -1,4 +1,4 @@
-function [Zs, Sectors] = sectorize_map(X, Y, Z, metric, varargin)
+function [Zs, Sectors] = sectorize_map(X, Y, Z, metric, sector_type, varargin)
 %SECTORIZE_MAP Sectorize a 2D map into several sectors
 %
 %   Zs = sectorize_map(X, Y, Z, metric)
@@ -16,12 +16,13 @@ function [Zs, Sectors] = sectorize_map(X, Y, Z, metric, varargin)
 %   'metric'         Metric to be used to sectorize data. 
 %                    Options: ['mean', 'std', skewness', 'kurtosis']
 %
-%   'varargin'       Extra arguments to define the sectorization. 
-%                    Two options:
+%   'sector_type'    Sectorization definition. Two options:
 %                    - String defining the sectorization type. It must be 
 %                    followed by appropriate arguments (see examples).
 %                    - Struct with sectorization info created beforehand.
-%  
+%   
+%   'varargin'       Extra arguments to define the sectorization. 
+%                    
 %  
 %   Output arguments:
 %  
@@ -68,35 +69,33 @@ if nargin < 4
     error("A minimum of 4 input arguments must be provided");
 end
 
-if ischar(varargin{1})
-    sector_type = varargin{1};
-    
+if ischar(sector_type)    
     switch sector_type
         case 'regular'
             Sectors.type = sector_type;
-            Sectors.n_x = varargin{2};
-            Sectors.n_y = varargin{3};
+            Sectors.n_x = varargin{1};
+            Sectors.n_y = varargin{2};
             Sectors.n_sect = Sectors.n_x*Sectors.n_y;
             Sectors.X_edge = linspace(min(X(:)), max(X(:)), Sectors.n_x + 1);
             Sectors.Y_edge = linspace(min(Y(:)), max(Y(:)), Sectors.n_y + 1);        
         case 'disk'
             Sectors.type = sector_type;
-            Sectors.radius = varargin{2};        
+            Sectors.radius = varargin{1};        
             Sectors.n_sect = 1;
         case 'ring'
             Sectors.type = sector_type;
-            Sectors.radius = varargin{2};
+            Sectors.radius = varargin{1};
             Sectors.n_sect = length(Sectors.radius)-1;
         case 'pie'
             Sectors.type = sector_type;
-            Sectors.n_angle = varargin{2};
-            Sectors.theta_0 = varargin{3};
+            Sectors.n_angle = varargin{1};
+            Sectors.theta_0 = varargin{2};
             Sectors.n_sect = Sectors.n_angle;
         case 'wedge'
             Sectors.type = sector_type;
-            Sectors.radius = varargin{2};
-            Sectors.n_angle = varargin{3};            
-            Sectors.theta_0 = varargin{4};
+            Sectors.radius = varargin{1};
+            Sectors.n_angle = varargin{2};            
+            Sectors.theta_0 = varargin{3};
             Sectors.n_sect = 1 + (length(Sectors.radius)-1)*Sectors.n_angle;
         case 'etdrs'
             Sectors.type = 'wedge';  % etdrs is effectively a wedge sectorization
@@ -106,10 +105,11 @@ if ischar(varargin{1})
             Sectors.n_sect = 9;
         otherwise
             error("Incorrect sector type. Options: 'regular','disk','ring','pie','wege','etdrs'");
-    end
-    
-elseif ~isstruct(varargin{1})
-    error("First additional argument must be either a struct or a string");
+    end    
+elseif isstruct(sector_type)
+    Sectors = sector_type;
+else
+    error("sector_type argument must be either a struct or a string");
 end
 
 Zs = nan(1, Sectors.n_sect);
