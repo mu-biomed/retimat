@@ -125,21 +125,6 @@ if any([n_bscan n_ascan] > 10000) | any([n_bscan n_ascan] <= 0)
 end
 
 % Build the header
-header.n_ascan        = double(n_ascan);
-header.n_bscan        = double(n_bscan);
-header.n_axial        = double(n_axial);
-header.scale_x        = scale_x;
-header.scale_y        = scale_y;
-header.scale_z        = scale_z;
-header.size_x_fundus  = double(size_x_fundus);
-header.size_y_fundus  = double(size_y_fundus);
-header.scale_x_fundus = scale_x_fundus;
-header.scale_y_fundus = scale_y_fundus;
-header.fov_fundus     = fov_fundus;
-header.patient_id     = deblank(patient_id);
-header.eye            = deblank(eye);
-header.scan_focus     = scan_focus;
-
 switch scan_pattern
     case 2
         header.fixation      = 'onh';
@@ -154,6 +139,21 @@ switch scan_pattern
         header.fixation      = 'unknown';
         header.bscan_pattern = 'unknown';        
 end
+
+header.n_ascan        = double(n_ascan);
+header.n_bscan        = double(n_bscan);
+header.n_axial        = double(n_axial);
+header.scale_x        = scale_x;
+header.scale_y        = scale_y;
+header.scale_z        = scale_z;
+header.size_x_fundus  = double(size_x_fundus);
+header.size_y_fundus  = double(size_y_fundus);
+header.scale_x_fundus = scale_x_fundus;
+header.scale_y_fundus = scale_y_fundus;
+header.fov_fundus     = fov_fundus;
+header.patient_id     = deblank(patient_id);
+header.eye            = deblank(eye);
+header.scan_focus     = scan_focus;
 
 if ~any([read_fundus read_seg read_bscan full_header get_coordinates])
     return
@@ -318,8 +318,11 @@ if read_seg
     
     % Remove outliers if present
     layers = fields(segment);
-    for i=1:11
+    for i=1:length(layers)
         segment.(layers{i})(abs(segment.(layers{i})) > n_axial) = nan;
+        
+        % First bscan is inferior so we flip to have superior first
+        segment.(layers{i}) = flip(segment.(layers{i}));
     end
 
 end
@@ -397,8 +400,9 @@ switch header.bscan_pattern
         X_oct = nan(n_bscan, n_ascan);
         Y_oct = nan(n_bscan, n_ascan);
         for i_bscan = 1:n_bscan
-            X_oct(i_bscan, :) = linspace(start_x(i_bscan), end_x(i_bscan), n_ascan);
-            Y_oct(i_bscan, :) = linspace(start_y(i_bscan), end_y(i_bscan), n_ascan);
+            idx_new = n_bscan - i_bscan + 1; % store them with superior on top
+            X_oct(idx_new, :) = linspace(start_x(i_bscan), end_x(i_bscan), n_ascan);
+            Y_oct(idx_new, :) = linspace(start_y(i_bscan), end_y(i_bscan), n_ascan);
         end
 
         mid_bscan = (n_bscan + 1)/2; % Central B-Scan n_bscan = 25 -> mid_bscan=13        
