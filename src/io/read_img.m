@@ -121,7 +121,6 @@ bscan = permute(bscan, [2 1 3]); % correct order: [z, x, y]
 % Reshape - bscans are rotated
 bscan = flip(bscan, 1); % upside down (z axis (depth))
 bscan = flip(bscan, 2); % flip left and right (x axis)
-bscan = flip(bscan, 3); % flip front to back (y axis)
 
 % Resolution in each direction - assume cube begins and ends at voxel
 % center

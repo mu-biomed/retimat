@@ -4,10 +4,11 @@ addpath(genpath('..'));
 visu = true;
 
 % Launch test suite
-test_vol_raster(visu);
+% test_vol_raster(visu);
 % test_vol_star(visu);
 % test_vol_onh(visu);
-% test_img_cube(visu);
+test_img_macular_cube(visu);
+test_img_onh_cube(visu);
 % test_bin_cube(visu);
 % test_e2e(visu);
 % test_fda(visu);
@@ -55,12 +56,54 @@ if visu
 end
 end
 
-function test_img_cube(visu)
-file = '../data/Zeiss_Macula.img';
-% file = 'C:/Users/dromero/Desktop/PNYU001E_Macular Cube 512x128_9-22-2017_12-17-35_OD_sn13716_cube_raw.img';
-% file = 'C:/Users/dromero/Desktop/PNYU001E_HD 5 Line Raster_9-22-2017_12-22-6_OD_sn13722_lineEnhanced.img';
-% file = 'C:/Users/dromero/Desktop/PNYU001E_Optic Disc Cube 200x200_11-19-2015_14-28-52_OS_sn8004_cube_raw.img';
-[h, bscan] = read_img(file,[]);
+function test_img_macular_cube(visu)
+% file = '../data/Zeiss_Macula.img';
+
+% file_img = '../data_private/img/macula/PNYU001E_Macular Cube 512x128_11-19-2015_14-20-35_OD_sn7994_cube_raw.img';
+% file_bin = '../data_private/img/macula/PNYU001E_Macular Cube 512x128_11-19-2015_14-20-35_OD_sn7994_lslo.bin';
+% file_img = '../data_private/img/macula/PNYU001E_Macular Cube 512x128_11-19-2015_14-25-5_OS_sn8000_cube_raw.img';
+% file_bin = '../data_private/img/macula/PNYU001E_Macular Cube 512x128_11-19-2015_14-25-5_OS_sn8000_lslo.bin';
+file_img = '../data_private/img/macula/PNYU006E_Macular Cube 512x128_2-19-2016_11-49-59_OD_sn8434_cube_raw.img';
+file_bin = '../data_private/img/macula/PNYU006E_Macular Cube 512x128_2-19-2016_11-49-59_OD_sn8434_lslo.bin';
+
+[h, bscan] = read_img(file_img,[],'get_coordinates');
+slo = read_bin(file_bin);
+
+for i=1:128
+    en_face(i,:) = mean(bscan(:,:,i),1);
+end
+
+if visu
+    subplot(131);
+    imagesc(en_face);
+    
+    subplot(132);
+    surf(h.X_oct, h.Y_oct, en_face, 'EdgeColor', 'none');view(0,90);
+    
+    subplot(133);
+    imagesc(slo);
+end
+
+end
+
+function test_img_onh_cube(visu)
+file_img = '../data_private/img/onh/PNYU001E_Optic Disc Cube 200x200_11-19-2015_14-22-31_OD_sn7997_cube_raw.img';
+file_bin = '../data_private/img/onh/PNYU001E_Optic Disc Cube 200x200_11-19-2015_14-22-31_OD_sn7997_lslo.bin';
+[h, bscan] = read_img(file_img,[]);
+% en_face = squeeze(mean(bscan, 1)).';
+
+for i=1:200
+    en_face(i,:) = mean(bscan(:,:,i),1);
+end
+slo = read_bin(file_bin);
+
+if visu
+    subplot(121);
+    imagesc(en_face);
+    
+    subplot(122);
+    imshow(slo);
+end
 
 end
 

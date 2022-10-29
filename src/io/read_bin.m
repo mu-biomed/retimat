@@ -52,6 +52,8 @@ fclose(fid);
 
 fundus = reshape(fundus, im_size);
 
+fundus = flip(fundus, 2); % swap left - right
+
 
 % Reverse engineering process
 % 1- get factors of the number of elements

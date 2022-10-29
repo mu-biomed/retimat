@@ -25,16 +25,17 @@ switch header.bscan_pattern
         x_max = (header.scale_x * (header.n_ascan - 1)) /2;
         y_max = (header.scale_y * (header.n_bscan - 1)) /2;
 
+        x_range = linspace(-x_max, x_max, header.n_ascan);
         % We asume segmentation and bscan data is already coded so that
         % superior is the first row.
         y_range = linspace(y_max, -y_max, header.n_bscan);
-
-        % OD: already pointing nasal
-        % OS: need to flip
-        x_range = linspace(-x_max, x_max, header.n_ascan);
-        if strcmp(header.eye, 'OD')
-            x_range = -x_range;
-        end
+        
+        % Deprecated: OS flipping to have x > 0 pointing nasal
+        % Better leave this step for later processing if needed.
+        %  if strcmp(header.eye, 'OS')
+        %      x_range = -x_range;
+        %  end
+        
         [X, Y] = meshgrid(x_range, y_range);            
     otherwise
         X = [];
