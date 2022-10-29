@@ -1,7 +1,7 @@
 ```diff
 -This is (incomplete) work in progress. Use the code carefully!
 ```
-<img align="right" width="220" src="https://user-images.githubusercontent.com/50577357/198819198-384519f0-3c4a-4f91-bba7-a0e3ebdb3b91.png">
+<img align="right" width="300" src="https://user-images.githubusercontent.com/50577357/198819198-384519f0-3c4a-4f91-bba7-a0e3ebdb3b91.png">
 
 # RETIMAT: Retinal image analysis in MATLAB
 
