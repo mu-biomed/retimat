@@ -6,25 +6,26 @@
 # RETIMAT: Retinal image analysis in MATLAB
 
 
-A collection of functions for retinal OCT image analysis.
+A MATLAB Toolbox for retinal OCT image analysis.
 
 ![fig_readme](https://user-images.githubusercontent.com/50577357/198825276-a70c2cc9-6fd4-408c-8adb-d9f7fcd8d6de.png)
 
-## Available functions
+## What can I do with RETIMAT?
 - Read propietary OCT files (.vol, .e2e, .img, .fda, .xml)
 - Visualization
     - Raw images
-    - Quality reports
+    - Summary reports
     - En-face maps (thickness, reflectance)
 - Feature extraction 
-    - Image quality
+    - Image quality and reflectance
     - Thickness (ETDRS and other sectorizations)
     - Foveal pit morphology (slope, radius...)
     - Texture (GLCM, LBP, fractal dimension...)
-    - Reflectance
 
 ## How to get started
-1. Clone the repository.
+1. Clone the repository
+    - Click on the green *Code* button
+    - Select *Download Zip*
 2. Install the toolbox, 2 options:
     - Run install.m
     - Add the *src* folder to the MATLAB path manually.
