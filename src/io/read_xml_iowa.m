@@ -30,10 +30,11 @@ function [header, seg] = read_xml_iowa(file, varargin)
 %   
 %   Notes
 %   -----
-%   This function has been only tested for macular cube OCT images and may
-%   not properly work for ONH acquisitions or an OCTExplorer version other
+%   This function has been only tested for raster acquisition and may not
+%   properly work for other acquisitions or an OCTExplorer version other 
 %   than 3.8.0.
-%   The axes convention used in IOWA differs from the one used here:
+%   The axes convention used in IOWA (OCTExplorer) differs from the one
+%   used here:
 %   - x: horizontal (temporal - nasal)
 %   - y: vertical (inferior - superior)
 %   - z: axial (depth)
@@ -43,7 +44,7 @@ function [header, seg] = read_xml_iowa(file, varargin)
 %    - Segmentation = 0
 %    - Segmentation NA (not sure)
 %    - Undefined region chunk (full square regions I believe)
-%
+%   
 %
 %   References
 %   ----------
@@ -85,9 +86,10 @@ str = fileread(file);
 header.version      = str(idx1(1)+9:idx2(1)-1);
 header.exec_version = str(idx1(2)+9:idx2(2)-1);
 
-header.manufacturer = get_field(str, 'manufacturer', 'str');
-header.eye          = get_field(str, 'laterality',   'str');
-header.fixation     = get_field(str, 'center_type',  'str');
+header.manufacturer  = get_field(str, 'manufacturer', 'str');
+header.eye           = get_field(str, 'laterality',   'str');
+header.fixation      = lower(get_field(str, 'center_type',  'str'));
+header.bscan_pattern = 'raster';
 
 % Dimensions
 [idx1, idx2] = get_index(str, 'size');
@@ -155,7 +157,8 @@ for i_seg=1:n_seg
     end
 end
 
-% Set to nan those rois labeles as undefined region due to poor quality
+% Set to nan rois labeled as 'undefined region' due to poor quality
+% This is slow and most likely improvable
 if ~keep_nan    
     [idx1, idx2] = get_index(str, 'undefined_region');
     chunk = str(idx1:idx2);
@@ -163,27 +166,21 @@ if ~keep_nan
     [idx_b1, idx_b2] = get_index(chunk, 'z');
 
     n_nan = length(idx_a1);
-    ascan_nan = nan(1, n_nan);
-    bscan_nan = nan(1, n_nan);
+    is_nan = false(n_bscan, n_ascan);
     for i_nan=1:n_nan
-        ascan_nan(i_nan) = str2double(chunk((idx_a1(i_nan)+3) : (idx_a2(i_nan)-1))) + 1;
-        bscan_nan(i_nan) = str2double(chunk((idx_b1(i_nan)+3) : (idx_b2(i_nan)-1))) + 1;
+        ascan_nan = str2double(chunk((idx_a1(i_nan)+3) : (idx_a2(i_nan)-1))) + 1;
+        bscan_nan = str2double(chunk((idx_b1(i_nan)+3) : (idx_b2(i_nan)-1))) + 1;
+        is_nan(bscan_nan, ascan_nan) = true;
     end
-
+    
     layers = fields(seg);
     for i_layer=1:n_seg
-        seg.(layers{i_layer})(bscan_nan, ascan_nan) = nan;
+        seg.(layers{i_layer})(is_nan) = nan;
     end
 end
 
 if get_coordinates
-    range_x = (header.n_ascan - 1) * header.scale_x;
-    range_y = (header.n_bscan - 1) * header.scale_y;
-    
-    x = linspace(-range_x/2, range_x/2, n_ascan);
-    y = linspace(-range_y/2, range_y/2, n_bscan);
-    
-    [header.X_oct, header.Y_oct] = meshgrid(x, -y);
+    header = get_coordinates(header);
 end
 
 function [idx1, idx2] = get_index(text, label)

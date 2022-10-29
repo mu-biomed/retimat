@@ -5,16 +5,17 @@ visu = true;
 
 % Launch test suite
 % test_vol_raster(visu);
-test_vol_star(visu);
-test_vol_wide(visu);
+% test_vol_star(visu);
+% test_vol_wide(visu);
 % test_vol_onh(visu);
-test_img_macular_cube(visu);
-test_img_onh_cube(visu);
+% test_img_macular_cube(visu);
+% test_img_onh_cube(visu);
 % test_bin_cube(visu);
 % test_e2e(visu);
 % test_fda(visu);
 % test_iowa_star(visu);
-test_iowa_raster(visu);
+% test_iowa_raster(visu);
+test_iowa_onh(visu);
 
 function test_vol_raster(visu)
 file = '../data/raster.vol';
@@ -206,7 +207,7 @@ for i_image=1:n_image
 
     % IOWA loading
     [h2,seg2] = read_xml_iowa(file_iowa, 'get_coordinates');
-    T2 = compute_thickness(seg2, layers,h2.scale_z);
+    T2 = compute_thickness(seg2, layers, h2.scale_z);
 
     for i_layer=1:n_layer
         layer = layers{i_layer};
@@ -223,5 +224,21 @@ for i_image=1:n_image
         axis([-3 3 -3 3]);
         title([layer ' - IOWA']);
     end
+end
+end
+
+function test_iowa_onh(visu)
+layers = {'TRT','RNFL','GCIP','INL'};
+
+in_dir = '..\data_private\iowa\img_onh'; 
+% id = 'PNYU001E_Optic Disc Cube 200x200_11-19-2015_14-22-31_OD_sn7997_cube_raw';
+id = 'PNYU001E_Optic Disc Cube 200x200_11-19-2015_14-27-45_OS_sn8002_cube_raw';
+file = [in_dir '/' id '/' id '_Surfaces_Iowa.xml'];
+[header, seg] = read_xml_iowa(file, 'get_coordinates');
+
+Thick = compute_thickness(seg, layers);
+if visu
+    surf(header.X_oct, header.Y_oct, Thick.TRT, 'EdgeColor', 'none');
+    view(0,90);
 end
 end
