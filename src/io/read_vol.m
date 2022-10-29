@@ -233,8 +233,9 @@ for i_bscan = 1:n_bscan
         
         ILM(i_bscan,:)      = seg(1:n_ascan);
         BM(i_bscan,:)       = seg((1:n_ascan) + n_ascan);
-        RNFL_GCL(i_bscan,:) = seg((1:n_ascan) + 2*n_ascan);
-        
+        if n_seg(i_bscan) > 2
+            RNFL_GCL(i_bscan,:) = seg((1:n_ascan) + 2*n_ascan);
+        end
         if n_seg(i_bscan) > 3
             GCL_IPL(i_bscan,:) = seg((1:n_ascan) + 3*n_ascan);
             IPL_INL(i_bscan,:) = seg((1:n_ascan) + 4*n_ascan);
@@ -300,17 +301,23 @@ end
 
 % Save segmentation data
 if read_seg   
-    segment.ILM      = ILM;
-    segment.BM       = BM;
-    segment.RNFL_GCL = RNFL_GCL;
-    segment.GCL_IPL  = GCL_IPL;
-    segment.IPL_INL  = IPL_INL;
-    segment.INL_OPL  = INL_OPL;
-    segment.OPL_ONL  = OPL_ONL;
-    segment.ELM      = ELM;
-    segment.MZ_EZ    = MZ_EZ;
-    segment.OSP_IZ   = OSP_IZ;
-    segment.IZ_RPE   = IZ_RPE;
+    segment.ILM = ILM;
+    segment.BM  = BM;
+    
+    if n_seg(1) > 2
+        segment.RNFL_GCL = RNFL_GCL;
+    end
+    
+    if n_seg(1) > 3    
+        segment.GCL_IPL = GCL_IPL;
+        segment.IPL_INL = IPL_INL;
+        segment.INL_OPL = INL_OPL;
+        segment.OPL_ONL = OPL_ONL;
+        segment.ELM     = ELM;
+        segment.MZ_EZ   = MZ_EZ;
+        segment.OSP_IZ  = OSP_IZ;
+        segment.IZ_RPE  = IZ_RPE;
+    end
     
     % Remove outliers if present
     layers = fields(segment);

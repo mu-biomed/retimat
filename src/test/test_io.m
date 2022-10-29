@@ -5,7 +5,8 @@ visu = true;
 
 % Launch test suite
 % test_vol_raster(visu);
-% test_vol_star(visu);
+test_vol_star(visu);
+test_vol_wide(visu);
 % test_vol_onh(visu);
 test_img_macular_cube(visu);
 test_img_onh_cube(visu);
@@ -39,6 +40,13 @@ if visu
     scatter3(0, 0, max(slo(:))+1,'r','filled');
     daspect([1 1 1]);
 end
+
+end
+
+function test_vol_wide(visu)
+file_vol = 'C:\Users\dromero\Desktop\GITHUB\retimat\src\data_private\vol\wide\Heidelberg_Macula.vol';
+
+[header, seg, bscan, fundus] = read_vol(file_vol, 'full_header');
 
 end
 
