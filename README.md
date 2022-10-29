@@ -1,10 +1,14 @@
 ```diff
 -This is (incomplete) work in progress. Use the code carefully!
 ```
-<img align="right" width="300" src="https://user-images.githubusercontent.com/50577357/198819198-384519f0-3c4a-4f91-bba7-a0e3ebdb3b91.png">
+<img align="right" width="220" src="https://user-images.githubusercontent.com/50577357/198819198-384519f0-3c4a-4f91-bba7-a0e3ebdb3b91.png">
 
 # RETIMAT: Retinal image analysis in MATLAB
+
+
 A collection of functions for retinal OCT image analysis.
+
+![fig_readme](https://user-images.githubusercontent.com/50577357/198825276-a70c2cc9-6fd4-408c-8adb-d9f7fcd8d6de.png)
 
 ## Available functions
 - Read propietary OCT files (.vol, .e2e, .img, .fda, .xml)
