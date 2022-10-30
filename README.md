@@ -1,10 +1,10 @@
 ```diff
 -This is (incomplete) work in progress. Use the code carefully!
 ```
-<img align="right" width="300" src="https://user-images.githubusercontent.com/50577357/198819198-384519f0-3c4a-4f91-bba7-a0e3ebdb3b91.png">
 
 # RETIMAT: Retinal image analysis in MATLAB
 
+![Retimat](https://user-images.githubusercontent.com/50577357/198894032-562361f2-59ad-47cb-97a7-7e4e4907041b.png)
 
 A MATLAB Toolbox for retinal OCT image analysis.
 
