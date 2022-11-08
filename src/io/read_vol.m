@@ -299,6 +299,9 @@ if get_coordinates
     end
 end
 
+% Flip bscans to have superior as the first row
+bscan = flip(bscan, 3);
+
 % Save segmentation data
 if read_seg   
     segment.ILM = ILM;
@@ -327,10 +330,9 @@ if read_seg
         % First bscan is inferior so we flip to have superior first
         segment.(layers{i}) = flip(segment.(layers{i}));
     end
-
 end
 
-% Visualize the acquisition patter if asked
+% Visualize the acquisition pattern if asked
 if visu
     scrsz = get(0,'ScreenSize');
     figure('Position',[1 0 scrsz(3) scrsz(4)-70]);
