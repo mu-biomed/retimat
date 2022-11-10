@@ -94,8 +94,8 @@ for b=1:n_bscan
         end
         
         % Compute vitreous and RPE reflectance
-        R_vitreous(a) = nanmean(bscan(1:ilm, a, b));
-        R_rpe(a) = nanmean(bscan(iz_rpe:bm, a, b));        
+        R_vitreous(a) = mean(bscan(1:ilm, a, b), 'omitnan');
+        R_rpe(a) = mean(bscan(iz_rpe:bm, a, b), 'omitnan');        
     end
     
     % Normalize based on [1] (we use 100 instead of 1000 here).
@@ -104,8 +104,8 @@ for b=1:n_bscan
             bscan_norm(:,:,b) = 100*(bscan(:,:,b) - R_vitreous)./(R_rpe - R_vitreous);
 
         case 'bscan'
-            R_rpe = nanmean(R_rpe);
-            R_vitreous = nanmean(R_vitreous);
+            R_rpe = mean(R_rpe, 'omitnan');
+            R_vitreous = mean(R_vitreous, 'omitnan');
             
             bscan_norm(:,:,b) = 100*(bscan(:,:,b) - R_vitreous)/(R_rpe - R_vitreous);         
         otherwise

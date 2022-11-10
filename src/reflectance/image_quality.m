@@ -154,18 +154,18 @@ mask_in = (idx >= ilm) & (idx <= bm);
 
 switch metric
     case 'snr'
-        signal = nanmean(I(mask_in));
-        noise = nanstd(I(~mask_in));
+        signal = mean(I(mask_in), 'omitnan');
+        noise = std(I(~mask_in), 'omitnan');
         met = 10*log10(signal^2/noise^2);
     
     case 'psnr'
         signal = max(I(mask_in));
-        noise = nanstd(I(~mask_in));
+        noise = std(I(~mask_in), 'omitnan');
         met = 10*log10(signal^2/noise^2);
         
     case 'cnr'
-        mu_fore = nanmean(I(mask_in));
-        mu_back = nanmean(I(~mask_in));
+        mu_fore = mean(I(mask_in), 'omitnan');
+        mu_back = mean(I(~mask_in), 'omitnan');
 
         var_fore = nanvar(I(mask_in));
         var_back = nanvar(I(~mask_in));

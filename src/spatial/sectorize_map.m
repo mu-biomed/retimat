@@ -116,17 +116,17 @@ Zs = nan(1, Sectors.n_sect);
 
 switch metric
     case 'mean'
-        fun = @(x) nanmean(x);
+        fun = @(x) mean(x, 'omitnan');
     case 'median'
-        fun = @(x) median(x);
+        fun = @(x) median(x, 'omitnan');
     case 'std'
-        fun = @(x) nanstd(x);
+        fun = @(x) std(x, 'omitnan');
     case 'skewness'
         fun = @(x) skewness(x);
     case 'kurtosis'
         fun = @(x) kurtosis(x);
     case 'snr'
-        fun = @(x) mean(x)/std(x);
+        fun = @(x) mean(x, 'omitnan')/std(x, 'omitnan');
     otherwise
         error(strcat("Unknown metric. Accepted values: 'mean','median',",...
             "'std','skewness','kurtosis','snr'"));
