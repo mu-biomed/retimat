@@ -75,9 +75,9 @@ addpath(genpath('..'));
 file = '../data/raster.vol';
 [header, seg, bscan] = read_vol(file);
 
-stacked = stack_bscans(bscan, seg, {'RNFL','GCIP','RPE'});
+stacked = stack_bscans(bscan, seg, {'RNFL','GCIPL','RPE'});
 subplot(131);imagesc(stacked.RNFL);axis off;title('RNFL');
-subplot(132);imagesc(stacked.GCIP);axis off; title('GCIP');
+subplot(132);imagesc(stacked.GCIPL);axis off; title('GCIPL');
 subplot(133);imagesc(stacked.RPE);axis off; title('RPE');
 colormap(gray);
 

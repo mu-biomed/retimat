@@ -43,7 +43,7 @@ function stacked = stack_bscans(bscan, seg, layers)
 %   % Generate stacked b-scans of RNFL and GCIP layers
 %
 %     [~, seg, bscan] = read_vol(file);
-%     layers = {'RNFL', 'GCIP'};
+%     layers = {'RNFL', 'GCIPL'};
 %     stacked = stack_bscans(bscan, seg, layers)
 %     
 %
@@ -66,7 +66,7 @@ layer_top_bottom = {'RNFL',     'ILM',        'RNFL_GCL';
                     
                     % Composite layers
                     'TRT',      'ILM',        'BM';
-                    'GCIP',     'RNFL_GCL',   'IPL_INL';
+                    'GCIPL',    'RNFL_GCL',   'IPL_INL';
                     'GCC',      'ILM',        'IPL_INL';   
                     'IRL',      'ILM',        'IPL_INL';
                     'ONPL',     'INL_OPL',    'ELM';

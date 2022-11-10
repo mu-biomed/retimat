@@ -150,7 +150,7 @@ images = {'HC001AM_H_2341', 'HC001AM_H_2342',...
           'HC002AF_A_2357', 'HC002AF_A_2358'};
 n_image = length(images);
       
-layers = {'TRT','RNFL','GCIP','INL'};
+layers = {'TRT','RNFL','GCIPL','INL'};
 n_layer = length(layers);
 
 for i_image=1:n_image
@@ -193,7 +193,7 @@ images = {'HC001AF_H_2644', 'HC001AF_H_2645',...
           'HC002AF_A_2888', 'HC002AF_A_2889'};
 n_image = length(images);
 
-layers = {'TRT','RNFL','GCIP','INL'};
+layers = {'TRT','RNFL','GCIPL','INL'};
 n_layer = length(layers);
 
 for i_image=1:n_image
@@ -228,7 +228,7 @@ end
 end
 
 function test_iowa_onh(visu)
-layers = {'TRT','RNFL','GCIP','INL'};
+layers = {'TRT','RNFL','GCIPL','INL'};
 
 in_dir = '..\data_private\iowa\img_onh'; 
 % id = 'PNYU001E_Optic Disc Cube 200x200_11-19-2015_14-22-31_OD_sn7997_cube_raw';

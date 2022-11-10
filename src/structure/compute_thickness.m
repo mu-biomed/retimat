@@ -32,7 +32,7 @@ function Thickness = compute_thickness(seg, layers, scale_z)
 %    - ELM:   external limiting membrane
 %    - EZ:    ellipsoid zone
 %    - GCL:   ganglion cell layer
-%    - GCIP:  ganglion cell and inner plexiform layer (composite)
+%    - GCIPL: ganglion cell and inner plexiform layer (composite)
 %    - ILM:   inner limiting membrane
 %    - INL:   inner nuclear layer 
 %    - IPL:   inner plexiform layer
@@ -88,7 +88,7 @@ layer_top_bottom = {'RNFL',     'ILM',        'RNFL_GCL';
                     
                     % Composite layers
                     'TRT',      'ILM',        'BM';
-                    'GCIP',     'RNFL_GCL',   'IPL_INL';
+                    'GCIPL',    'RNFL_GCL',   'IPL_INL';
                     'GCC',      'ILM',        'IPL_INL';   
                     'IRL',      'ILM',        'IPL_INL';
                     'ONPL',     'INL_OPL',    'ELM';

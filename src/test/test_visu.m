@@ -14,4 +14,4 @@ plot_sectors(Z,Sect);
 %% Generate report
 [~, seg, bscan, fundus] = read_vol('../data/raster.vol');
 
-generate_report(bscan, seg, fundus, {'TRT','GCIP','INL','RNFL'}, 10, 'n_col_max', 7);
+generate_report(bscan, seg, fundus, {'TRT','GCIPL','INL','RNFL'}, 'n_plot_bscan',10, 'n_col_max', 7);
