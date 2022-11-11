@@ -300,7 +300,9 @@ if get_coordinates
 end
 
 % Flip bscans to have superior as the first row
-bscan = flip(bscan, 3);
+if read_bscan
+    bscan = flip(bscan, 3);
+end
 
 % Save segmentation data
 if read_seg   
