@@ -18,7 +18,7 @@ visu = true;
 test_iowa_onh(visu);
 
 function test_vol_raster(visu)
-file = '../data/raster.vol';
+file = '../data_private/vol/rastter/HC001AF_H_2644.vol';
 [h, seg, bscan, slo] = read_vol(file, 'verbose', 'get_coordinates');
 
 if visu
@@ -31,7 +31,7 @@ end
 end
 
 function test_vol_star(visu)
-file = '../data/star.vol';
+file = '../data_private/vol/HC001AM_H_2341.vol';
 [h, seg, bscan, slo] = read_vol(file, 'verbose', 'get_coordinates');
 
 if visu
@@ -45,14 +45,14 @@ end
 end
 
 function test_vol_wide(visu)
-file_vol = 'C:\Users\dromero\Desktop\GITHUB\retimat\src\data_private\vol\wide\Heidelberg_Macula.vol';
+file_vol = '../data_private/vol/wide/Heidelberg_Macula.vol';
 
 [header, seg, bscan, fundus] = read_vol(file_vol, 'full_header');
 
 end
 
 function test_vol_onh(visu)
-file = '../data/onh.vol';
+file = '../data_private/vol/onh/HC001AM_H_2343_0.vol';
 [h, seg, bscan, slo] = read_vol(file, 'verbose', 'get_coordinates');
 
 if visu
@@ -66,8 +66,6 @@ end
 end
 
 function test_img_macular_cube(visu)
-% file = '../data/Zeiss_Macula.img';
-
 % file_img = '../data_private/img/macula/PNYU001E_Macular Cube 512x128_11-19-2015_14-20-35_OD_sn7994_cube_raw.img';
 % file_bin = '../data_private/img/macula/PNYU001E_Macular Cube 512x128_11-19-2015_14-20-35_OD_sn7994_lslo.bin';
 % file_img = '../data_private/img/macula/PNYU001E_Macular Cube 512x128_11-19-2015_14-25-5_OS_sn8000_cube_raw.img';
@@ -230,7 +228,7 @@ end
 function test_iowa_onh(visu)
 layers = {'TRT','RNFL','GCIPL','INL'};
 
-in_dir = '..\data_private\iowa\img_onh'; 
+in_dir = '../data_private/iowa/img_onh'; 
 % id = 'PNYU001E_Optic Disc Cube 200x200_11-19-2015_14-22-31_OD_sn7997_cube_raw';
 id = 'PNYU001E_Optic Disc Cube 200x200_11-19-2015_14-27-45_OS_sn8002_cube_raw';
 file = [in_dir '/' id '/' id '_Surfaces_Iowa.xml'];
