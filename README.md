@@ -1,6 +1,7 @@
 # RETIMAT: Retinal image analysis in MATLAB
 
 ![Retimat](https://user-images.githubusercontent.com/50577357/198894032-562361f2-59ad-47cb-97a7-7e4e4907041b.png)
+[![DOI](https://zenodo.org/badge/425058082.svg)](https://zenodo.org/badge/latestdoi/425058082)
 
 A MATLAB Toolbox for retinal OCT image analysis.
 
