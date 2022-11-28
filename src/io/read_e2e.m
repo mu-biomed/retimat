@@ -14,6 +14,8 @@ function [header, segment, bscan, fundus] = read_e2e(file, varargin)
 %                                              
 %                    'verbose': Display header info during read.
 %
+%                    'raw_pixel': Display raw pixel intensities.
+%
 %
 %   Output arguments:
 %  
@@ -63,7 +65,8 @@ function [header, segment, bscan, fundus] = read_e2e(file, varargin)
 %   David Romero-Bascones, dromero@mondragon.edu
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
-verbose = any(strcmp('verbose', varargin));
+verbose   = any(strcmp('verbose', varargin));
+raw_pixel = any(strcmp('raw_pixel', varargin));
 
 global SEG_FLAG IMAGE_FLAG NA_FLAG BSCAN_META_FLAG PATIENT_FLAG EYE_FLAG 
 PATIENT_FLAG    = 9;
@@ -100,21 +103,22 @@ end
 patient_header = read_patient_data(fid, chunks);
 
 % Parse each series separately
-header = cell(1, n_series);
-bscan  = cell(1, n_series);
-segment    = cell(1, n_series);
-fundus = cell(1, n_series);
+header  = cell(1, n_series);
+bscan   = cell(1, n_series);
+segment = cell(1, n_series);
+fundus  = cell(1, n_series);
 
 for i_series = 1:n_series
     chunks_series = chunks(chunks.series_id == series_id(i_series),:);
 
-    header{i_series} = read_header(fid, chunks_series, patient_header);
+    header{i_series}  = read_header(fid, chunks_series, patient_header);    
+    bscan{i_series}   = read_bscan(fid, chunks_series, verbose);
+    segment{i_series} = read_segmentation(fid, chunks_series);     
+    fundus{i_series}  = read_fundus(fid, chunks_series);      
     
-    bscan{i_series}  = read_bscan(fid, chunks_series, verbose);
-
-    segment{i_series}    = read_segmentation(fid, chunks_series);
-     
-    fundus{i_series} = read_fundus(fid, chunks_series);      
+    if ~raw_pixel
+        bscan{i_series} = bscan{i_series}.^0.25; % to make intensities visible
+    end
 end
 
 function chunks = discover_chunks(fid, verbose)
