@@ -1,151 +1,119 @@
 close all;clc;clearvars;
 addpath(genpath('..'));
 
+global visu
+
 visu = true;
 
+files.vol_raster = '../data_private/vol/raster/HC001AF_H_2644.vol';
+files.vol_star   = '../data_private/vol/star/HC001AM_H_2341.vol';
+files.vol_wide   = '../data_private/vol/wide/Heidelberg_Macula.vol';
+files.vol_onh    = '../data_private/vol/onh/HC001AM_H_2343_0.vol';
+files.img_mac    = '../data_private/img/macula/PNYU006E_Macular Cube 512x128_2-19-2016_11-49-59_OD_sn8434_cube_raw.img';
+files.bin_mac    = '../data_private/img/macula/PNYU006E_Macular Cube 512x128_2-19-2016_11-49-59_OD_sn8434_lslo.bin';
+files.img_onh    = '../data_private/img/onh/PNYU001E_Optic Disc Cube 200x200_11-19-2015_14-22-31_OD_sn7997_cube_raw.img';
+files.bin_onh    = '../data_private/img/onh/PNYU001E_Optic Disc Cube 200x200_11-19-2015_14-22-31_OD_sn7997_lslo.bin';
+files.e2e_mac    = '../data_private/e2e/oct_1.e2e';
+files.fda_mac    = '../data_private/fda/test_0.fda';
+
+files.iowa_star.folder = '../data_private/iowa/vol_star/';
+files.iowa_star.ids    = {'HC001AM_H_2341', 'HC001AM_H_2342',...
+                          'HC002AM_H_2347', 'HC002AM_H_2348',...
+                          'HC002AF_A_2357', 'HC002AF_A_2358'};
+                
+files.iowa_mac.folder = '../data_private/iowa/vol_raster/';
+files.iowa_mac.ids    = {'HC001AF_H_2644', 'HC001AF_H_2645',...
+                         'HC001AM_H_2339', 'HC001AM_H_2340',...
+                         'HC002AF_A_2888', 'HC002AF_A_2889'};                
+              
+files.iowa_onh.folder = '../data_private/iowa/img_onh'; 
+files.iowa_onh.ids    = {'PNYU001E_Optic Disc Cube 200x200_11-19-2015_14-22-31_OD_sn7997_cube_raw',...
+                         'PNYU001E_Optic Disc Cube 200x200_11-19-2015_14-27-45_OS_sn8002_cube_raw'};
+
 % Launch test suite
-% test_vol_raster(visu);
-% test_vol_star(visu);
-% test_vol_wide(visu);
-% test_vol_onh(visu);
-% test_img_macular_cube(visu);
-% test_img_onh_cube(visu);
-% test_bin_cube(visu);
-% test_e2e(visu);
-% test_fda(visu);
-% test_iowa_star(visu);
-% test_iowa_raster(visu);
-test_iowa_onh(visu);
+% test_vol_raster(files);
+% test_vol_star(files);
+% test_vol_wide(files);
+% test_vol_onh(files);
+% test_img_macular_cube(files);
+% test_img_onh_cube(files);
+% test_e2e(files);
+test_fda(files);
+test_iowa_star();
+test_iowa_raster();
+test_iowa_onh();
 
-function test_vol_raster(visu)
-file = '../data_private/vol/rastter/HC001AF_H_2644.vol';
-[h, seg, bscan, slo] = read_vol(file, 'verbose', 'get_coordinates');
+close all;
 
-if visu
-    surf(h.X_fun, h.Y_fun, slo, 'EdgeColor', 'none');view(0,90);hold on;
-    colormap(gray);
-    scatter3(h.X_oct(:), h.Y_oct(:), repmat(max(slo(:))+1, 1, length(h.X_oct(:))),5,'b','filled');
-    scatter3(0, 0, max(slo(:))+1,'r','filled');
-    daspect([1 1 1]);
-end
+function test_vol_raster(files)
+[header, seg, bscan, fundus] = read_vol(files.vol_raster, 'get_coordinates');
+plot_vol_data(header, seg, bscan, fundus);
 end
 
-function test_vol_star(visu)
-file = '../data_private/vol/HC001AM_H_2341.vol';
-[h, seg, bscan, slo] = read_vol(file, 'verbose', 'get_coordinates');
-
-if visu
-    surf(h.X_fun, h.Y_fun, slo, 'EdgeColor', 'none');view(0,90);hold on;
-    colormap(gray);
-    scatter3(h.X_oct(:), h.Y_oct(:), repmat(max(slo(:))+1, 1, length(h.X_oct(:))),5,'b','filled');
-    scatter3(0, 0, max(slo(:))+1,'r','filled');
-    daspect([1 1 1]);
+function test_vol_star(files)
+[header, seg, bscan, fundus] = read_vol(files.vol_star, 'get_coordinates');
+plot_vol_data(header, seg, bscan, fundus)
 end
 
+function test_vol_wide(files)
+[header, seg, bscan, fundus] = read_vol(files.vol_wide, 'full_header', 'get_coordinates');
+plot_vol_data(header, seg, bscan, fundus)
 end
 
-function test_vol_wide(visu)
-file_vol = '../data_private/vol/wide/Heidelberg_Macula.vol';
-
-[header, seg, bscan, fundus] = read_vol(file_vol, 'full_header');
-
+function test_vol_onh(files)
+[header, seg, bscan, fundus] = read_vol(files.vol_onh, 'verbose', 'get_coordinates');
+plot_vol_data(header, seg, bscan, fundus)
 end
 
-function test_vol_onh(visu)
-file = '../data_private/vol/onh/HC001AM_H_2343_0.vol';
-[h, seg, bscan, slo] = read_vol(file, 'verbose', 'get_coordinates');
-
-if visu
-    surf(h.X_fun, h.Y_fun, slo, 'EdgeColor', 'none');view(0,90);hold on;
-    colormap(gray);
-    scatter3(0, 0, max(slo(:))+1,'r','filled');
-    scatter3(h.X_oct, h.Y_oct, repmat(max(slo(:))+1, 1, length(h.X_oct)),5,'b','filled');
-    scatter3(h.X_oct(1), h.Y_oct(1), max(slo(:))+1,'g','filled');
-    daspect([1 1 1]);
-end
+function test_img_macular_cube(files)
+[header, bscan] = read_img(files.img_mac, [], 'get_coordinates');
+fundus          = read_bin(files.bin_mac);
+plot_img_data(header, bscan, fundus)
 end
 
-function test_img_macular_cube(visu)
-% file_img = '../data_private/img/macula/PNYU001E_Macular Cube 512x128_11-19-2015_14-20-35_OD_sn7994_cube_raw.img';
-% file_bin = '../data_private/img/macula/PNYU001E_Macular Cube 512x128_11-19-2015_14-20-35_OD_sn7994_lslo.bin';
-% file_img = '../data_private/img/macula/PNYU001E_Macular Cube 512x128_11-19-2015_14-25-5_OS_sn8000_cube_raw.img';
-% file_bin = '../data_private/img/macula/PNYU001E_Macular Cube 512x128_11-19-2015_14-25-5_OS_sn8000_lslo.bin';
-file_img = '../data_private/img/macula/PNYU006E_Macular Cube 512x128_2-19-2016_11-49-59_OD_sn8434_cube_raw.img';
-file_bin = '../data_private/img/macula/PNYU006E_Macular Cube 512x128_2-19-2016_11-49-59_OD_sn8434_lslo.bin';
-
-[h, bscan] = read_img(file_img,[],'get_coordinates');
-slo = read_bin(file_bin);
-
-for i=1:128
-    en_face(i,:) = mean(bscan(:,:,i),1);
+function test_img_onh_cube(files)
+[header, bscan] = read_img(files.img_onh, [], 'get_coordinates');
+fundus          = read_bin(files.bin_onh);
+plot_img_data(header, bscan, fundus)
 end
 
-if visu
-    subplot(131);
-    imagesc(en_face);
-    
-    subplot(132);
-    surf(h.X_oct, h.Y_oct, en_face, 'EdgeColor', 'none');view(0,90);
-    
-    subplot(133);
-    imagesc(slo);
+function test_e2e(files)
+[header, seg, bscan, fundus] = read_e2e(files.e2e_mac, 'verbose');
+
+plot_e2e_data(header{1}, seg{1}, bscan{1}, fundus{1});
 end
 
-end
-
-function test_img_onh_cube(visu)
-file_img = '../data_private/img/onh/PNYU001E_Optic Disc Cube 200x200_11-19-2015_14-22-31_OD_sn7997_cube_raw.img';
-file_bin = '../data_private/img/onh/PNYU001E_Optic Disc Cube 200x200_11-19-2015_14-22-31_OD_sn7997_lslo.bin';
-[h, bscan] = read_img(file_img,[]);
-% en_face = squeeze(mean(bscan, 1)).';
-
-for i=1:200
-    en_face(i,:) = mean(bscan(:,:,i),1);
-end
-slo = read_bin(file_bin);
-
-if visu
-    subplot(121);
-    imagesc(en_face);
-    
-    subplot(122);
-    imshow(slo);
-end
-
-end
-
-function test_bin_cube(visu)
-file = '../data_private/PNYU001E_Macular Cube 512x128_4-12-2018_16-18-22_OS_sn15113_lslo.bin';
-I = read_bin(file);
-if visu
-    imshow(I);
-end
-end
-
-function test_e2e(visu)
-file = '../data_private/e2e/oct_1.e2e';
-[header, seg, bscan, fundus] = read_e2e(file, 'verbose');
-end
-
-function test_fda(visu)
-file = '../data_private/fda/test_0.fda';
-[header, seg, bscan, fundus] = read_fda(file, 'verbose', 'get_coordinates');
+function test_fda(files)
+[header, seg, bscan, fundus] = read_fda(files.fda_mac, 'verbose', 'get_coordinates');
 
 en_face = squeeze(mean(bscan,1)).';
 trt = seg.ILM - seg.BM;
 
-subplot(141); imshow(fundus);
-subplot(142); imagesc(en_face); colormap(gca, 'gray');
-subplot(143); imagesc(trt);
-subplot(144); surf(header.X, header.Y, trt,'EdgeColor','none');view(0,90);
+n_col = 7;
+subplot(1,n_col,1); imshow(fundus);
+subplot(1,n_col,2); imagesc(en_face); colormap(gca, 'gray'); daspect([header.scale_y header.scale_x 1]);
+subplot(1,n_col,3); imagesc(trt); daspect([header.scale_y header.scale_x 1]);
+subplot(1,n_col,4); surf(header.X_oct, header.Y_oct, trt,'EdgeColor','none'); view(0,90);
+daspect([1 1 1]);
+
+idx_bscan = round(linspace(1, header.n_bscan, 3));
+layers = fields(seg);
+for i=1:length(idx_bscan)
+    subplot(1,n_col,4+i); hold on;
+    imagesc(bscan(:,:,idx_bscan(i)));
+    set(gca,'YDir','reverse');
+    for i_layer=1:length(layers)
+        plot(seg.(layers{i_layer})(idx_bscan(i), :));        
+    end
+    colormap(gca, 'gray');
+    title(sprintf('Bscan:%d', idx_bscan(i)));
+end
+
 end
 
 function test_iowa_star(visu)
 %% Star
-in_dir = '../data_private/iowa/vol_star';
-images = {'HC001AM_H_2341', 'HC001AM_H_2342',...
-          'HC002AM_H_2347', 'HC002AM_H_2348',...
-          'HC002AF_A_2357', 'HC002AF_A_2358'};
+
 n_image = length(images);
       
 layers = {'TRT','RNFL','GCIPL','INL'};
@@ -184,11 +152,7 @@ end
 
 function test_iowa_raster(visu)
 %% Raster
-in_dir = '../data_private/iowa/vol_raster';
 
-images = {'HC001AF_H_2644', 'HC001AF_H_2645',...
-          'HC001AM_H_2339', 'HC001AM_H_2340',...
-          'HC002AF_A_2888', 'HC002AF_A_2889'};
 n_image = length(images);
 
 layers = {'TRT','RNFL','GCIPL','INL'};
@@ -228,9 +192,7 @@ end
 function test_iowa_onh(visu)
 layers = {'TRT','RNFL','GCIPL','INL'};
 
-in_dir = '../data_private/iowa/img_onh'; 
-% id = 'PNYU001E_Optic Disc Cube 200x200_11-19-2015_14-22-31_OD_sn7997_cube_raw';
-id = 'PNYU001E_Optic Disc Cube 200x200_11-19-2015_14-27-45_OS_sn8002_cube_raw';
+
 file = [in_dir '/' id '/' id '_Surfaces_Iowa.xml'];
 [header, seg] = read_xml_iowa(file, 'get_coordinates');
 
@@ -239,4 +201,131 @@ if visu
     surf(header.X_oct, header.Y_oct, Thick.TRT, 'EdgeColor', 'none');
     view(0,90);
 end
+end
+
+function plot_vol_data(header, seg, bscan, fundus)
+global visu
+
+if ~visu
+    return;
+end
+
+X_fun = header.X_fun;
+Y_fun = header.Y_fun;
+Z_fun = max(fundus(:)) + 1;
+
+X_oct = header.X_oct;
+Y_oct = header.Y_oct;
+Z_oct = repmat(Z_fun, 1, numel(header.X_oct));
+
+figure();
+
+% Fundus
+subplot(151); hold on;
+surf(X_fun, Y_fun, fundus, 'EdgeColor', 'none'); 
+scatter3(X_oct(:), Y_oct(:), Z_oct, 5, 'b', 'filled');
+scatter3(0, 0, Z_fun, 'r', 'filled');
+if strcmp(header.fixation, 'onh')
+    scatter3(X_oct(1), Y_oct(1), Z_fun, 'g', 'filled');
+end
+view(0,90); 
+daspect([1 1 1]);
+title('fundus');
+
+% En-face
+if ~strcmp(header.fixation, 'onh')
+    bscan = double(bscan);
+    en_face = squeeze(mean(bscan, 'omitnan')).';
+    subplot(152);
+    imagesc(en_face);
+    daspect([header.scale_y header.scale_x 1]);
+    title('en face');
+end
+
+% B-scans
+layers = fields(seg);
+idx_bscan = round(linspace(1, header.n_bscan, 3));
+for i=1:length(idx_bscan)
+    subplot(1,5,2+i); hold on;
+    imshow(bscan(:,:,idx_bscan(i)));
+    for i_layer=1:length(layers)
+        plot(seg.(layers{i_layer})(idx_bscan(i),:));
+    end
+    title(sprintf('bscan : %d', idx_bscan(i)));
+end
+
+colormap(gray);
+end
+
+function plot_img_data(header, bscan, fundus)
+global visu
+if ~visu
+    return
+end
+
+subplot(161);
+imagesc(fundus);
+title('fundus');
+daspect([1 1 1]);
+
+subplot(162);
+en_face = squeeze(mean(bscan)).';
+imagesc(en_face);
+daspect([header.scale_y header.scale_x 1]);
+title('en face');
+
+subplot(163);
+surf(header.X_oct, header.Y_oct, en_face, 'EdgeColor', 'none');
+view(0,90);
+title('en face (coords)');
+daspect([1 1 1]);
+
+idx_bscan = round(linspace(1, header.n_bscan, 3));
+for i=1:length(idx_bscan)
+    subplot(1,6,3+i);
+    imshow(bscan(:,:,idx_bscan(i)));
+    title(sprintf('Bscan: %d', idx_bscan(i)));
+end
+colormap(gray);
+end
+
+function plot_e2e_data(header, seg, bscan, fundus)
+global visu
+
+if ~visu
+    return;
+end
+
+figure();
+
+% Fundus
+subplot(151); hold on;
+imagesc(fundus);
+daspect([1 1 1]);
+title('fundus');
+
+% En-face
+if ~strcmp(header.fixation, 'onh')
+    bscan = double(bscan);
+    en_face = squeeze(mean(bscan, 'omitnan')).';
+    subplot(152);
+    imagesc(en_face);
+    daspect([header.n_ascan header.n_bscan 1]);
+    title('en face');
+    caxis([0 prctile(en_face(:),99)]);
+end
+
+% B-scans
+layers = fields(seg);
+idx_bscan = round(linspace(1, double(header.n_bscan), 3));
+for i=1:length(idx_bscan)
+    subplot(1,5,2+i); hold on;
+    imshow(bscan(:,:,idx_bscan(i)));
+    for i_layer=1:length(layers)
+        plot(seg.(layers{i_layer})(idx_bscan(i),:));
+    end
+    title(sprintf('bscan : %d', idx_bscan(i)));
+end
+
+colormap(gray);
 end
