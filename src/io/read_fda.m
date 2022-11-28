@@ -14,7 +14,7 @@ function [header, segment, bscan, fundus] = read_fda(file, varargin)
 %
 %                    'verbose': If provided, reading info is displayed.
 %  
-%                    'coordinates': If provided A-scan coordinates are 
+%                    'get_coordinates': If provided A-scan coordinates are 
 %                    returned. This only works if the scanning pattern is
 %                    horizontal raster (pending to implement others).
 %
@@ -60,8 +60,8 @@ function [header, segment, bscan, fundus] = read_fda(file, varargin)
 %   David Romero-Bascones, dromero@mondragon.edu
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
-verbose     = any(strcmp('verbose', varargin));
-coordinates = any(strcmp('coordinates', varargin));
+verbose         = any(strcmp('verbose', varargin));
+get_coordinates = any(strcmp('get_coordinates', varargin));
 
 if ~isfile(file)
     error('Unable to find the file. Check the path.');
@@ -102,8 +102,10 @@ end
 
 %% Data reading (using corresponding chunks)
 header = read_header(fid, chunks);
-if coordinates
-    header = get_coordinates(header);
+if get_coordinates
+    [X, Y] = get_ascan_coordinates(header);
+    header.X_oct = X;
+    header.Y_oct = Y;
 end
 header = reorder_header(header);
 
@@ -111,7 +113,7 @@ if nargout == 1
     return
 end
 
-segment = read_segmentation(fid, chunks);
+segment = read_segmentation(fid, chunks, header);
 if nargout == 2
     return
 end
@@ -176,19 +178,19 @@ else
     scan_pattern  = fread(fid, 1, '*uint8');
     switch scan_pattern
         case 0
-            header.scan_pattern = 'line';                            
+            header.bscan_pattern = 'line';                            
         case 2
-            header.scan_pattern = 'raster_h';                
+            header.bscan_pattern = 'raster'; % horizontal                
         case 3
-            header.scan_pattern = 'star';
+            header.bscan_pattern = 'star';
         case 6
-            header.scan_pattern = 'raster_v';
+            header.bscan_pattern = 'raster_v'; % vertical
         case 7
-            header.scan_pattern = '7_line';
+            header.bscan_pattern = '7_line';
         case 11
-            header.scan_pattern = 'two_5_line';
+            header.bscan_pattern = 'two_5_line';
         otherwise
-            header.scan_pattern = 'unknown';
+            header.bscan_pattern = 'unknown';
     end
     
     unknown         = fread(fid, 2, '*uint32');        
@@ -209,21 +211,7 @@ for i=1:length(vars)
     header_ord.(vars{i}) = header.(vars{i});
 end
 
-function header = get_coordinates(header)
-switch header.scan_pattern
-    case 'raster_h'
-        x_max = header.size_x/2;
-        y_max = header.size_y/2;
-
-        x_range = linspace(-x_max, x_max, header.n_ascan);
-        y_range = linspace(y_max, -y_max, header.n_bscan);
-
-        [header.X, header.Y] = meshgrid(x_range, y_range);    
-     otherwise
-        warning('Coordinate computation for this pattern not implemented yet');
-end
-
-function segment = read_segmentation(fid, chunks)
+function segment = read_segmentation(fid, chunks, header)
 % Stored in multiple @CONTOUR_INFO chunks (one per segmented boundary)
 % 
 % Boundary names are defined to match the APOSTEL 2.0 convention:
@@ -264,6 +252,7 @@ for i=1:n_seg_chunk
     z = permute(z, [2 1]);  % arange it into [bscan x ascan]
     z = flip(z, 1);         % flip top-bottom
     
+    z = header.n_axial - z;
     segment.(boundary_name.(data.id)) = z;
 end
         
