@@ -330,7 +330,7 @@ if read_seg
         segment.(layers{i})(abs(segment.(layers{i})) > n_axial) = nan;
         
         % First bscan is inferior so we flip to have superior first
-        segment.(layers{i}) = flip(segment.(layers{i}));
+        segment.(layers{i}) = flip(segment.(layers{i}), 1);
     end
 end
 
