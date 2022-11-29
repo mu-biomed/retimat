@@ -180,7 +180,7 @@ if ~keep_nan
 end
 
 if get_coordinates
-    header = get_coordinates(header);
+    [header.X_oct, header.Y_oct] = get_ascan_coordinates(header);
 end
 
 function [idx1, idx2] = get_index(text, label)

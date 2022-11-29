@@ -2,7 +2,6 @@ close all;clc;clearvars;
 addpath(genpath('..'));
 
 global visu
-
 visu = true;
 
 files.vol_raster = '../data_private/vol/raster/HC001AF_H_2644.vol';
@@ -16,12 +15,12 @@ files.bin_onh    = '../data_private/img/onh/PNYU001E_Optic Disc Cube 200x200_11-
 files.e2e_mac    = '../data_private/e2e/oct_1.e2e';
 files.fda_mac    = '../data_private/fda/test_0.fda';
 
-files.iowa_star.folder = '../data_private/iowa/vol_star/';
+files.iowa_star.folder = '../data_private/iowa/vol_star';
 files.iowa_star.ids    = {'HC001AM_H_2341', 'HC001AM_H_2342',...
                           'HC002AM_H_2347', 'HC002AM_H_2348',...
-                          'HC002AF_A_2357', 'HC002AF_A_2358'};
+                          'HC004AM_H_2357', 'HC004AM_H_2358'};
                 
-files.iowa_mac.folder = '../data_private/iowa/vol_raster/';
+files.iowa_mac.folder = '../data_private/iowa/vol_raster';
 files.iowa_mac.ids    = {'HC001AF_H_2644', 'HC001AF_H_2645',...
                          'HC001AM_H_2339', 'HC001AM_H_2340',...
                          'HC002AF_A_2888', 'HC002AF_A_2889'};                
@@ -31,17 +30,17 @@ files.iowa_onh.ids    = {'PNYU001E_Optic Disc Cube 200x200_11-19-2015_14-22-31_O
                          'PNYU001E_Optic Disc Cube 200x200_11-19-2015_14-27-45_OS_sn8002_cube_raw'};
 
 % Launch test suite
-% test_vol_raster(files);
-% test_vol_star(files);
-% test_vol_wide(files);
-% test_vol_onh(files);
-% test_img_macular_cube(files);
-% test_img_onh_cube(files);
-% test_e2e(files);
+test_vol_raster(files);
+test_vol_star(files);
+test_vol_wide(files);
+test_vol_onh(files);
+test_img_macular_cube(files);
+test_img_onh_cube(files);
+test_e2e(files);
 test_fda(files);
-test_iowa_star();
-test_iowa_raster();
-test_iowa_onh();
+test_iowa_star(files);
+test_iowa_raster(files);
+test_iowa_onh(files);
 
 close all;
 
@@ -79,59 +78,40 @@ end
 
 function test_e2e(files)
 [header, seg, bscan, fundus] = read_e2e(files.e2e_mac, 'verbose');
-
 plot_e2e_data(header{1}, seg{1}, bscan{1}, fundus{1});
 end
 
 function test_fda(files)
 [header, seg, bscan, fundus] = read_fda(files.fda_mac, 'verbose', 'get_coordinates');
-
-en_face = squeeze(mean(bscan,1)).';
-trt = seg.ILM - seg.BM;
-
-n_col = 7;
-subplot(1,n_col,1); imshow(fundus);
-subplot(1,n_col,2); imagesc(en_face); colormap(gca, 'gray'); daspect([header.scale_y header.scale_x 1]);
-subplot(1,n_col,3); imagesc(trt); daspect([header.scale_y header.scale_x 1]);
-subplot(1,n_col,4); surf(header.X_oct, header.Y_oct, trt,'EdgeColor','none'); view(0,90);
-daspect([1 1 1]);
-
-idx_bscan = round(linspace(1, header.n_bscan, 3));
-layers = fields(seg);
-for i=1:length(idx_bscan)
-    subplot(1,n_col,4+i); hold on;
-    imagesc(bscan(:,:,idx_bscan(i)));
-    set(gca,'YDir','reverse');
-    for i_layer=1:length(layers)
-        plot(seg.(layers{i_layer})(idx_bscan(i), :));        
-    end
-    colormap(gca, 'gray');
-    title(sprintf('Bscan:%d', idx_bscan(i)));
+plot_fda_data(header, seg, bscan, fundus);
 end
 
-end
-
-function test_iowa_star(visu)
+function test_iowa_star(files)
 %% Star
 
-n_image = length(images);
-      
+n_image = length(files.iowa_star.ids);
+in_dir = files.iowa_star.folder;
+
 layers = {'TRT','RNFL','GCIPL','INL'};
 n_layer = length(layers);
 
 for i_image=1:n_image
-    image = images{i_image};
+    image = files.iowa_star.ids{i_image};
     
     file_vol  = [in_dir '/' image '/' image '_OCT_Iowa.vol'];
     file_iowa = [in_dir '/' image '/' image '_Surfaces_Iowa.xml'];
         
-    [h1,seg1,bscan,slo] = read_vol(file_vol, 'get_coordinates');
+    [h1, seg1] = read_vol(file_vol, 'get_coordinates');
     T1 = compute_thickness(seg1,layers,h1.scale_z);
 
     % IOWA loading
-    [h2,seg2] = read_xml_iowa(file_iowa, 'get_coordinates');
-    T2 = compute_thickness(seg2, layers,h2.scale_z);
+    [h2, seg2] = read_xml_iowa(file_iowa);
+    h2.bscan_pattern = 'star';
+    [h2.X_oct, h2.Y_oct] = get_ascan_coordinates(h2);
 
+    T2 = compute_thickness(seg2, layers, h2.scale_z);
+
+    figure;
     for i_layer=1:n_layer
         layer = layers{i_layer};
 
@@ -147,65 +127,84 @@ for i_image=1:n_image
         axis([-3 3 -3 3]);
         title([layer ' - IOWA']);
     end
+    sgtitle(file_iowa, 'Interpreter', 'none');
 end
 end
 
-function test_iowa_raster(visu)
-%% Raster
+function test_iowa_raster(files)
 
-n_image = length(images);
+n_image = length(files.iowa_mac.ids);
+in_dir = files.iowa_mac.folder;
 
 layers = {'TRT','RNFL','GCIPL','INL'};
 n_layer = length(layers);
 
 for i_image=1:n_image
-    image = images{i_image};
+    image = files.iowa_mac.ids{i_image};
     
     file_vol  = [in_dir '/' image '/' image '_OCT_Iowa.vol'];
     file_iowa = [in_dir '/' image '/' image '_Surfaces_Iowa.xml'];
         
-    [h1,seg1,bscan,slo] = read_vol(file_vol, 'get_coordinates');
+    [h1, seg1] = read_vol(file_vol, 'get_coordinates');
     T1 = compute_thickness(seg1,layers,h1.scale_z);
 
     % IOWA loading
     [h2,seg2] = read_xml_iowa(file_iowa, 'get_coordinates');
     T2 = compute_thickness(seg2, layers, h2.scale_z);
 
+    figure;
+    for i_layer=1:n_layer
+        layer = layers{i_layer};
+
+        subplot(1,n_layer,i_layer);
+        surf(h1.X_oct,h1.Y_oct,T1.(layer),'EdgeColor','none')
+        view(0,90);
+        axis([-3 3 -3 3]);
+        title([layer ' - IOWA']);
+    end
+    sgtitle(file_iowa, 'Interpreter', 'none');    
+end
+end
+
+function test_iowa_onh(files)
+n_image = length(files.iowa_onh.ids);
+in_dir = files.iowa_onh.folder;
+
+layers = {'TRT','RNFL','GCIPL','INL'};
+n_layer = length(layers);
+
+for i_image=1:n_image
+    image = files.iowa_onh.ids{i_image};
+    
+    file_iowa = [in_dir '/' image '/' image '_Surfaces_Iowa.xml'];
+        
+    % IOWA loading
+    [h, seg] = read_xml_iowa(file_iowa, 'get_coordinates');
+    T = compute_thickness(seg, layers, h.scale_z);
+
+    figure;
     for i_layer=1:n_layer
         layer = layers{i_layer};
 
         subplot(2,n_layer,i_layer);
-        surf(h1.X_oct,h1.Y_oct,T1.(layer),'EdgeColor','none')
+        surf(h.X_oct,h.Y_oct,T.(layer),'EdgeColor','none')
         view(0,90);
         axis([-3 3 -3 3]);
         title([layer ' - Spectralis']);
 
         subplot(2,n_layer,i_layer+n_layer);
-        surf(h2.X_oct,h2.Y_oct,T2.(layer),'EdgeColor','none')
+        surf(h.X_oct,h.Y_oct,T.(layer),'EdgeColor','none')
         view(0,90);
         axis([-3 3 -3 3]);
         title([layer ' - IOWA']);
     end
+    sgtitle(file_iowa, 'Interpreter', 'none');    
 end
-end
 
-function test_iowa_onh(visu)
-layers = {'TRT','RNFL','GCIPL','INL'};
-
-
-file = [in_dir '/' id '/' id '_Surfaces_Iowa.xml'];
-[header, seg] = read_xml_iowa(file, 'get_coordinates');
-
-Thick = compute_thickness(seg, layers);
-if visu
-    surf(header.X_oct, header.Y_oct, Thick.TRT, 'EdgeColor', 'none');
-    view(0,90);
-end
 end
 
 function plot_vol_data(header, seg, bscan, fundus)
 global visu
-
 if ~visu
     return;
 end
@@ -291,7 +290,6 @@ end
 
 function plot_e2e_data(header, seg, bscan, fundus)
 global visu
-
 if ~visu
     return;
 end
@@ -328,4 +326,45 @@ for i=1:length(idx_bscan)
 end
 
 colormap(gray);
+end
+
+function plot_fda_data(header, seg, bscan, fundus)
+global visu
+if ~visu
+    return;
+end
+en_face = squeeze(mean(bscan,1)).';
+trt = seg.ILM - seg.BM;
+
+n_col = 7;
+
+subplot(1,n_col,1);
+imshow(fundus);
+
+subplot(1,n_col,2);
+imagesc(en_face);
+colormap(gca, 'gray');
+daspect([header.scale_y header.scale_x 1]);
+
+subplot(1,n_col,3);
+imagesc(trt);
+daspect([header.scale_y header.scale_x 1]);
+
+subplot(1,n_col,4);
+surf(header.X_oct, header.Y_oct, trt,'EdgeColor','none');
+view(0,90);
+daspect([1 1 1]);
+
+idx_bscan = round(linspace(1, header.n_bscan, 3));
+layers = fields(seg);
+for i=1:length(idx_bscan)
+    subplot(1,n_col,4+i); hold on;
+    imagesc(bscan(:,:,idx_bscan(i)));
+    set(gca,'YDir','reverse');
+    for i_layer=1:length(layers)
+        plot(seg.(layers{i_layer})(idx_bscan(i), :));        
+    end
+    colormap(gca, 'gray');
+    title(sprintf('Bscan:%d', idx_bscan(i)));
+end
 end

@@ -36,7 +36,18 @@ switch header.bscan_pattern
         %      x_range = -x_range;
         %  end
         
-        [X, Y] = meshgrid(x_range, y_range);            
+        [X, Y] = meshgrid(x_range, y_range);         
+    case 'star'
+        % Assumptions:
+        % - 1st bscan vertical
+        % - Next bscans clockwise
+        theta = linspace(pi/2, -pi/2, header.n_bscan + 1);
+        theta = theta(1:end-1).' * ones(1, header.n_ascan);
+        
+        size_x = (header.scale_x * (header.n_ascan - 1)) / 2;
+        rho = repmat(-size_x:header.scale_x:size_x, header.n_bscan, 1);
+        
+        [X, Y] = pol2cart(theta, rho);
     otherwise
         X = [];
         Y = [];
