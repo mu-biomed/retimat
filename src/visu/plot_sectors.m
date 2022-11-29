@@ -18,16 +18,17 @@ function plot_sectors(Z, Sectors, varargin)
 %                    number increases resolution and computation time.
 %                    Default: 50
 %
-%   'alpha'          Transparency of patches [0,1]. 
-%                    Default: 1
+%   'alpha'          Transparency of patches. Range: [0,1]. 
+%                    Default: 1 
 %
 %   'edge_color'     Color of the edges of each patch.
 %                    Default: 'k' (black)
 %
-%   
-%   Notes
-%   -----
-%   
+%   'axis_off'       Set it to true to hide axis.
+%                    Default: 'true'
+%
+%   'axis_equal'     Set it to true to set a aspect ratio of 1.
+%                    Default: 'true'
 %
 %
 %   References
@@ -36,22 +37,23 @@ function plot_sectors(Z, Sectors, varargin)
 %   Retrieved January 29, 2020. (Used to create the plot_patch function).
 %
 %
-%   Example 1
+%   Example
 %   ---------      
-%   % Example description
+%   % Plot ETDRS sectorization
 %
 %   [header, seg, ~, ~] = read_vol(file,'verbose', 'coordinates');
 %   Thickness = compute_thickness(seg, 'TRT', header.scale_z);
-%   [X, Y, TRT] = resample_map(header.X_oct, header.Y_oct, Thickness.TRT, ...
-%   'regular', 'n_point', 100, 'max_d', 2.5);
 %   [TRT, Sectors] = sectorize_map(X, Y, TRT, 'mean', 'etdrs');
-%
+%   plot_sectors(TRT, Sectors);
 %  
 %   David Romero-Bascones, dromero@mondragon.edu
 %   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
 
+parsed = parse_inputs(varargin);
 
-N = 50; 
+n_point    = parsed.n_point;
+alpha      = parsed.alpha;
+edge_color = parsed.edge_color;
 
 switch Sectors.type    
     case 'regular'
@@ -60,85 +62,117 @@ switch Sectors.type
         Y_center = (Sectors.Y_edge(1:end-1) + Sectors.Y_edge(2:end))/2;        
         
         I = reshape(Z, [Sectors.n_y Sectors.n_x]);
-        imagesc(X_center, Y_center, I);
-        axis equal;
+        im = imagesc(X_center, Y_center, I);
+        im.AlphaData = alpha;
         xlim([Sectors.X_edge(1) Sectors.X_edge(end)]);
         ylim([Sectors.Y_edge(1) Sectors.Y_edge(end)]);        
+    
     case 'ring'
         n_sect = Sectors.n_sect;
         radius = Sectors.radius;
         for n=1:n_sect
-            plot_ring(radius(n), radius(n+1), Z(n), N)
+            plot_ring(radius(n), radius(n+1), Z(n), n_point, alpha, edge_color);
         end
-        axis equal;
-        axis off;
+        
     case 'pie'
-        n_sect = Sectors.n_sect;
-        radius = Sectors.radius;
+        n_sect  = Sectors.n_sect;
+        radius  = Sectors.radius;
         theta_0 = Sectors.theta_0;
         
         theta_edge = linspace(theta_0, theta_0+2*pi, n_sect+1);
-        n_point = 20;
         for i_sect=1:n_sect
             plot_pie(theta_edge(i_sect), theta_edge(i_sect+1), radius,...
-                     n_point, Z(i_sect));                                     
+                Z(i_sect), n_point, alpha, edge_color);                                     
         end
-        axis equal;
-%         axis off;
+        
+        xlim(radius(end) * [-1 1]);
+        ylim(radius(end) * [-1 1]);
+        
     case 'wedge'
-        radius = Sectors.radius;
+        radius  = Sectors.radius;
         n_angle = Sectors.n_angle;
+        
         theta = linspace(0, 2*pi, n_angle+1) + Sectors.theta_0;
         
         % center circle
-        plot_circle(radius(1), Z(1), N);
+        plot_circle(radius(1), Z(1), n_point, alpha, edge_color);
         
         % plot wedges looping through rings and angles
         i = 2;
         for n=1:length(radius)-1
             for t=1:n_angle
-                plot_wedge(theta(t), theta(t+1), radius(n), radius(n+1), Z(i), N);
+                plot_wedge(theta(t), theta(t+1), radius(n), radius(n+1), ...
+                    Z(i), n_point, alpha, edge_color);
                 i = i+1;
             end
         end
 
         xlim(max(radius) * [-1 1]);
         ylim(max(radius) * [-1 1]);
-        axis equal
-        axis off
         
     otherwise
         error("Unknown sectorization type. Accepted values: ['regular','ring','pie','wedge','etdrs']");
 end
 
+if parsed.axis_equal
+    daspect([1 1 1]);
+    % axis equal % does not work well
 end
 
-function plot_ring(rad_int, rad_ext, z, N)
+if parsed.axis_off
+    axis off;
+end
 
-theta = linspace(0, 2*pi, N);
-rho0 = rad_int * ones(1,N);
-rho1 = rad_ext * ones(1,N);
+function parsed = parse_inputs(args)
+
+parsed.n_point    = 50;
+parsed.axis_off   = true;
+parsed.axis_equal = true;
+parsed.alpha      = 1;
+parsed.edge_color = 'k';
+
+n_arg = floor(length(args)/2);
+
+for i_arg=1:n_arg
+    switch args{2*i_arg - 1}
+        case 'n_point'
+            parsed.n_point = args{2*i_arg};
+        case 'alpha'
+            parsed.alpha = args{2*i_arg};            
+        case 'axis_off'
+            parsed.axis_off = args{2*i_arg};                        
+        case 'axis_equal'
+            parsed.axis_equal = args{2*i_arg};
+        case 'edge_color'
+            parsed.edge_color = args{2*i_arg};            
+        otherwise
+            warning('Unknown parameter');
+    end
+end
+
+function plot_ring(rad_int, rad_ext, z, n_point, alpha, edge_color)
+
+theta = linspace(0, 2*pi, n_point);
+rho0 = rad_int * ones(1,n_point);
+rho1 = rad_ext * ones(1,n_point);
 
 [x0, y0] = pol2cart(theta, rho0);
 [x1, y1] = pol2cart(theta, rho1);
 
-patch([x0 x1], [y0 y1], z, 'linestyle', 'none');
+patch([x0 x1], [y0 y1], z, 'linestyle', 'none', 'FaceAlpha', alpha);
 
-line(x0, y0, 'color','k');
-line(x1, y1, 'color','k');
+line(x0, y0, 'color', edge_color);
+line(x1, y1, 'color', edge_color);
 
-end
+function plot_circle(radius, z, n_point, alpha, edge_color)
 
-function plot_circle(radius, z, N)
-
-theta = linspace(0, 2*pi, N);
-rho = radius * ones(1,N);
+theta = linspace(0, 2*pi, n_point);
+rho = radius * ones(1, n_point);
 [x,y] = pol2cart(theta, rho);
-patch(x, y, z, 'linestyle', 'none');
-line(x, y, 'Color','black');
-end
+patch(x, y, z, 'linestyle', 'none', 'FaceAlpha', alpha);
+line(x, y, 'Color', edge_color);
 
-function plot_pie(th0, th1, radius, N, z)
+function plot_pie(th0, th1, radius, z, n_point, alpha, edge_color)
 
 % A pie is made of 3 segments
 
@@ -147,19 +181,17 @@ a1 = [th0 th0];
 r1 = [0 radius];
 
 % Outer arc
-a2 = linspace(th0, th1, N);
-r2 = radius * ones(1,N);
+a2 = linspace(th0, th1, n_point);
+r2 = radius * ones(1, n_point);
 
 % Straight line (outer to inner)
 a3 = [th1 th1];
 r3 = [radius 0];
 
 [x,y]= pol2cart([a1,a2,a3],[r1,r2,r3]);
-patch(x, y, z); 
+patch(x, y, z, 'EdgeColor', edge_color, 'FaceAlpha', alpha); 
 
-end
-
-function plot_wedge(th0, th1, rh0, rh1, z, N)
+function plot_wedge(th0, th1, rh0, rh1, z, n_point, alpha, edge_color)
 
 % A wedge is made of four segments
 
@@ -168,17 +200,16 @@ a1 = [th0 th0];
 r1 = [rh0 rh1];
 
 % Outer arc
-a2 = linspace(th0, th1, N);
-r2 = rh1 * ones(1,N);
+a2 = linspace(th0, th1, n_point);
+r2 = rh1 * ones(1, n_point);
 
 % Straight line (outer to inner)
 a3 = [th1 th1];
 r3 = [rh1 rh0];
 
 % Inner arc
-a4 = linspace(th1, th0, N);
-r4 = rh0 * ones(1,N);
+a4 = linspace(th1, th0, n_point);
+r4 = rh0 * ones(1, n_point);
 
-[x,y]= pol2cart([a1,a2,a3,a4],[r1,r2,r3,r4]);
-patch(x, y, z); 
-end
+[x,y]= pol2cart([a1,a2,a3,a4], [r1,r2,r3,r4]);
+patch(x, y, z, 'EdgeColor', edge_color, 'FaceAlpha', alpha); 
