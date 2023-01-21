@@ -118,6 +118,11 @@ if any([n_bscan n_ascan] > 10000) | any([n_bscan n_ascan] <= 0)
     msg = ['Scan dimensions are unnormal: [', num2str(n_bscan), ',', ...
            num2str(n_ascan), ']. File might be corrupt.'];
     warning(msg);
+    header = [];
+    segment = [];
+    bscan = [];
+    fundus = [];
+    return;
 end
 
 % Build the header
@@ -229,26 +234,36 @@ for i_bscan = 1:n_bscan
     % Read segmentation     
     fseek(fid, 256 + 2048 + (size_x_fundus*size_y_fundus) + (ii*(bscan_hdr_size+n_ascan*n_axial*4)), -1);
     if read_seg
-        seg = (fread(fid, n_seg(i_bscan)*n_ascan, '*float' ))';
-        
-        ILM(i_bscan,:)      = seg(1:n_ascan);
-        BM(i_bscan,:)       = seg((1:n_ascan) + n_ascan);
-        if n_seg(i_bscan) > 2
-            RNFL_GCL(i_bscan,:) = seg((1:n_ascan) + 2*n_ascan);
-        end
-        if n_seg(i_bscan) > 3
-            GCL_IPL(i_bscan,:) = seg((1:n_ascan) + 3*n_ascan);
-            IPL_INL(i_bscan,:) = seg((1:n_ascan) + 4*n_ascan);
-            INL_OPL(i_bscan,:) = seg((1:n_ascan) + 5*n_ascan);
-            OPL_ONL(i_bscan,:) = seg((1:n_ascan) + 6*n_ascan);
+        if n_seg(i_bscan) > 0 & n_seg(i_bscan) < 30 % 30 as an arbitrary number       
+            seg = (fread(fid, n_seg(i_bscan)*n_ascan, '*float' ))';
             
-            ELM(i_bscan,:)     = seg((1:n_ascan) + 8*n_ascan);
-            
-            MZ_EZ(i_bscan,:)   = seg((1:n_ascan) + 14*n_ascan);
-            OSP_IZ(i_bscan,:)  = seg((1:n_ascan) + 15*n_ascan);
-            IZ_RPE(i_bscan,:)  = seg((1:n_ascan) + 16*n_ascan);
+            ILM(i_bscan,:)      = seg(1:n_ascan);
+            BM(i_bscan,:)       = seg((1:n_ascan) + n_ascan);
+            if n_seg(i_bscan) > 2
+                RNFL_GCL(i_bscan,:) = seg((1:n_ascan) + 2*n_ascan);
+            end
+            if n_seg(i_bscan) > 3
+                GCL_IPL(i_bscan,:) = seg((1:n_ascan) + 3*n_ascan);
+                IPL_INL(i_bscan,:) = seg((1:n_ascan) + 4*n_ascan);
+                INL_OPL(i_bscan,:) = seg((1:n_ascan) + 5*n_ascan);
+                OPL_ONL(i_bscan,:) = seg((1:n_ascan) + 6*n_ascan);
+                
+                ELM(i_bscan,:)     = seg((1:n_ascan) + 8*n_ascan);
+                
+                MZ_EZ(i_bscan,:)   = seg((1:n_ascan) + 14*n_ascan);
+                OSP_IZ(i_bscan,:)  = seg((1:n_ascan) + 15*n_ascan);
+                IZ_RPE(i_bscan,:)  = seg((1:n_ascan) + 16*n_ascan);
+            end
         end
     end
+end
+
+if any(n_seg == 3)
+    warning('Incomplete segmentation: only 3 layers');
+end
+
+if any(n_seg <=0) || any(n_seg > 17)
+    warning('Number of segmented layers are unnormal: %s. File might be corrupt', num2str(n_seg));
 end
 
 fclose(fid);
