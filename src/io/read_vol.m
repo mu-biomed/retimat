@@ -84,7 +84,7 @@ read_fundus = nargout == 4;
 fid = fopen(file);
  
 % Read header
-version        = fread(fid, 12, '*int8');
+version        = char(fread(fid, 12, '*int8')')
 n_ascan        = fread(fid, 1, '*int32');
 n_bscan        = fread(fid, 1, '*int32');
 n_axial        = fread(fid, 1, '*int32');
