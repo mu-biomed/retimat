@@ -65,11 +65,7 @@ function [header, segment, bscan, fundus] = read_vol(file, varargin)
 %   Hopkins University - Modifications to increase efficiency - 5/17/2012 
 %
 %   Current version modified by David Romero-Bascones, Biomedical Engineering
-%   Department, Mondragon Unibertsitatea, 03/2022
-%
-%   David Romero-Bascones, Biomedical Engineering Department, Mondragon
-%   Unibertsitatea, 2022
-%   dromero@mondragon.edu
+%   Department, Mondragon Unibertsitatea, 2023, dromero@mondragon.edu
 
 
 visu            = any(strcmp('visu', varargin));
@@ -84,7 +80,7 @@ read_fundus = nargout == 4;
 fid = fopen(file);
  
 % Read header
-version        = char(fread(fid, 12, '*int8')')
+version        = char(fread(fid, 12, '*int8')');
 n_ascan        = fread(fid, 1, '*int32');
 n_bscan        = fread(fid, 1, '*int32');
 n_axial        = fread(fid, 1, '*int32');
@@ -270,7 +266,7 @@ fclose(fid);
 
 % Return the entire header only if required
 if full_header
-    header.version        = version;
+    header.version        = deblank(version);
     header.exam_time      = datestr(double(exam_time(1)/(1e7*60*60*24)+584755+(2/24)));
     header.scan_pattern   = scan_pattern;
     header.bscan_hdr_size = bscan_hdr_size;
