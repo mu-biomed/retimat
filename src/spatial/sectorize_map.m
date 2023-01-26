@@ -1,7 +1,7 @@
 function [Zs, Sectors] = sectorize_map(X, Y, Z, metric, sector_type, varargin)
 %SECTORIZE_MAP Sectorize a 2D map into several sectors
 %
-%   Zs = sectorize_map(X, Y, Z, metric)
+%   Zs = sectorize_map(X, Y, Z, metric, sector_type)
 %   Summarize thickness point values across sectors. For example by taking
 %   the average thickness for ETDRS sectorization.
 %
@@ -43,7 +43,7 @@ function [Zs, Sectors] = sectorize_map(X, Y, Z, metric, sector_type, varargin)
 %   ---------      
 %   % ETDRS sectorization
 %
-%   [header, seg, ~, ~] = read_vol(file,'verbose', 'coordinates');
+%   [header, seg, ~, ~] = read_vol(file,'verbose', 'get_coordinates');
 %   Thickness = compute_thickness(seg, 'TRT', header.scale_z);
 %   [X, Y, TRT] = resample_map(header.X_oct, header.Y_oct, Thickness.TRT, ...
 %        'regular', 'n_point', 100, 'max_d', 2.5);
@@ -54,7 +54,7 @@ function [Zs, Sectors] = sectorize_map(X, Y, Z, metric, sector_type, varargin)
 %   ---------      
 %   % 2 ring sectorization
 %
-%   [header, seg, ~, ~] = read_vol(file,'verbose', 'coordinates');
+%   [header, seg, ~, ~] = read_vol(file,'verbose', 'get_coordinates');
 %   Thickness = compute_thickness(seg, 'TRT', header.scale_z);
 %   [X, Y, TRT] = resample_map(header.X_oct, header.Y_oct, Thickness.TRT, ...
 %        'regular', 'n_point', 100, 'max_d', 2.5);
