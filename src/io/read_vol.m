@@ -72,6 +72,7 @@ visu            = any(strcmp('visu', varargin));
 full_header     = any(strcmp('full_header', varargin));
 get_coordinates = any(strcmp('get_coordinates', varargin));
 raw_pixel       = any(strcmp('raw_pixel', varargin));
+no_warning      = any(strcmp('no_warning', varargin));
 
 read_seg    = nargout >= 2;
 read_bscan  = nargout >= 3; 
@@ -110,14 +111,17 @@ grid_type      = fread(fid, 1, '*int32');
 grid_offset    = fread(fid, 1, '*int32');
 spare          = fread(fid, 1832, '*int8');
  
-if any([n_bscan n_ascan] > 10000) | any([n_bscan n_ascan] <= 0)
-    msg = ['Scan dimensions are unnormal: [', num2str(n_bscan), ',', ...
-           num2str(n_ascan), ']. File might be corrupt.'];
-    warning(msg);
+if any([n_bscan n_ascan] > 10000) || any([n_bscan n_ascan] <= 0)
     header = [];
     segment = [];
     bscan = [];
     fundus = [];
+
+    if ~no_warning
+        msg = ['Scan dimensions are unnormal: [', num2str(n_bscan), ',', ...
+           num2str(n_ascan), ']. File might be corrupt.'];
+        warning(msg);
+    end
     return;
 end
 
@@ -254,11 +258,11 @@ for i_bscan = 1:n_bscan
     end
 end
 
-if any(n_seg == 3)
+if any(n_seg == 3) && ~no_warning
     warning('Incomplete segmentation: only 3 layers');
 end
 
-if any(n_seg <=0) || any(n_seg > 17)
+if any(n_seg <=0) || any(n_seg > 17) && ~no_warning
     warning('Number of segmented layers are unnormal: %s. File might be corrupt', num2str(n_seg));
 end
 
@@ -304,7 +308,7 @@ if get_coordinates
         header.Y_fun = Y_fun;
         header.X_oct = X_oct;
         header.Y_oct = Y_oct;
-    else
+    elseif ~no_warning
         warning(['Unable to compute coordinates for bscan pattern type ',...
                  header.bscan_pattern]);
     end
