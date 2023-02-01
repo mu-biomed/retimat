@@ -17,6 +17,7 @@ function [header, seg] = read_xml_iowa(file, varargin)
 %                      OCTExplorer instead of RETIMAT.
 %                    - 'keep_nan': to keep regions with noisy segmentation
 %                       as numerical values instead of nan.
+%                    - 'verbose': to plot additional info on read layers.
 %  
 %
 %   Output arguments:
@@ -77,6 +78,7 @@ function [header, seg] = read_xml_iowa(file, varargin)
 get_coordinates = any(strcmp(varargin, 'get_coordinates'));
 keep_names      = any(strcmp(varargin, 'keep_names'));
 keep_nan        = any(strcmp(varargin, 'keep_nan'));
+verbose         = any(strcmp(varargin, 'verbose'));
 
 % Read whole xml as text
 str = fileread(file);
@@ -123,7 +125,9 @@ for i_seg=1:n_seg
         seg_name = strrep(seg_name, '-', '_');
         seg_name = strrep(seg_name, '/', '_');        
     end
-    disp(['Reading layer: ' seg_name]);
+    if verbose
+        disp(['Reading layer: ' seg_name]);
+    end
     
     % Get B-scans
     [idx_b1, idx_b2] = get_index(chunk_seg, 'bscan');
