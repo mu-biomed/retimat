@@ -144,13 +144,14 @@ if n_layer > 0
 end
 
 if args.n_plot_bscan > 0
+    [n_axial, n_ascan, ~] = size(bscan);
     boundaries = fields(seg);
     n_bound = length(boundaries);
     for i=idx_bscan
         nexttile;
-        imshow(bscan(:,:,i)); hold on;
+        imshow(bscan(:,:,i),'XData',[1 n_axial]); hold on;
         for i_bound=1:n_bound
-            plot(seg.(boundaries{i_bound})(i,:));
+            plot(linspace(1,n_axial,n_ascan), seg.(boundaries{i_bound})(i,:));
         end
         title(['bscan: ' num2str(i)]);
     end
