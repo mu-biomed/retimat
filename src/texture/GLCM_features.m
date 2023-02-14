@@ -201,19 +201,19 @@ for i_feat=1:n_feat
             
         case 'ID'
             % Inverse Difference. See [3]
-            X.inverse_difference = sum(Pij(:) ./ (1 +abs(i(:)-j(:))));
+            X.inv_dif = sum(Pij(:) ./ (1 +abs(i(:)-j(:))));
         
         case 'IDN'
             % Inverse Difference Normalized
-            X.inverse_difference_norm = sum(Pij(:) ./ (1 + abs(i(:)-j(:))/N));
+            X.inv_dif_norm = sum(Pij(:) ./ (1 + abs(i(:)-j(:))/N));
         
         case 'IDM'
             % Inverse Different Moment. See [1].
-            X.inverse_difference_moment = sum(Pij(:) ./ (1 + (i(:)-j(:)).^2));           
+            X.inv_diff_mom = sum(Pij(:) ./ (1 + (i(:)-j(:)).^2));           
         
         case 'IDMN'
             % Inverse difference Moment Normalized. See [3]
-            X.inverse_difference_moment_norm = sum(Pij(:) ./ (1 + (i(:)-j(:)).^2 ./ N^2));           
+            X.inv_diff_mom_norm = sum(Pij(:) ./ (1 + (i(:)-j(:)).^2 ./ N^2));           
         
 % Deprecated as it is the same as autocorrelation
 %         case 'joint_average'
