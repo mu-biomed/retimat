@@ -172,14 +172,15 @@ switch Sectors.type
     case 'pie'
         theta_0 = Sectors.theta_0;
         n_angle = Sectors.n_angle;
-        
-        angle_edge = linspace(theta_0, theta_0 + 2*pi, n_angle + 1);
-     
+            
         [theta, ~] = cart2pol(X, Y);
+        theta = theta - theta_0;
         theta(theta<0) = theta(theta<0) + 2*pi;
         
+        angle_edge = linspace(0, 2*pi, n_angle + 1);
+
         for i=1:n_angle
-            mask = theta <= angle_edge(i) & theta < angle_edge(i+1);
+            mask = theta >= angle_edge(i) & theta < angle_edge(i+1);
             Zs(i) = fun(Z(mask));        
         end        
     case 'wedge'        
