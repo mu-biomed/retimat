@@ -144,7 +144,7 @@ for i=1:length(parameters)
     switch parameters{i}
         case 'cft'  % See [1]
             % Central foveal thickness. Should be equal for all directions
-            X.cft = 1e3*cft;
+            X.cft = 1e3*cft(1);
 
         case 'max_slope_height'  % See [2]
             % When computing the derivative we lose one unit (idx_maxslope + 1)
