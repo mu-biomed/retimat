@@ -37,17 +37,26 @@ function plot_sectors(Z, Sectors, varargin)
 %   Retrieved January 29, 2020. (Used to create the plot_patch function).
 %
 %
+%   Notes
+%   -----
+%   ETDRS sectorization is defined as a structure with fields:
+%   - type: 'wedge'
+%   - radius: [0.5 1.5 3]
+%   - n_angle = 4
+%   - theta_0 = -pi/4
+%
+%
 %   Example
 %   ---------      
 %   % Plot ETDRS sectorization
 %
-%   [header, seg, ~, ~] = read_vol(file,'verbose', 'coordinates');
+%   [header, seg] = read_vol(file, 'verbose', 'get_coordinates');
 %   Thickness = compute_thickness(seg, 'TRT', header.scale_z);
 %   [TRT, Sectors] = sectorize_map(X, Y, TRT, 'mean', 'etdrs');
 %   plot_sectors(TRT, Sectors);
 %  
 %   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
+%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2023
 
 parsed = parse_inputs(varargin);
 
@@ -68,19 +77,23 @@ switch Sectors.type
         ylim([Sectors.Y_edge(1) Sectors.Y_edge(end)]);        
     
     case 'ring'
-        n_sect = Sectors.n_sect;
         radius = Sectors.radius;
+        n_sect = length(radius) - 1;
         for n=1:n_sect
             plot_ring(radius(n), radius(n+1), Z(n), n_point, alpha, edge_color);
         end
         
     case 'pie'
-        n_sect  = Sectors.n_sect;
-        radius  = Sectors.radius;
+        n_angle = Sectors.n_angle;
         theta_0 = Sectors.theta_0;
+        if isfield(Sectors, 'radius')
+            radius  = Sectors.radius;
+        else
+            radius = 1;
+        end
         
-        theta_edge = linspace(theta_0, theta_0+2*pi, n_sect+1);
-        for i_sect=1:n_sect
+        theta_edge = linspace(theta_0, theta_0+2*pi, n_angle+1);
+        for i_sect=1:n_angle
             plot_pie(theta_edge(i_sect), theta_edge(i_sect+1), radius,...
                 Z(i_sect), n_point, alpha, edge_color);                                     
         end
@@ -91,8 +104,9 @@ switch Sectors.type
     case 'wedge'
         radius  = Sectors.radius;
         n_angle = Sectors.n_angle;
+        theta_0 = Sectors.theta_0;
         
-        theta = linspace(0, 2*pi, n_angle+1) + Sectors.theta_0;
+        theta = linspace(0, 2*pi, n_angle+1) + theta_0;
         
         % center circle
         plot_circle(radius(1), Z(1), n_point, alpha, edge_color);
@@ -109,9 +123,9 @@ switch Sectors.type
 
         xlim(max(radius) * [-1 1]);
         ylim(max(radius) * [-1 1]);
-        
+   
     otherwise
-        error("Unknown sectorization type. Accepted values: ['regular','ring','pie','wedge','etdrs']");
+        error("Unknown sectorization type. Accepted values: ['regular','ring','pie','wedge']");
 end
 
 if parsed.axis_equal
