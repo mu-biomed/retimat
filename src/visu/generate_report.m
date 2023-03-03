@@ -137,7 +137,7 @@ if n_layer > 0
     for i=1:n_layer
         nexttile;
         imagesc(Thick.(layers{i}));
-        title(layers{i});
+        title(layers{i}, 'Interpreter', 'none');
         colormap(gca, 'jet');
         axis off;
     end
