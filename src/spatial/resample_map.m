@@ -30,6 +30,7 @@ function [X1, Y1, Z1] = resample_map(X, Y, Z, grid_type, varargin)
 %
 %   'n_angle'        Number of directions to use (when the grid_type is 'star')
 %                    
+%   'theta_0'        Initial angle for star resampling
 %
 %   'interp_method'  interpolation method ['linear','cubic']
 %                    Default: 'linear'
@@ -48,12 +49,10 @@ function [X1, Y1, Z1] = resample_map(X, Y, Z, grid_type, varargin)
 %   'Z1'             New Z values.
 %  
 %
-%   
 %   Notes
 %   -----
 %   If the region to cover is bigger than the original data region it might not
 %   be possible to extrapolate values accurately.
-%
 %
 %
 %   Example
@@ -74,11 +73,12 @@ if mod(nargin,2) ~=0
     error('Number of arguments must be even');
 end
 
-n_point = nan;
-max_d = nan;
-n_angle = nan;
+n_point       = nan;
+max_d         = nan;
+n_angle       = nan;
+theta_0       = 0;
 interp_method = 'linear';
-extrapolate = false;
+extrapolate   = false;
 
 % Process varargin
 for i=1:2:length(varargin)-1
@@ -89,6 +89,8 @@ for i=1:2:length(varargin)-1
             max_d = varargin{i+1};
         case 'n_angle'
             n_angle = varargin{i+1};
+        case 'theta_0'
+            theta_0 = varargin{i+1};
         case 'interp_method'
             interp_method = varargin{i+1};
         case 'extrapolate'
@@ -118,7 +120,7 @@ switch grid_type
         end
         
         Rho = linspace(0, max_d, n_point);
-        Theta = linspace(0, 2*pi, n_angle+1);
+        Theta = theta_0 + linspace(0, 2*pi, n_angle+1);
         Theta(end) = [];
         Rho = repmat(Rho, n_angle,1);
         Theta = repmat(Theta', 1, size(Rho, 2));
