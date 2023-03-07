@@ -109,7 +109,7 @@ end
 switch grid_type    
     case 'regular'
         x_grid = linspace(-max_d, max_d, n_point);
-        y_grid = x_grid;
+        y_grid = flip(x_grid);
         [X1, Y1] = meshgrid(x_grid, y_grid);  
         
     case 'star'        
