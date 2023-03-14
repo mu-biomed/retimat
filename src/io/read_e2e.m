@@ -238,6 +238,12 @@ is_bscan = chunks.bscan_id ~= NA_FLAG;
 bscan_id = chunks.bscan_id(is_image & is_bscan);     
 n_bscan = length(bscan_id);
 
+if n_bscan == 0
+    warning("No B-scan images found in series.");
+    bscan = [];
+    return
+end
+
 if verbose
     disp(['Reading ' num2str(n_bscan) ' bscans']);
 end
@@ -266,6 +272,12 @@ global IMAGE_FLAG NA_FLAG
 is_image     = chunks.type == IMAGE_FLAG;
 is_not_bscan = chunks.bscan_id == NA_FLAG;
 
+if sum(is_image & is_not_bscan) == 0
+    warning("No fundus image found in series.")
+    fundus = [];
+    return;
+end
+
 start = chunks.start(is_image & is_not_bscan);
 fseek(fid, start, -1);
 
@@ -280,6 +292,12 @@ layer_names = {'ILM',     'BM',      'RNFL_GCL', 'GCL_IPL', ...
                'MZ_EZ',   'OSP_IZ',  'IZ_RPE'};
            
 is_seg = chunks.type == SEG_FLAG;
+
+if sum(is_seg) == 0
+    warning("No segmentation data found in series.")
+    seg = [];
+    return;
+end
 
 bscan_id = unique(chunks.bscan_id);
 bscan_id(bscan_id == NA_FLAG) = [];
