@@ -2,6 +2,7 @@
 ## Folders in root with the dataset and old tests
 /old/
 data_private/
+/data/
 
 # Drive API login files
 credentials.json
