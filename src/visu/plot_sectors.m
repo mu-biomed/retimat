@@ -76,6 +76,10 @@ switch Sectors.type
         xlim([Sectors.X_edge(1) Sectors.X_edge(end)]);
         ylim([Sectors.Y_edge(1) Sectors.Y_edge(end)]);        
     
+    case 'disk'
+        radius = Sectors.radius;
+        plot_circle(radius, Z, n_point, alpha, edge_color)
+
     case 'ring'
         radius = Sectors.radius;
         n_sect = length(radius) - 1;
