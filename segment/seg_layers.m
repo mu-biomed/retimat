@@ -1,4 +1,4 @@
-function seg = seg_layers(I, scale_z, layers, mask_retina, visu)
+function seg = seg_layers(I, scale_z, mask_retina, visu)
 %SEG_LAYERS Segment retinal layers from a macular OCT B-scan
 %
 %   Seg = seg_layers(I, scale_z, visu)
@@ -45,21 +45,21 @@ function seg = seg_layers(I, scale_z, layers, mask_retina, visu)
 [N, M] = size(I);
 
 % Flatten retina
-[I_flat, shift, mask] = flatten_retina(I, 'middle', scale_z);
-I = I_flat;
-
-% Get retina mask
-if mask_retina
-    mask_retina = seg_retina(I_flat, scale_z, 50, 'mean', false);
-    for i=1:M
-        ind = find(mask_retina(:,i)==1);
-        start = ind - 10;
-        % start <1 -> start=1
-        mask_retina(start:ind, i) = 1;
-    end
-else
-    mask_retina = ones(size(I_flat));
-end
+% [I_flat, shift, mask] = flatten_retina(I, 'middle', scale_z);
+% I = I_flat;
+% 
+% % Get retina mask
+% if mask_retina
+%     mask_retina = seg_retina(I_flat, scale_z, 50, 'mean', false);
+%     for i=1:M
+%         ind = find(mask_retina(:,i)==1);
+%         start = ind - 10;
+%         % start <1 -> start=1
+%         mask_retina(start:ind, i) = 1;
+%     end
+% else
+%     mask_retina = ones(size(I_flat));
+% end
 
 % Resize masks
 % I = imresize(I_flat, 1);
@@ -74,45 +74,66 @@ I_ld = conv2(I, [-ones(n_filt);ones(n_filt)], 'same');
 I_dl = normalize(I_dl, 'range');
 I_ld = normalize(I_ld, 'range');
 
-% Initialize segmentation
-seg = struct;
+% Layer 1: ILM or ISOS
+mask = true(size(I));
+layer_1 = segment_layer(I_dl, mask);
 
-n_layer = length(layers);
+% Layer 2: ILM or ISOS
+for i=1:width(I)
+    mask(layer_1(i)-10:layer_1(i)+10, i) = false; 
+end
+layer_2 = segment_layer(I_dl, mask);
 
-for i_layer=1:n_layer
-    layer = layers{i_layer};
-
-    [seg, D, mask, extra] = segment_layer(I_dl, I_ld, seg, mask_retina, layer);
-    
-    if visu    
-        subplot(n_layer,3,1+3*(i_layer-1)); hold on;
-        imagesc(I);
-        plot(seg.(layer), 'r', 'Linewidth', 1);
-        colormap(gca, 'gray');
-        set(gca,'YDir','reverse');
-        axis off;
-        
-        subplot(n_layer,3,2+3*(i_layer-1));hold on;
-        imagesc(I_dl);
-        scatter(1,1,'r')
-        scatter(M+2,N,1,'r')
-        plot(extra.path_j, extra.path_i,'--r');
-        colormap(gca, gray);
-        set(gca,'YDir','reverse');
-        axis off;
-        
-        subplot(n_layer,3,3+3*(i_layer-1));hold on;
-        imagesc(D);
-        scatter(1,1,'r')
-        scatter(M+2,N,1,'r')
-        plot(extra.path_j, extra.path_i,'--r');
-        colors = parula;
-        colormap(gca, colors(end:-1:1,:));
-        set(gca,'YDir','reverse');
-        title(layer);
-    end
+% Decide which is the ILM
+if mean(layer_1(:)) > mean(layer_2(:))
+    seg.isos = layer_1;
+    seg.ilm  = layer_2;
+else
+    seg.ilm  = layer_1;
+    seg.isos = layer_2;
 end
 
+% Layer 3: BM
+for i=1:width(I)
+    mask(1:seg.isos(i), i) = false; 
+end
+seg.bm = segment_layer(I_ld, mask);
+
+mask = false(size(I));
+for i=1:width(I)
+    mask(seg.ilm(i)+1:seg.isos(i)-5, i) = true; 
+end
+seg.nfl = segment_layer(I_ld, mask);
+
+% if visu    
+%     subplot(n_layer,3,1+3*(i_layer-1)); hold on;
+%     imagesc(I);
+%     plot(seg.(layer), 'r', 'Linewidth', 1);
+%     colormap(gca, 'gray');
+%     set(gca,'YDir','reverse');
+%     axis off;
+%     
+%     subplot(n_layer,3,2+3*(i_layer-1));hold on;
+%     imagesc(I_dl);
+%     scatter(1,1,'r')
+%     scatter(M+2,N,1,'r')
+%     plot(extra.path_j, extra.path_i,'--r');
+%     colormap(gca, gray);
+%     set(gca,'YDir','reverse');
+%     axis off;
+%     
+%     subplot(n_layer,3,3+3*(i_layer-1));hold on;
+%     imagesc(D);
+%     scatter(1,1,'r')
+%     scatter(M+2,N,1,'r')
+%     plot(extra.path_j, extra.path_i,'--r');
+%     colors = parula;
+%     colormap(gca, colors(end:-1:1,:));
+%     set(gca,'YDir','reverse');
+%     title(layer);
+% end
+
+layers = fields(seg);
 if visu
     figure;
     imagesc(I);hold on;

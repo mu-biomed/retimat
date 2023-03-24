@@ -1,49 +1,8 @@
-function [seg, D, mask, extra] = segment_layer(I, seg, mask_retina, layer)
+function [seg, D, mask, extra] = segment_layer(I, mask)
+% I: image gradient
+% mask: to avoid regions
 
 [N, M] = size(I);
-mask = mask_retina;
-
-% % Basic info
-% [N, M] = size(mask_retina);
-% n_row = sum(mask_retina(:,1));
-% 
-% % Se
-% switch layer
-%     case 'ilm'
-%         % Search mask: half upper retinal mask    
-%         % Gradient: I_dl
-%         mask = mask_retina & (cumsum(mask_retina) < n_row/2);
-%         I = I_dl;
-%         
-%     case 'isos'
-%         % Search mask: half bottom retinal mask
-%         % Gradient: I_dl
-%         mask = mask_retina & (cumsum(mask_retina) > n_row/3);
-%         I = I_dl;
-%         
-%     case 'bm'
-%         % Search mask: down ISOS
-%         % Gradient: I_ld (I_dl does not work well)
-%         mask = false(N,M);
-%         for i=1:M
-%             mask(seg.isos(i)+5:seg.isos(i)+50,i) = 1; 
-%         end
-%         mask = mask_retina .* mask;
-%         I = I_ld;
-%         
-%     case 'elm'
-%         % Search mask: top ISOS
-%         % Gradient: I_dl
-%         mask = false(N,M);
-%         for i=1:M
-%             mask(seg.isos(i)-15:seg.isos(i)-4,i) = 1; 
-%         end
-% %         mask = [ones(N,1) mask_retina .* mask ones(N,1)];
-%         I = I_dl;
-% 
-%     otherwise
-%         error("Unknown layer to segment");
-% end
 
 % Add padding
 mask = [ones(N,1) mask ones(N,1)];  
@@ -56,8 +15,8 @@ G(~mask) = -Inf;
 D = dijkstra_matrix(G);
 [path_i, path_j] = get_path(D);
 
-seg.(layer) = path_i(path_j~=M+2 & path_j~=1);
-seg.(layer) = flip(seg.(layer));
+seg = path_i(path_j~=M+2 & path_j~=1);
+seg = flip(seg);
 
 extra.path_i = path_i;
 extra.path_j = path_j;
