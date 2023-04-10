@@ -20,11 +20,12 @@ extensions = ['sphinx.ext.viewcode', 'sphinxcontrib.matlab','sphinx.ext.autodoc'
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+add_module_names = False # show only function name
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'bizstyle'
+html_theme = 'classic'
 html_static_path = ['_static']
 
 

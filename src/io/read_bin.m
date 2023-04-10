@@ -1,42 +1,30 @@
 function fundus = read_bin(file, im_size)
-%READ_BIN Read slo images from Cirrus .bin files
+% Read grayscale slo (fundus) images from Cirrus .bin files
 %
-%   fundus = read_bin(file, im_size)
-%
-%   Reads the grayscale slo image stored in a .bin Cirrus file.
-%
-%
-%   Input arguments:
 %  
-%   'file'           Path of the .bin file to read.
+% Input arguments
+% --------------- 
+% * **file**: path of the .bin file to read.
 %
-%   'im_size'        Size of the slo image. If not provided it is assumed 
-%                    to be [664 512];
+% * **im_size**: size of the slo image. If not provided it is assumed to be [664 512];
 %
 %                    
-%   Output arguments:
-%  
-%   'fundus'              Fundus grayscale image.
+% Output arguments
+% ---------------- 
+% * **fundus**: fundus grayscale image.
 %
 %   
-%   Notes
-%   -----
-%   This code was developed by reverse engineering a few .bin files and may
-%   not work for every .bin image.
+% Notes
+% -----
+% This code was developed by reverse engineering a few .bin files and may
+% not work for every .bin image.
 %
 %
-%   Example
-%   ---------      
-%   % Read fda file
+% Example
+% -------      
+% Read fda file
 %
-%     I = read_bin(file.bin)
-%     
-%  
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
-
-
-% slo size reverse engineering
+%   I = read_bin(file.bin)
 
 if nargin==1
    im_size = [664 512];

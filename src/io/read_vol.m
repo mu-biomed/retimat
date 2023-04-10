@@ -1,72 +1,63 @@
 function [header, segment, bscan, fundus] = read_vol(file, varargin)
-%READ_VOL Read a .vol file from Spectralis OCT (Heidelberg Engineering)
+% Read metadata, segmentation, OCT, and slo images contained in a from Spectralis OCT (Heidelberg Engineering)
 %
-%   [header, segment, bscan, fundus] = read_vol(file, options)
 %
-%   This function reads the header, segmentation and image information 
-%   contained in a .vol file. 
-%
-%   Input arguments:
+% Input arguments
+% --------------- 
+% * **file**:           String containing the path to the .vol file to be read.          
 %  
-%   'file'           String containing the path to the .vol file to be read.          
-%  
-%   'varargin'       Optional parameters from the list:
+% * **varargin**:       Optional parameters from the list:
 %                       
-%                    'visu': Visualize the scanning patter along with B-Scans
-%                    and fundus image (slo).
+%   - 'visu': Visualize the scanning patter along with B-Scans and fundus image (slo).
 %
-%                    'full_header': Retrieve the original header with all the
-%                    parameters (By default only a few important parameters are
-%                    retrieved).
+%   - 'full_header': Retrieve the original header with all the parameters (by default only a few important parameters are retrieved).
 %
-%                    'get_coordinates': retrieve fundus and A-Scan X, Y coordinates
+%   - 'get_coordinates': retrieve fundus and A-Scan X, Y coordinates
 %
-%                    'raw_voxel': return raw pixel reflectance instead of
-%                    visualization-adapted values.
+%   - 'raw_voxel': return raw pixel reflectance instead of visualization-adapted values.
 %
-%   Output arguments:
+%
+% Output arguments
+% ---------------- 
+% * **header**:        Structure with .vol file header values.          
 %  
-%   'header'         Structure with .vol file header values.          
-%  
-%   'segment'        Segmenation data stored in the .vol file.
+% * **segment**:       Segmenation data stored in the .vol file.
 %
-%   'bscan'          3D single image with B-Scans.
+% * **bscan**:         3D single image with B-Scans.
 %
-%   'fundus'            2D fundus image.
+% * **fundus**:        2D fundus image.
 %   
 %
-%   Notes
-%   -----
-%   Spectralis OCT data can be exported into both E2E and vol format. We
-%   recommend using the latter as it provides easier access to the header
-%   information.
+% Notes
+% -----
+% Spectralis OCT data can be exported into both E2E and vol format. We
+% recommend using the latter as it provides easier access to the header
+% information.
+%
+% Originally writen by Radim Kolar, Brno University, Czech Republic
+% Modified by Markus Mayer, Pattern Recognition Lab, University of
+% Erlangen-Nuremberg
+%
+% Modified by Kris Sheets, Retinal Cell Biology Lab,
+% Neuroscience Center of Excellence, LSU Health Sciences Center, 
+% New Orleans  
+%   
+% Modified by Andrew Lang, Image Analysis and Communications Lab, Johns
+% Hopkins University - Modifications to increase efficiency - 5/17/2012 
+%
+% Current version modified by David Romero-Bascones, Biomedical Engineering
+% Department, Mondragon Unibertsitatea, 2023, dromero@mondragon.edu
 %
 %
-%   Examples
-%   ---------      
-%   % Read all the information in a .vol file
-%
+% Examples
+% --------      
+% Read all the information in a .vol file
+% ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 %     [header, segment, bscan, fundus] = read_vol('my_oct.vol')
 %     
-%   % Read only the header (faster) of the .vol file
-%
+% Read only the header of the .vol file (faster)
+% ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 %     header = read_vol('my_oct.vol')
-%
-%
-%   Originally writen by Radim Kolar, Brno University, Czech Republic
-%   Modified by Markus Mayer, Pattern Recognition Lab, University of
-%   Erlangen-Nuremberg
-%
-%   Modified by Kris Sheets, Retinal Cell Biology Lab,
-%   Neuroscience Center of Excellence, LSU Health Sciences Center, 
-%   New Orleans  
-%   
-%   Modified by Andrew Lang, Image Analysis and Communications Lab, Johns
-%   Hopkins University - Modifications to increase efficiency - 5/17/2012 
-%
-%   Current version modified by David Romero-Bascones, Biomedical Engineering
-%   Department, Mondragon Unibertsitatea, 2023, dromero@mondragon.edu
-
 
 visu            = any(strcmp('visu', varargin));
 full_header     = any(strcmp('full_header', varargin));

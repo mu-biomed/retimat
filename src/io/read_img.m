@@ -1,66 +1,56 @@
 function [header, bscan] = read_img(file, scan_size, varargin)
-%READ_IMG Read data from .img files from Zeiss Cirrus scans
+% Read OCT images from Cirrus .img files
 %
-%   [header, bscan] = read_img(file, scan_size, get_coord)
-%   Reads the image volume stored in 'file' and tries to retrieve spatial 
-%   information.
 %
-%   Input arguments:
-%  
-%   'file'           String with the path to the .img file name to be read.
+% Input arguments
+% --------------- 
+% * **file**:        String with the path to the img file name to be read.
 %           
-%   'scan_size'      Array of 3 numeric values defining the size of the 
+% * **scan_size**:   Array of 3 numeric values defining the size of the 
 %                    scanned region. Sizes must be given following [x y z]
 %                    convention. By default a cube of [6 6 2] mm is 
 %                    considered.
 %
-%   'varargin'       Optional parameters from the list:
+% * **varargin**:    optional string flags from the list:
 %                       
-%                    'get_coordinates': retrieve fundus and A-Scan X, Y 
-%                    coordinates. If the scan pattern is unknown 
-%                    coordinates cannot be computed.
+%   - 'get_coordinates': retrieve fundus and A-Scan X, Y coordinates. If the scan pattern is unknown coordinates cannot be computed.
 %  
 %
-%   Output arguments:
-%  
-%   'header'         Basic header information retrieved from filename and
-%                    volume dimensions.
+% Output arguments
+% ---------------- 
+% * **header**: struct with metadata retrieved from filename and volume dimensions.
 %
-%   'bscan'          3D matrix of size [n_axial x n_ascan x n_bscan] with 
-%                    image data.
+% * **bscan**: 3D matrix of size [n_axial x n_ascan x n_bscan] with image data.
 %
 %
+% Notes
+% -----
+% img files do not include any spatial or metadata information. Therefore,
+% to correctly reconstruct the image volume this function relies on two
+% strategies:
 %
-%   Notes
-%   -----
-%   .img files do not include any spatial or metadata information. Therefore,
-%   to correctly reconstruct the image volume this function relies on two
-%   strategies:
-%   1. Inspection of the filename, which has a 
-%   2. Matching of the voxel count with this known acquisition patterns:
-%     - Macular Cube: [200 x 200 x 1024] : 40960000
-%     - Opitic Disc Cube: [512 x 128 x 1024] : 67108864
-%     - 5 Line Raster: [1024 x 5 x 1024]
-%     - Hidef: [512 x 2 x 1024] (not supported yet)
+% 1. Inspection of the filename.
+% 2. Matching of the voxel count with this known acquisition patterns:
 %
-%   Scans differing from the previous might not be read properly. 
+%   - Macular Cube: [200 x 200 x 1024] : 40960000
+%   - Opitic Disc Cube: [512 x 128 x 1024] : 67108864
+%   - 5 Line Raster: [1024 x 5 x 1024]
+%   - Hidef: [512 x 2 x 1024] (not supported yet)
 %
-%  Info from previous function:
-%  hidef scan consists of 2 orthogonal bscans intersecting in the center of
-%  the volume. The first is in the y direction (across B-scans), the second
-%  is in the x direction (aligned with the center B-scan). Unfortunately,
-%  they are not in good alignment with the volumetric data.
+% Scans differing from the previous protocols might not be read properly. 
+%
+% Info from previous function:
+% hidef scan consists of 2 orthogonal bscans intersecting in the center of
+% the volume. The first is in the y direction (across B-scans), the second
+% is in the x direction (aligned with the center B-scan). Unfortunately,
+% they are not in good alignment with the volumetric data.
 %
 %
-%   Example 
-%   ---------      
-%   % Read img file
+% Example 
+% -------      
+% Read img file
 %
-%     [header, bscan] = read_img('myfile.img')    
-%
-%  
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
+%   [header, bscan] = read_img('myfile.img')    
 
 if nargin < 2 || isempty(scan_size)
     scan_size = [6 6 2]; % assume 6mm x 6mm x 2mm cube size

@@ -1,79 +1,67 @@
 function [header, seg] = read_xml_iowa(file, varargin)
-%READ_XML_IOWA Read segmentation results obtained by OCTExplorer and IOWA
-%reference algorithm
+% Read segmentation computed by OCTExplorer (IOWA reference algorithm)
 %
-%   [header, seg] = read_xml_iowa(file)
-%   The segmentation as well as metadata are extracted from xml file.
-%
-%   Input arguments:
-%  
-%   'file'           Path to xml file outputed by OCTExplorer. It usually
-%                    ends with *Surfaces_Iowa.xml
+% Input arguments
+% ---------------
+% * **file**:    path to xml output file ending with Surfaces_Iowa.xml
 %            
-%   'varargin'       Different string flags:
-%                    - 'get_coordinates': to return A-Scan coordinates as
-%                       part of the header.
-%                    - 'keep_names': to use layer naming convention from
-%                      OCTExplorer instead of RETIMAT.
-%                    - 'keep_nan': to keep regions with noisy segmentation
-%                       as numerical values instead of nan.
-%                    - 'verbose': to plot additional info on read layers.
+% * **varargin**: different string flags:
+%
+%   - 'get_coordinates': to return A-Scan coordinates as part of the header.
+%   - 'keep_names': to use layer naming convention from OCTExplorer instead of RETIMAT.
+%   - 'keep_nan': to keep regions with noisy segmentation as numerical values instead of nan.
+%   - 'verbose': to plot additional info on read layers.
 %  
+% Output arguments
+% ---------------- 
+% * **header**: struct with metadata related with the segmentation: version, resolution, dimensions.
 %
-%   Output arguments:
+% * **seg**: struct with point segmentation values (in pixels).          
 %  
-%   'header'         Metadata related with the segmentation: version,
-%                    resolution, dimensions.
+% Notes
+% -----
+% This function has been only tested for raster acquisitions and
+% OCTExplorer version version 3.8.0.
 %
-%   'seg'            Struct with point segmentation values (in pixels).          
-%  
+% The axes convention used in OCTExplorer differs from the one used here:
 %
-%   
-%   Notes
-%   -----
-%   This function has been only tested for raster acquisition and may not
-%   properly work for other acquisitions or an OCTExplorer version other 
-%   than 3.8.0.
-%   The axes convention used in IOWA (OCTExplorer) differs from the one
-%   used here:
-%   - x: horizontal (temporal - nasal)
-%   - y: vertical (inferior - superior)
-%   - z: axial (depth)
-%   Layer naming convention returned by this function differs from the one
-%   used by OCTExplorer.
-%   OCTExplorer uses different ways to determine an invalid region:
-%    - Segmentation = 0
-%    - Segmentation NA (not sure)
-%    - Undefined region chunk (full square regions I believe)
+% * x: horizontal (temporal - nasal)
+% * y: vertical (inferior - superior)
+% * z: axial (depth)
+%
+% Layer naming convention returned by this function differs from the one
+% used by OCTExplorer.
+%
+% OCTExplorer uses different ways to determine an invalid region:
+%
+% * Segmentation = 0
+% * Segmentation NA (not sure)
+% * Undefined region chunk (full square regions I believe)
 %   
 %
-%   References
-%   ----------
-%   [1] The Iowa Reference Algorithms (Retinal Image Analysis Lab, Iowa 
-%   Institute for Biomedical Imaging, Iowa City, IA), 
-%   https://www.iibi.uiowa.edu/oct-reference
+% References
+% ----------
+% [1] The Iowa Reference Algorithms (Retinal Image Analysis Lab, Iowa 
+% Institute for Biomedical Imaging, Iowa City, IA), 
+% https://www.iibi.uiowa.edu/oct-reference
 %
-%   [2] Abramoff MD et al., Retinal Imaging and Image Analysis. IEEE 
-%   Reviews in Biomedical Engineering, 2010. doi:10.1109/RBME.2010.2084567
+% [2] Abramoff MD et al., Retinal Imaging and Image Analysis. IEEE 
+% Reviews in Biomedical Engineering, 2010. doi:10.1109/RBME.2010.2084567
 %   
-%   [3] Kang L et al., Optimal Surface Segmentation in Volumetric Images – 
-%   A Graph-Theoretic Approach. IEEE Transactions on Pattern Analysis and 
-%   Machine Intelligence, 2006. doi:10.1109/TPAMI.2006.19
+% [3] Kang L et al., Optimal Surface Segmentation in Volumetric Images – 
+% A Graph-Theoretic Approach. IEEE Transactions on Pattern Analysis and 
+% Machine Intelligence, 2006. doi:10.1109/TPAMI.2006.19
 %   
-%   [4] Garvin MK et al., Automated 3-D Intraretinal Layer Segmentation of
-%   Macular Spectral-Domain Optical Coherence Tomography Images. IEEE Trans 
-%   Med. Imaging, 2009. doi:10.1109/TMI.2009.2016958
+% [4] Garvin MK et al., Automated 3-D Intraretinal Layer Segmentation of
+% Macular Spectral-Domain Optical Coherence Tomography Images. IEEE Trans 
+% Med. Imaging, 2009. doi:10.1109/TMI.2009.2016958
 %
 %
-%   Example
-%   ---------      
-%   % Extract data from iowa xml segmentation
+% Example
+% -------      
+% Extract data from iowa xml segmentation
 %
-%     [header, seg] = read_xml_iowa('my_file_Surfaces_Iowa.xml')
-%     
-%
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
+%   [header, seg] = read_xml_iowa('my_file_Surfaces_Iowa.xml')
 
 get_coordinates = any(strcmp(varargin, 'get_coordinates'));
 keep_names      = any(strcmp(varargin, 'keep_names'));

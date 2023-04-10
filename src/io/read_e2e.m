@@ -1,69 +1,61 @@
 function [header, segment, bscan, fundus] = read_e2e(file, varargin)
-%read_e2e Read .e2e file exported from Spectralis OCT (Heidelberg Engineering)
+% Read metadata, segmentation, OCT and fundus images in .e2e/.E2E files from Spectralis OCT (Heidelberg Engineering)
 %
-%   [header, segment, bscan, slo] = read_e2e(file, options)
-%
-%   This function reads the header, segmentation and image information 
-%   contained in the .e2e/.E2E files. 
-%
-%   Input arguments:
+% Input arguments
+% --------------- 
+% * **file**:           String containing the path to the .vol file to be read.          
 %  
-%   'file'           String containing the path to the .vol file to be read.          
+% * **varargin**:       Optional parameters from the list:
+%                                             
+%   - 'verbose': Display header info during read.
+%   - 'raw_pixel': Display raw pixel intensities.
+%
+%
+% Output arguments
+% ----------------  
+% * **header**:         Structure with .vol file header values.          
 %  
-%   'varargin'       Optional parameters from the list:
-%                                              
-%                    'verbose': Display header info during read.
+% * **segment**:        Segmenation data stored in the .vol file.
 %
-%                    'raw_pixel': Display raw pixel intensities.
+% * **bscan**:          3D single image with B-Scans.
 %
-%
-%   Output arguments:
-%  
-%   'header'         Structure with .vol file header values.          
-%  
-%   'segment'        Segmenation data stored in the .vol file.
-%
-%   'bscan'          3D single image with B-Scans.
-%
-%   'fundus'         2D fundus image.
+% * **fundus**:         2D fundus image.
 %   
 %
-%   Notes
-%   -----
-%   This function was developed based on the previous reverse engineering 
-%   attempts [1-3] and is not an official file reader. Therefore, some of 
-%   the information retrieved can be incorrect/incomplete.
+% Notes
+% -----
+% This function was developed based on the previous reverse engineering 
+% attempts [1-3] and is not an official file reader. Therefore, some of 
+% the information retrieved can be incorrect/incomplete.
 %   
-%   Scan focus, scale_x, scale_y and acquisition pattern not found yet.
+% Scan focus, scale_x, scale_y and acquisition pattern are yet to be found.
 %
-%   Spectralis OCT data can be exported into both E2E and vol format. We
-%   recommend using the latter as it is easier to parse and it only stores
-%   a single eye and acquisition. 
+% Spectralis OCT data can be exported into both E2E and vol format. We
+% recommend using the latter as it is easier to parse and it only stores
+% a single eye and acquisition. 
 %
-%   References
-%   ----------
-%   [1] uocte documentation
-%   https://bitbucket.org/uocte/uocte/wiki/Topcon%20File%20Format
 %
-%   [2] OCT-Converter, https://github.com/marksgraham/OCT-Converter
+% References
+% ----------
+% [1] uocte documentation
+% https://bitbucket.org/uocte/uocte/wiki/Topcon%20File%20Format
+%
+% [2] OCT-Converter, https://github.com/marksgraham/OCT-Converter
 %   
-%   [3] LibE2E, https://github.com/neurodial/LibE2E
+% [3] LibE2E, https://github.com/neurodial/LibE2E
 %   
-%   Examples
-%   ---------      
-%   % Read all the information in a .e2e/.E2E file
-%
+% Examples
+% --------      
+% Read all the information in a .e2e/.E2E file
+% ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 %     file = 'my_oct.e2e';
 %     [header, segment, bscan, fundus] = read_e2e(file)
 %     
 %
-%   % Read only the header (faster) of the .e2e/.E2E file
+% Read only the header of the .e2e/.E2E file (faster)
+% ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 %     file = 'my_oct.e2e';
 %     header = read_e2e(file)
-%
-%
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
 verbose   = any(strcmp('verbose', varargin));
 raw_pixel = any(strcmp('raw_pixel', varargin));
