@@ -10,7 +10,7 @@ Welcome to RETIMAT's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-
+   functions
 
 Indices and tables
 ==================
