@@ -1,84 +1,77 @@
 function [L, r] = lacunarity(I, method, r, visu)
-%lacunarity Compute lacunarity of a gray-scale image
+% Compute lacunarity of a gray-scale/binary image
 %
-%   [L, r] = lacunarity(I, method, r, visu)
-%   Compute lacunarity of a grayscale/binary image for a set of window sizes r.
-%   Lacunarity is a measure of how an image covers the space. Images/masks with
-%   bigger gaps will show a higher lacunarity values. Instead of a single value
-%   lacunarity is often computed for a set of scales defined by the size of the
-%   box used to compute it. It is usually considered as a complementary metric 
-%   to fractal dimension.
+% 
+% Lacunarity is a measure of how an image covers the space. Images/masks
+% with bigger gaps will show a higher lacunarity values. Instead of a 
+% single value lacunarity is often computed for a set of scales defined by 
+% the size of the box used to compute it. It is usually considered as a  
+% complementary metric to fractal dimension.
 %
 %
-%   Input arguments:
-%  
-%   'I'              Input grayscale/binary image. 
+% Input arguments
+% --------------- 
+% * **I**:           Input grayscale/binary image. 
 %             
-%   'method'         Method to compute lacunarity.          
-%                    Options:
-%                     'window': Fast and simple. See [2] Section 2.2.
-%                     'local_bin': See [3] Section 3.1.
-%                     'box_3d': Slow. See [3] Section 3.2.
-%                    Default: 'window'
+% * **method**:      Method to compute lacunarity.          
+%   
+%   - 'window': (default) fast and simple. See [2] Section 2.2.
+%   - 'local_bin': See [3] Section 3.1.
+%   - 'box_3d': Slow. See [3] Section 3.2.
 %
-%   'r'              Optional. 1D array with window size values. By default 10 
-%                    values from 1 to the minimum between rows and columns 
-%                    (min{M, N}) are used.
+% * **r**:           1D array with window size values. By default 10 values from 1 to the minimum between rows and columns (min{M, N}) are used.
 %
-%   'visu'           Optional. If true a plot with the computed values is
-%                    shown.
-%                    Default = false
+% * **visu**:        If true a plot with the computed values is shown. Default = false
 %
 %
-%
-%   Output arguments:
+% Output arguments
+% ----------------
+% * **L**:             1D array with lacunarity values.          
 %  
-%   'L'              1D array with lacunarity values.          
-%  
-%   'r'              1D array with box size values.          
+% * **r**              1D array with box size values.          
 %  
 %
-%   Notes
-%   -----
-%   Color images will be converted to grayscale. There are multiple definitions
-%   of lacunarity, with different calculation methods. This function covers 3
-%   method with different phylosophies. The scale of each method is not
-%   directly comparable.
-%   There is also a "normalized Lacunarity" proposed in [2] that may be
-%   interesting to implement in the future.
+% Notes
+% -----
+% Color images will be converted to grayscale. There are multiple 
+% definitions of lacunarity, with different calculation methods. This 
+% function covers 3 methods with different approaches. The scale of each
+% method is not directly comparable.
+% 
+% There is also a "normalized Lacunarity" proposed in [2] that may be
+% interesting to implement in the future.
 %
 %
-%   References
-%   ----------
-%   [1] Allain C. and Clitre M. "Charaterizing the lacunarity of random and
-%   deterministic fractal sets", Physical Review, 1991.
-%   https://doi.org/10.1103/PhysRevA.44.3552
+% References
+% ----------
+% [1] Allain C. and Clitre M. "Charaterizing the lacunarity of random and
+% deterministic fractal sets", Physical Review, 1991.
+% https://doi.org/10.1103/PhysRevA.44.3552
 %
-%   [2] Roy A. and Perfect E. "Lacunarity Analyses of Multifractal and Natural
-%   Grayscale Patterns", Fractals, 2014
-%   https://doi.org/10.1142/S0218348X14400039
+% [2] Roy A. and Perfect E. "Lacunarity Analyses of Multifractal and Natural
+% Grayscale Patterns", Fractals, 2014
+% https://doi.org/10.1142/S0218348X14400039
 %
-%   [4] Backes A.R. "A new approach to estimate lacunarity of texture images",
-%   Pattern Recognition Letters, 2013
+% [3] Backes A.R. "A new approach to estimate lacunarity of texture images",
+% Pattern Recognition Letters, 2013
 %
 %
-%   Example
-%   ---------      
-%   % Compute lacunarity
+% Example
+% -------      
+% Compute lacunarity
+% ^^^^^^^^^^^^^^^^^^
+% .. code-block:: matlab
 %
 %     I = imread('cameraman.tif');
 %     [L, s] = lacunarity(I)
 %     
-%   % Compute Lacunarity choosing a method and custom r values
-%     
+% Compute Lacunarity choosing a method and custom r values
+% ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^    
+% .. code-block:: matlab
+%
 %     I = imread('cameraman.tif');
 %     r = 2:10;
 %     [L, ~] = lacunarity(I, 'local_bin', r);
-%
-%  
-%   David Romero-Bascones dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
-
 
 if nargin == 1
     method = 'window'; 
