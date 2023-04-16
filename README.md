@@ -8,7 +8,7 @@ A MATLAB Toolbox for retinal OCT image analysis.
 ![fig_readme](https://user-images.githubusercontent.com/50577357/198825276-a70c2cc9-6fd4-408c-8adb-d9f7fcd8d6de.png)
 
 ## What can I do with RETIMAT?
-- Read propietary OCT files (.vol, .e2e, .img, .fda, .xml)
+- Read OCT files: .vol, .e2e, .img, .fda, .xml (OCT Explorer)
 - Visualization
     - Raw images (OCT, fundus) + en-face maps (thickness, reflectance)
     - Summary reports
@@ -26,4 +26,4 @@ A MATLAB Toolbox for retinal OCT image analysis.
 3. Take a look into the tutorials
 
 ## Contact
-For help, feedback or collaboration inquiries please contact dromero@mondragon.edu
+For help, feedback or collaboration inquiries please contact dromero.research@gmail.com
