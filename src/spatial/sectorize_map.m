@@ -1,48 +1,45 @@
 function [Zs, Sectors] = sectorize_map(X, Y, Z, metric, sector_type, varargin)
-%SECTORIZE_MAP Sectorize a 2D map into several sectors
+% Sectorize a 2D map into several sectors (e.g., ETDRS average)
 %
-%   Zs = sectorize_map(X, Y, Z, metric, sector_type)
-%   Summarize thickness point values across sectors. For example by taking
-%   the average thickness for ETDRS sectorization.
 %
-%   Input arguments:
-%  
-%   'X'              X coordinates of map points
+% Input arguments
+% --------------- 
+% * **X**:              X coordinates of map points
 %
-%   'Y'              Y coordinates of map points
+% * **Y**:              Y coordinates of map points
 %
-%   'Z'              Z coordinates of map points
+% * **Z**:              Z coordinates of map points
 %
-%   'metric'         Metric to be used to sectorize data. 
-%                    Options: ['mean', 'std', skewness', 'kurtosis']
+% * **metric**         metric to be used to sectorize data. Options: ['mean', 'std', skewness', 'kurtosis']
 %
-%   'sector_type'    Sectorization definition. Two options:
-%                    - String defining the sectorization type. It must be 
-%                    followed by appropriate arguments (see examples).
-%                    - Struct with sectorization info created beforehand.
+% * **sector_type**:   sectorization definition. Two options:
+%
+%   - String defining the sectorization type. It must be followed by appropriate arguments (see examples).
+%   - Struct with sectorization info created beforehand.
 %   
-%   'varargin'       Extra arguments to define the sectorization. 
+% * **varargin**:      extra arguments to define the sectorization. 
 %                    
 %  
-%   Output arguments:
+% Output arguments
+% ---------------- 
+% * **Zs**:             Sectorized values for each sector.          
 %  
-%   'Zs'             Sectorized values for each sector.          
-%  
-%   'Sectors'        Struct with spatial data defining the sectorization. 
-%                    Useful when the Sectors input variable is a string.
+% * **Sectors**:        Struct with spatial data defining the sectorization. Useful when the Sectors input variable is a string.
 %
 %   
-%   Notes
-%   -----
-%   All angles are expected in radians. To convert from degrees to radians 
-%   use deg2rad() function.   
+% Notes
+% -----
+% All angles are expected in radians. To convert from degrees to radians 
+% use deg2rad() function.   
 %
 %
-%
-%   Example 1
-%   ---------      
-%   % ETDRS sectorization
-%
+% Examples
+% --------
+% ETDRS sectorization
+% ^^^^^^^^^^^^^^^^^^^
+% 
+% .. code-block:: matlab
+%   
 %   [header, seg, ~, ~] = read_vol(file,'verbose', 'get_coordinates');
 %   Thickness = compute_thickness(seg, 'TRT', header.scale_z);
 %   [X, Y, TRT] = resample_map(header.X_oct, header.Y_oct, Thickness.TRT, ...
@@ -50,20 +47,16 @@ function [Zs, Sectors] = sectorize_map(X, Y, Z, metric, sector_type, varargin)
 %   [Z, G] = sectorize_map(X, Y, TRT, 'mean', 'etdrs');
 %     
 %
-%   Example 2
-%   ---------      
-%   % 2 ring sectorization
+% 2 ring sectorization
+% ^^^^^^^^^^^^^^^^^^^^
+%
+% .. code-block:: matlab
 %
 %   [header, seg, ~, ~] = read_vol(file,'verbose', 'get_coordinates');
 %   Thickness = compute_thickness(seg, 'TRT', header.scale_z);
 %   [X, Y, TRT] = resample_map(header.X_oct, header.Y_oct, Thickness.TRT, ...
 %        'regular', 'n_point', 100, 'max_d', 2.5);
 %   [Z, G] = sectorize_map(X, Y, TRT, 'mean', 'ring', [0.5 1.5 3]);
-%  
-%
-%
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
 
 if nargin < 4
     error("A minimum of 4 input arguments must be provided");

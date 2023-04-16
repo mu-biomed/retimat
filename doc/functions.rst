@@ -33,6 +33,35 @@ File reading
 
 ----
 
+
+Structural analysis
+===================
+
+
 Spatial analysis
 ================
+.. automodule:: spatial
+
+.. autofunction:: spatial.find_fovea
+
+----
+
+.. autofunction:: spatial.flip_coordinates
+
+----
+
+.. autofunction:: spatial.get_ascan_coordinates
+
+----
+
+.. autofunction:: spatial.resample_map
+
+----
+
+.. autofunction:: spatial.sectorize_map
+
+----
+
+.. autofunction:: spatial.sectorize_peripapillar
+
 

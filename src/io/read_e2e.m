@@ -48,8 +48,9 @@ function [header, segment, bscan, fundus] = read_e2e(file, varargin)
 % --------      
 % Read all the information in a .e2e/.E2E file
 % ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-%     file = 'my_oct.e2e';
-%     [header, segment, bscan, fundus] = read_e2e(file)
+% % .. code-block:: matlab
+%    file = 'my_oct.e2e';
+%    [header, segment, bscan, fundus] = read_e2e(file)
 %     
 %
 % Read only the header of the .e2e/.E2E file (faster)
