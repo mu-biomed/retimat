@@ -15,7 +15,7 @@ RETIMAT is MATLAB toolbox for retinal OCT image analysis.
 What can I do with RETIMAT
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* Read OCT files: vol, e2e, fda, img, OCTExplorer
+* Read OCT files: ``vol``, ``e2e``, ``fda``, ``img``, ``OCTExplorer``
 * Visualize images
 * Feature extraction: thickness, foveal pit morphology, texture
 
@@ -30,6 +30,10 @@ How to install it
 How to use it
 ^^^^^^^^^^^^^
 .. toctree::
+   :hidden:
+
+   self
+.. toctree::
    :maxdepth: 2
 
    tutorials
@@ -37,11 +41,4 @@ How to use it
 
 Contact
 ^^^^^^^
-For help, feedback or collaboration inquiries please contact dromero.research@gmail.com 
-
-Indices
-=======
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+For help, feedback or collaboration inquiries please contact dromero.research@gmail.com

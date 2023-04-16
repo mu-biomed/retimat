@@ -2,7 +2,7 @@
 Functions
 =========
 
-These are the functions implemented in RETIMAT
+These are all the functions implemented in RETIMAT
 
 
 File reading

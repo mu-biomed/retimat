@@ -8,9 +8,9 @@ import os
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'RETIMAT'
-copyright = '2023, David Romero-Bascones'
 author = 'David Romero-Bascones'
-release = '1.0.0'
+version = '1.0.0'
+release = version
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -27,7 +27,13 @@ add_module_names = False # show only function name
 
 html_theme = 'classic'
 html_static_path = ['_static']
-
+html_sidebars = {'**': ['globaltoc.html', 'sourcelink.html', 'searchbox.html']}
+html_show_sphinx = False
+html_title = f'{project} {version}'
+html_domain_indices = False
+html_use_index = False
+html_show_sourcelink = False
+html_show_copyright = False
 
 # -- MATLAB configuration ----------------------------------------------------
 primary_domain = 'mat'

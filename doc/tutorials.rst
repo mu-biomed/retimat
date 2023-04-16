@@ -1,7 +1,7 @@
 Tutorials
 =========
 
-.. _tutorials:
+.. _tuto:
 
 This page contains two tutorials:
 
