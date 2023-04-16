@@ -33,6 +33,22 @@ File reading
 ----
 
 
+Visualization
+=============
+
+.. autofunction:: visu.generate_report
+
+----
+
+.. autofunction:: visu.plot_sectors
+
+----
+
+.. autofunction:: visu.spider_plot
+
+----
+
+
 Reflectance
 ===========
 
@@ -56,7 +72,6 @@ Reflectance
 
 ----
 
-
 Structural analysis
 ===================
 
@@ -75,7 +90,6 @@ Structural analysis
 .. autofunction:: structure.smooth_pit
 
 ----
-
 
 Spatial analysis
 ================
@@ -101,5 +115,24 @@ Spatial analysis
 ----
 
 .. autofunction:: spatial.sectorize_peripapillar
+
+----
+
+Texture analysis
+================
+
+.. autofunction:: texture.fractal_dimension
+
+----
+
+.. autofunction:: texture.GLCM_features
+
+----
+
+.. autofunction:: texture.lacunarity
+
+----
+
+.. autofunction:: texture.LBP_features
 
 

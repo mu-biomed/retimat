@@ -40,7 +40,6 @@ function R = reflectance_map(bscan, method, metric, seg, varargin)
 % * **R**:              2D matrix with reflectance values.        
 %  
 %
-%   
 % Notes
 % -----
 % Reflectance may be derived from raw voxel intensities, normalized

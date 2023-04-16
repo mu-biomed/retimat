@@ -1,63 +1,49 @@
 function fig = generate_report(bscan, seg, fundus, layers, varargin)
-%GENERATE_REPORT Create a summary figure with fundus, bscans and segmentation
+% Create a summary figure with fundus, en-face reflectance map, thickness
+% maps and bscans. 
 %
-%   fig = generate_report(bscan, seg, fundus, layers)
 %
-%   Generates a combined plot with fundus, en-face reflectance map, 
-%   thickness maps and bscans. 
+% Input arguments (mandatory)
+% ---------------------------
+% * **bscan**:       Raw b-scans with shape [n_axial, n_ascan, n_bscan]
 %
-%   Input arguments:
-%  
-%   'bscan'          Raw b-scans with shape [n_axial, n_ascan, n_bscan]
+% * **seg**:         Struct with segmentation data. Each field corresponds to a different boundary. Expected shape of each field [n_bscan, n_ascan]
 %
-%   'seg'            Struct with segmentation data. Each field corresponds
-%                    to a different boundary. 
-%                    Expected shape of each field [n_bscan, n_ascan]
-%
-%   'fundus'         Fundus image.
+% * **fundus**:      Fundus image.
 % 
-%   'layers'         List of layers for which to plot thickness maps.
+% * **layers**:      List of layers for which to plot thickness maps.
 %
 %
-%   'varargin'       Optional arguments:
-%
-%                    'n_plot_bscan': How many bscans to plot. 
-%                    Default: maximum between 5 and n_bscan.
+% Input arguments (optional)
+% --------------------------
+% * **n_plot_bscan**: How many bscans to plot. Default: maximum between 5 and n_bscan.
 %  
-%                    'n_col_max': Maximum number of columns in the figure.
-%                    Default: 5
+% * **n_col_max**:    Maximum number of columns in the figure. Default: 5
 %
-%                    'file_name': File name to save the plot.
-%                    Default: [] (plot is not saved).
+% * **file_name**:    File name to save the plot. Default: [] (plot is not saved).
 %
-%                    'visible': 'on' to show the figure window and 'off' to
-%                    hide it. Default: 'on'
+% * **visible**:      'on' to show the figure window and 'off' to hide it. Default: 'on'
 %
-%                    'title': text to us as title.
-%                    Default: [] (no title).
+% * **title**:        text to us as title. Default: [] (no title).
 %
 %
-%   Output arguments:
-%  
-%   'fig'            Created figure handle.
+% Output arguments
+% ---------------- 
+% * **fig**:           Created figure handle.
 %   
 %
-%   Notes
-%   -----
-%   This reports are useful for quality assurance of the images.
-%   Checking segmentation errors or poor signal quality.
+% Notes
+% -----
+% This reports are useful to identify segmentation errors or poor signal
+% quality.
 %
 %
-%   Example
-%   ---------      
-%   % Read a .vol file and generate a report
-%
+% Example
+% -------      
+% .. code-block:: matlab
+% 
 %     [~, segment, bscan, fundus] = read_vol(file)
 %     generate_report(bscan, segment, fundus, {'TRT','RNFL'})
-%     
-%  
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
 args = parse_inputs(varargin);
 
