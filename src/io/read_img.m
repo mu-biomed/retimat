@@ -48,7 +48,7 @@ function [header, bscan] = read_img(file, scan_size, varargin)
 %
 % Example 
 % -------      
-% Read img file
+% .. code-block:: matlab
 %
 %   [header, bscan] = read_img('myfile.img')    
 

@@ -53,10 +53,14 @@ function [header, segment, bscan, fundus] = read_vol(file, varargin)
 % --------      
 % Read all the information in a .vol file
 % ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-%     [header, segment, bscan, fundus] = read_vol('my_oct.vol')
+% .. code-block:: matlab
+%
+%    [header, segment, bscan, fundus] = read_vol('my_oct.vol')
 %     
 % Read only the header of the .vol file (faster)
 % ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+% .. code-block:: matlab
+%
 %     header = read_vol('my_oct.vol')
 
 visu            = any(strcmp('visu', varargin));

@@ -22,9 +22,9 @@ function fundus = read_bin(file, im_size)
 %
 % Example
 % -------      
-% Read fda file
+% .. code-block:: matlab
 %
-%   I = read_bin(file.bin)
+%   I = read_bin('myfile.bin')
 
 if nargin==1
    im_size = [664 512];

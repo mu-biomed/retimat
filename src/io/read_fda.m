@@ -9,8 +9,7 @@ function [header, segment, bscan, fundus] = read_fda(file, varargin)
 % * **varargin**:    Optional flags from the list:
 %
 %   - 'verbose': If provided, reading info is displayed.
-%   - 'get_coordinates': If provided A-scan coordinates are returned. This only works if the scanning pattern is
-%                    horizontal raster (pending to implement others).
+%   - 'get_coordinates': If provided A-scan coordinates are returned. 
 %
 %
 % Output arguments
@@ -35,6 +34,9 @@ function [header, segment, bscan, fundus] = read_fda(file, varargin)
 % 1. Identify data chunks present in file (not all are always present)
 % 2. Read specific chunks with the relevant information
 %
+% 'get_coordinates' flag only works if the scanning pattern is horizontal
+% raster (pending to implement others).
+%
 %
 % References
 % ----------
@@ -44,10 +46,10 @@ function [header, segment, bscan, fundus] = read_fda(file, varargin)
 % [2] OCT-Converter: https://github.com/marksgraham/OCT-Converter
 %
 %
-% Examples
-% --------      
-% Read fda file
-% ^^^^^^^^^^^^^
+% Example
+% -------      
+% .. code-block:: matlab
+%
 %   [header, segment, bscan, fundus] = read_fda(file)
 
 verbose         = any(strcmp('verbose', varargin));
