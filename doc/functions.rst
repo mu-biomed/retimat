@@ -7,7 +7,6 @@ These are all the functions implemented in RETIMAT
 
 File reading
 ============
-.. automodule:: io
 
 .. autofunction:: io.read_vol
 
@@ -34,13 +33,52 @@ File reading
 ----
 
 
+Reflectance
+===========
+
+.. autofunction:: reflectance.compute_attenuation
+
+----
+
+.. autofunction:: reflectance.image_quality
+
+----
+
+.. autofunction:: reflectance.normalize_reflectance
+
+----
+
+.. autofunction:: reflectance.reflectance_map
+
+----
+
+.. autofunction:: reflectance.stack_bscans
+
+----
+
+
 Structural analysis
 ===================
+
+.. autofunction:: structure.compute_thickness
+
+----
+
+.. autofunction:: structure.fit_pit_model
+
+----
+
+.. autofunction:: structure.get_morph_params
+
+----
+
+.. autofunction:: structure.smooth_pit
+
+----
 
 
 Spatial analysis
 ================
-.. automodule:: spatial
 
 .. autofunction:: spatial.find_fovea
 
