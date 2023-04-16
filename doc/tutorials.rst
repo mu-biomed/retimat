@@ -1,6 +1,8 @@
 Tutorials
 =========
 
+.. _tutorials:
+
 This page contains two tutorials:
 
 1. :ref:`Read and explore OCT data <tutorial_read_oct>`:
@@ -27,7 +29,7 @@ The first step is to understand your images in terms of:
 
 Understanding the above will help troubleshoots problems.
 
-RETIMAT can only read vol, e2e, fda, img files. If your files are different, you can try the following Python packages:
+RETIMAT can only read ``vol``, ``e2e``, ``fda``, ``img`` files. If your files are different, you can try the following Python packages:
 
 * `OCT-Converter <hhttps://github.com/marksgraham/OCT-Converter>`_ 
 * `eyepy <https://github.com/MedVisBonn/eyepy>`_ 
@@ -193,14 +195,16 @@ Here, there are two possiblities:
 
 We can check that by reading the images and trying to visualize the segmentation as in the previous tutorial.
 
-In the segmentation is not available, we recommend using `OCT Explorer <https://iibi.uiowa.edu/oct-reference>`_ software to do so. OCT Explorer allows you to load your images and save segmentation in a ``xml`` file that can be read by RETIMAT.
+In the segmentation is not available, we recommend using `OCT Explorer <https://iibi.uiowa.edu/oct-reference>`_ software to do so. OCT Explorer allows you to load your images and save the segmentation as an ``xml`` file that can be read by RETIMAT.
 
-After we have the segmentation data we need to decide which features we want to compute. There are four categories of features:
+After segmentation, we need to decide which features we want to compute. There are four categories of features:
 
-* Thickness: the most common.
-* Foveal pit morphology
-* Reflectance: image quality
-* Texture analysis
+* *Thickness*: average thickness values over predefined macular sectors.
+* *Foveal pit morphology*: geometrical features of the foveal pit morphology (slope, radius, ...).
+* *Reflectance*: features related with image intensity.
+* *Texture analysis*: features that measure statistical properties of the thickness surface.
+
+Each feature type requires a different set of processing steps. In the next steps basic thickness feature extraction is described. The source code of is `available <https://github.com/drombas/retimat/blob/main/tutorials/Thickness_Analysis.mlx>`_. If you want to extract non-thickness features please check the other `tutorials <https://github.com/drombas/retimat/blob/main/tutorials>`_.
 
 1. Load the files
 ^^^^^^^^^^^^^^^^^
@@ -217,10 +221,97 @@ To analyse retinal thickness we only need the header and the segmentation data.
 
 2. Preprocessing
 ^^^^^^^^^^^^^^^^
+We can now compute thicknesses as the difference between segmented boundaries.
 
-3. Feature computation
+We need to specify the layers to analyse as input.
+
+Thickness values are by defaul in pixels, but can be computed in micrometers if we pass the axial resolution (``scale_z``) to the function.
+The output are stored in the struct Thickness with a field for every layer.
+
+.. code-block:: matlab
+
+        layers = {'TRT', 'GCIPL'};
+        Thickness = compute_thickness(seg, layers, header.scale_z);
+
+        TRT = Thickness.TRT;
+        GCIPL = Thickness.GCIPL;
+
+To compute averaged sector thicknesses it is convenient to have regular spatial sampling (i.e., same sampling distribution across the macula).
+To achieve that we can transform our original A-Scan coordinates to a regular grid by using interpolation.
+
+.. code-block:: matlab
+
+        [X_new, Y_new, TRT_new] = resample_map(X, Y, TRT, 'regular', 'max_d', 3, 'n_point', 100);
+        [X_new, Y_new, GCIPL_new] = resample_map(X, Y, GCIPL, 'regular', 'max_d', 3, 'n_point', 100);
+
+3. Foveal location
+^^^^^^^^^^^^^^^^^^
+Often, acquired images may not be correctly centered at the foveal pit (due to fixation errors).
+This can result in erroneous measurement and must be corrected. To do this we need to:
+
+1. Locate the actual foveal center automatically
+2. Set ``X``, ``Y`` coordinate origin to the foveal center
+
+.. code-block:: matlab
+
+        [x_fovea, y_fovea] = find_fovea(X, Y, TRT);
+
+        X = X - x_fovea;
+        Y = Y - y_fovea;
+
+4. Sectorize thickness
 ^^^^^^^^^^^^^^^^^^^^^^
+Often we are interested in average measures of the thickness maps of above.
 
-4. Building the pipeline
-^^^^^^^^^^^^^^^^^^^^^^^^
+For instance, to compute ETDRS sectorized we just need to:
+
+.. code-block:: matlab
+
+        [TRT_etdrs, Sect_etdrs]  = sectorize_map(X_new, Y_new, TRT_new, 'mean', 'etdrs');
+        [GCIPL_etdrs, Sect_etdrs] = sectorize_map(X_new, Y_new, GCIPL_new, 'mean', 'etdrs');
+
+This returns the averaged numeric values: ``TRT_etdrs`` and a ``Sect_etdrs`` struct.
+ETDRS sectors are: central, inner nasal, inner superior, inner  temporal, inner inferior, outer nasal, outer superior, outer temporal and outer inferior
+
+.. code-block:: matlab
+
+        etdrs_vars = {'C', 'IN', 'IS', 'IT', 'II', 'ON', 'OS', 'OT', 'OI'};
+        T = cell2table([layers' num2cell([TRT_etdrs; GCIPL_etdrs])], 'VariableNames',[{'layer'}, etdrs_vars])
+
+We can also use more advanced sectorizations
+
+.. code-block:: matlab
+
+        Sectors.type    = 'wedge';
+        Sectors.radius  = linspace(0, 3, 10);
+        Sectors.theta_0 = 0;
+        Sectors.n_angle = 20;
+        Sectors.n_sect  = Sectors.n_angle * (length(Sectors.radius) - 1);
+
+        [TRT_wedge, Sect_wedge]  = sectorize_map(X_new, Y_new, TRT_new, 'mean', Sectors);
+        [GCIPL_etdrs, Sect_wedge] = sectorize_map(X_new, Y_new, GCIPL_new, 'mean', Sectors);
+
+5. Visualize resutls
+^^^^^^^^^^^^^^^^^^^^
+We can visualize arbitrary segmentations by using plot_sectors()
+
+.. code-block:: matlab
+
+        f = figure('Position', [0 0 1200 400]);
+
+        subplot(131);
+        surf(X_new, Y_new, TRT_new, 'EdgeColor', 'none'); view(0,90);
+        axis equal;
+        title('Thickness map')
+
+        subplot(132);
+        plot_sectors(TRT_etdrs, Sect_etdrs); title('ETDRS');
+
+        subplot(133);
+        plot_sectors(TRT_wedge, Sect_wedge); title('Wedge');
+
+        colormap("jet")
+
+.. image:: images/thickness.png
+    :align: center
 

@@ -24,7 +24,7 @@ How to install it
 
 1. Download the code from `here <https://zenodo.org/record/7313091#.ZDVXQLxBz1s>`_
 2. Unzip the downloaded file
-3. Execute the ``startup.m`` script in the main folder
+3. Execute the ``startup.m`` script from the main folder
 4. Follow the tutorials or reach out for help
 
 How to use it
