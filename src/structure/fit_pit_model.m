@@ -1,89 +1,71 @@
 function [Z_fit, Fit_coeff, rmse] = fit_pit_model(theta, rho, Z, pit_model, varargin)
-%   [Z_fit, Fit_coeff] = fit_pit_model(theta, rho, Z, pit_model)
-%   Detail explanation goes here
+% Fit a mathematical model to the foveal pit
 %
-%   Input arguments (required):
+%
+% Input arguments (mandatory)
+% --------------------------- 
+% * **theta**:       Matrix with theta coordinates (polar). It expects data in format n_directions x n_points/direction.
+%
+% * **rho**:         Matrix with rho value of polar coordinates.It expects data in format n_directions x n_points/direction.
+%
+% * **Z**             Thickness map.
+%
+% * **pit_model**    String defining the mathematical model to be used:
+%
+%   - 'Breher'
+%   - 'Ding'
+%   - 'Dubis'
+%   - 'Liu'
+%   - 'Scheibe'
+%   - 'Yadav'
 %  
-%   'theta'          Matrix with theta coordinates (polar). It expects data in
-%                    format n_directions x n_points/direction.
 %
-%   'rho'            Matrix with rho value of polar coordinates.It expects data in
-%                    format n_directions x n_points/direction.
+% Input arguments (name-value pairs)
+% ----------------------------------
+%   * **max_iter**:       Maximum number of iterations for each fitting. Default: 1000
 %
-%   'Z'              Thickness map.
+%   * **tol_x**:          Tolerance of the errors during fitting. Default: 1e-6
 %
-%   'pit_model'      String defining the mathematical model to be used.
-%                    Options:['Breher','Ding','Dubis','Liu','Scheibe','Yadav']
-%  
-%   Input arguments (name-value pairs):
+%   * **tol_fun**:        Tolerance of the function during fitting. Default: 1e-6
 %
-%   'max_iter'       Maximum number of iterations for each fitting.
-%                    Default: 1000
-%
-%   'tol_x'          Tolerance of the errors during fitting.
-%                    Default: 1e-6
-%
-%   'tol_fun'        Tolerance of the function during fitting.
-%                    Default: 1e-6
-%
-%   'x0'             Initial iteration coefficient values. By default 
-%                    specific values related to the model are used.
+%   * **x0'**:            Initial iteration coefficient values. By default specific values related to the model are used.
 %   
-%   'x_low'          Inferior limits of model coefficients
+%   * **'x_low**:         Inferior limits of model coefficients.
 %   
-%   'x_sup'          Superior limits of model coefficients
+%   * **x_sup**:          Superior limits of model coefficients.
 %
 %
-%   Output arguments:
-%  
-%   'Z_fit'          Matrix with fitted values
+% Output arguments
+% ---------------- 
+%  * **Z_fit**:           Matrix with fitted values
 %
-%   'Fit_coeff'      Struct with estimated model coefficients
-%  
-%
-%   
-%   Notes
-%   -----
-%   Yadav model does not work yet.
+%  * **Fit_coeff**:      Struct with estimated model coefficients
 %
 %
-%   References
-%   ----------
-%   [1] Romero-Bascones et al., Foveal Pit Morphology Characterization: A 
-%   Quantitative Analysis of the Key Methodological Steps, Entropy, 2021
-%   https://doi.org/10.3390/e23060699
+% References
+% ----------
+% [1] Romero-Bascones et al., Foveal Pit Morphology Characterization: A 
+% Quantitative Analysis of the Key Methodological Steps, Entropy, 2021
+% https://doi.org/10.3390/e23060699
 %
-%   [1] Breher K. et al., Direct Modeling of Foveal Pit Morphology from 
-%   Distortion-Corrected OCT Images, Biomedical Optics Express, 2019.
+% [2] Breher K. et al., Direct Modeling of Foveal Pit Morphology from 
+% Distortion-Corrected OCT Images, Biomedical Optics Express, 2019.
 %
-%   [2] Ding Y. et al., Application of an OCT Data-Based Mathematical Model of  
-%   the Foveal Pit in Parkinson Disease, Journal fo Neural Transmission, 2014.
+% [3] Ding Y. et al., Application of an OCT Data-Based Mathematical Model 
+% of the Foveal Pit in Parkinson Disease, Journal fo Neural Transmission,
+% 2014.
 %
-%   [3] Dubis A.M. et al., "Reconstructing Foveal Pit Morphology from Optical 
-%   Coherence Tomography Imaging", British Journal of Ophthalmology, 2009.
+% [4] Dubis A.M. et al., "Reconstructing Foveal Pit Morphology from Optical 
+% Coherence Tomography Imaging", British Journal of Ophthalmology, 2009.
 %
-%   [4] Liu L. et al., Sloped Piecemeal Gaussian Model for Characterising 
-%   Foveal Pit Shape, Ophthalmic Physiological Optics, 2016.
+% [5] Liu L. et al., Sloped Piecemeal Gaussian Model for Characterising 
+% Foveal Pit Shape, Ophthalmic Physiological Optics, 2016.
 %
-%   [5] Scheibe P. et al., Parametric Model for the 3D Reconstruction of
-%   Individual Fovea Shape from OCT Data, Experimental Eye Research, 2014.
+% [6] Scheibe P. et al., Parametric Model for the 3D Reconstruction of
+% Individual Fovea Shape from OCT Data, Experimental Eye Research, 2014.
 %
-%   [6] Yadav S. et al., CuBe: Parametric Modeling of 3D Foveal Shape Using 
-%   Cubic Bézier, Biomedical Optics Express, 2017.
-%
-%
-%   Example 1
-%   ---------      
-%   % Example description
-%
-%     I = [1 1 5 6 8 8;2 3 5 7 0 2; 0 2 3 5 6 7];
-%     [GLCMS,SI] = graycomatrix(I,'NumLevels',9,'G',[])
-%     
-%
-%  
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
-
+% [7] Yadav S. et al., CuBe: Parametric Modeling of 3D Foveal Shape Using 
+% Cubic Bézier, Biomedical Optics Express, 2017.
 
 % Parse inputs
 p = inputParser;

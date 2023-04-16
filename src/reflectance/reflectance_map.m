@@ -1,84 +1,75 @@
 function R = reflectance_map(bscan, method, metric, seg, varargin)
-%REFLECTANCE_MAP Createa 2D map (en-face image) of each A-Scan reflectance
+% Create a 2D map (en-face image) of each A-Scan reflectance
 %
-%   R = reflectance_map(bscan, method, metric, seg, varargin)
-%   Creates a 2D point map of reflectance. Reflectance may be derived from
-%   raw voxel intensities, normalized intensities or attenuation
-%   coefficient.
 %
-%   Input arguments:
-%  
-%   'bscan'          3D Volume with b-scans images.          
+% Input arguments (mandatory)
+% ---------------------------
+% * **bscan**:          3D Volume with b-scans images.          
 %
-%   'method'         Method to compute reflectance.
-%                    Default = 'raw'
-%                    Options = ['raw', 'normalized', 'attenuation']
+% * **method**:         Method to compute reflectance.
+% 
+%   - 'raw' (default)
+%   - 'normalized'
+%   - 'attenuation'
 %
-%   'metric'         Metric to be used.
-%                    Default = 'mean'
-%                    Options = ['mean', 'total', 'layer_index']
+% * **metric**:         Metric to be used.
+% 
+%   - 'mean'
+%   - 'total'
+%   - 'layer_index'
 %     
-%   'seg'            Struct with boundary segmentation data (in voxel units
-%                    measured from the top of each B-Scan). The dimensions
-%                    must match the provided volume (bscan). If not
-%                    provided, all the voxels in each ascan are used.
+% * **seg**:            Struct with boundary segmentation data (in voxel units measured from the top of each B-Scan). The dimensions must match the provided volume (bscan). If not provided, all the voxels in each ascan are used.
 %
-%   'varargin'       Optional parameters from the list:
 %
-%                    'scale_z' (double): axial (depth) resolution of the image.
-%                    Necessary if the metric is 'total reflectance'.
+% Input argumenta (optional)
+% --------------------------
+% * **scale_z**: axial (depth) resolution of the image. Necessary if the metric is 'total reflectance'.
 %
-%                    'top' Name of the upper boundary of the layer to be
-%                    analyzed. It must correspond to a field in seg.        
+% * **top**: Name of the upper boundary of the layer to be analyzed. It must correspond to a field in seg.        
 %  
-%                    'bottom' Name of the bottom boundary of the layer to be
-%                    analyzed. It must correspond to a field in seg.     
+% * **bottom**: Name of the bottom boundary of the layer to be analyzed. It must correspond to a field in seg.     
 %
-%                    If only one optional argument is provided that is assumed
-%                    to be scale_z. When two optionals are provided then those
-%                    are considered as top/bottom boundaries. When the three
-%                    are provided they are assumed in the order: scale_z, top
-%                    and bottom.
+% If only one optional argument is provided that is assumed to be scale_z.
+% When two optionals are provided then those are considered as top/bottom
+% boundaries. When the three are provided they are assumed in the order:
+% scale_z, top and bottom.
 %
 %
-%   Output arguments:
-%  
-%   'R'              2D matrix with reflectance values.        
+% Output arguments
+% ---------------- 
+% * **R**:              2D matrix with reflectance values.        
 %  
 %
+% Notes
+% -----
+% Reflectance may be derived from raw voxel intensities, normalized
+% intensities or attenuation coefficient.
+% 
+% When using 'normalized', reflectance is corrected based on the vitreous
+% and the RPE layer. See normalize_reflectance.m for details.
 %   
-%   Notes
-%   -----
-%   When using 'normalized', reflectance is corrected based on the vitreous
-%   and the RPE layer. See normalize_reflectance.m for details.
-%   
-%   Attenuation coefficient computation relies on several assumptions on
-%   the optical properties of the tissue. See compute_attenuation.m for
-%   details.
+% Attenuation coefficient computation relies on several assumptions on
+% the optical properties of the tissue. See compute_attenuation.m for
+% details.
 %
-%   'layer_index' metric is described in [1]. It includes a sort of
-%   normalization at a bscan level (the 99 percentile is used for 
-%   normalization).
+% 'layer_index' metric is described in [1]. It includes a sort of
+% normalization at a bscan level (the 99 percentile is used for 
+% normalization).
 %
 %
-%   References
-%   ----------
-%   [1] Varga et al., "Investigating Tissue Optical Properties and Texture
-%   Descriptors of the Retina in Patients with Multiple Sclerosis", PLos One,
-%   2015
+% References
+% ----------
+% [1] Varga et al., "Investigating Tissue Optical Properties and Texture
+% Descriptors of the Retina in Patients with Multiple Sclerosis", PLos One,
+% 2015
 %
 %
+% Example
+% -------      
+% .. code-block:: matlab
 %
-%   Example
-%   ---------      
-%   % Basic reflectance map calculation
-%
-%     [header, seg, bscan] = read_vol('my_file.vol');
-%     R = reflectance_map(bscan, seg, 'MR', 'ILM', 'RPE')   
-%
-%  
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
+%   [header, seg, bscan] = read_vol('my_file.vol');
+%   R = reflectance_map(bscan, seg, 'MR', 'ILM', 'RPE')   
 
 if nargin < 2
     method = 'raw';

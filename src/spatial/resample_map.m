@@ -1,73 +1,59 @@
 function [X1, Y1, Z1] = resample_map(X, Y, Z, grid_type, varargin)
-%RESAMPLE_MAP Resample a 2D map into a new grid by interpolation/extrapolation
+% Resample a 2D map into a new grid by interpolation/extrapolation
 %
-%   [X1, Y1, Z1] = resample_map(X, Y, Z, grid_type, varargin)
-%   Rarange a thickness map into a new grid by means of interpolation and
-%   extrapolation.
 %
-%   Input arguments (mandatory):
-%  
-%   'X'              Original X coordinates.
+% Input arguments (mandatory)
+% --------------------------- 
+% * **X**:              Original X coordinates.
 %
-%   'Y'              Original Y coordinates.
+% * **Y**:              Original Y coordinates.
 %
-%   'Z'              Original Z values (e.g., thickness values).
+% * **Z**:              Original Z values (e.g., thickness values).
 %            
-%   'grid_type'      String specifying the resampling grid type. Depending on 
-%                    grid type it must be followed by specific extra arguments.
-%                    Options: ['regular', 'star']
+% * **grid_type**:      String specifying the resampling grid type. Depending on the grid type it must be followed by specific extra arguments. Options: ['regular', 'star']
 %
 %
-%   Input arguments (name/value pair)
+% Input arguments (name/value pair)
+% ---------------------------------  
+% * **max_d**:          Maximum X and Y values ('regular') or radius ('star')
 %
-%   'n_point'        Meaning for each grid_type:
-%                    - 'regular': number of points in X and Y directions
-%                    - 'star': number points from 0 to max_d
+% * **n_point**:        If grid_type == 'regular', the number of points in X and Y directions. If 'star', the number points from 0 to max_d
 %
-%   'max_d'          Distance to cover. Meaning for each grid_type:
-%                    - 'regular': maximum X and Y values
-%                    - 'star': maximum radius
-%
-%   'n_angle'        Number of directions to use (when the grid_type is 'star')
+% * **n_angle**:        Number of directions to use (when the grid_type is 'star')
 %                    
-%   'theta_0'        Initial angle for star resampling
+% * **theta_0**:        Initial angle for star resampling
 %
-%   'interp_method'  interpolation method ['linear','cubic']
-%                    Default: 'linear'
+% * **interp_method**:  Interpolation method ['linear' (default),'cubic']
 %   
-%   'extrapolate'    If true then points with NaN outside the original range 
-%                    are extrapolated.
-%                    Default: false  
+% * **extrapolate**    If true then points with NaN outside the original range are extrapolated. Default: false  
 %  
 %
-%   Output arguments:
+% Output arguments
+% ---------------- 
+% * **X1**             New X coordinates.
+%
+% * **Y1**             New Y coordinates.
+%
+% * **Z1**             New Z values.
 %  
-%   'X1'             New X coordinates.
 %
-%   'Y1'             New Y coordinates.
-%
-%   'Z1'             New Z values.
-%  
-%
-%   Notes
-%   -----
-%   If the region to cover is bigger than the original data region it might not
-%   be possible to extrapolate values accurately.
+% Notes
+% -----
+% If the region to cover is bigger than the original data region it might
+% not be possible to extrapolate values accurately.
 %
 %
-%   Example
-%   ---------      
-%   % Resample original a-scans to a regular grid
+% Example
+% -------      
+% Resample original A-scans into a regular grid
+%
+% .. code-block:: matlab
 %
 %   [header, seg, ~, ~] = read_vol(myfile.vol, 'coordinates');
 %   Thickness = compute_thickness(seg, 'TRT', header.scale_z);
 %
 %   [X, Y, TRT] = resample_map(header.X_oct, header.Y_oct, Thickness.TRT, ...
 %   'regular', 'n_point', 100, 'max_d', 2.5);
-%
-%  
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022.
 
 if mod(nargin,2) ~=0
     error('Number of arguments must be even');

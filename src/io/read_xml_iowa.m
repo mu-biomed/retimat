@@ -59,7 +59,7 @@ function [header, seg] = read_xml_iowa(file, varargin)
 %
 % Example
 % -------      
-% Extract data from iowa xml segmentation
+% .. code-block:: matlab
 %
 %   [header, seg] = read_xml_iowa('my_file_Surfaces_Iowa.xml')
 

@@ -1,24 +1,17 @@
 function [X, Y] = get_ascan_coordinates(header)
-%GET_ASCAN_COORDINATES Compute A-scan coordinates (X, Y)
+% Compute A-scan coordinates (X, Y) based on the scanning protocol
 %
-%   [X, Y] = get_ascan_coordinates(header)
-%   Uses the information regarding the scanning protocol to compute A-scan
-%   coordinate grid.
 %
-%   Input arguments:
-%  
-%   'header'         File header obtained when reading an OCT file.
-%  
+% Input arguments
+% --------------- 
+% * **header**: File header obtained when reading an OCT file.
+% 
 %
-%   Output arguments:
-%  
-%   'X'              X coordinates pointing temporal to nasal.
+% Output arguments
+% ---------------- 
+% * **X**:      2D matrix with X coordinates pointing temporal to nasal.
 %
-%   'Y'              Y coordinates pointing inferior to superior.
-%
-%  
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
+% * **Y**:      2D matrix with Y coordinates pointing inferior to superior.
 
 switch header.bscan_pattern
     case 'raster'

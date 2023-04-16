@@ -1,56 +1,48 @@
 function stacked = stack_bscans(bscan, seg, layers)
-%stacked = STACK_BSCANS(bscan, layers)
+% Stack the bscan portion showing the same layer into the a single image as 
+% proposed in [1].
 %
-%   stacked = stack_bscans(bscan, seg, layers)
-%   Stack the bscan portion showing the same layer into the a single image as 
-%   proposed in [1].
 %
-%   Input arguments:
-%  
-%   'bscan'          Matrix with B-scans of dimensions n_axial x n_ascan x 
-%                    n_bscan.
+% Input arguments
+% ---------------
+% * **bscan**:       Matrix with B-scans of dimensions n_axial x n_ascan x n_bscan.
 %            
-%   'seg'            Struct with segmentation data.
+% * **seg**:         Struct with segmentation data.
 %
-%   'layers'         String or a cell array of strings with the name of the
-%                    layer to be stacked. Note that, depending on the layer of
+% * **layers**:      String or a cell array of strings with the name of the layer to be stacked. Note that, depending on the layer of
 %                    interest, the segmentation must follow a certain naming
 %                    convention (see the beggining of the function).
 %  
 %
-%   Output arguments:
-%  
-%   'stacked'        Struct with a stacked b-scan for each layer in layers.          
+% Output arguments
+% ---------------- 
+% * **stacked**:     Struct with a stacked b-scan for each layer in layers.          
 %  
 %
 %   
-%   Notes
-%   -----
-%   The stacking process is sensitive to NaN values in the segmentation. This
-%   function performs a rough extrapolation of NaN values that may not work if
-%   the number of NaN values is high.
+% Notes
+% -----
+% The stacking process is sensitive to NaN values in the segmentation. This
+% function performs a rough extrapolation of NaN values that may not work
+% if the number of NaN values is high.
 %
 %
-%   References
-%   ----------
-%   [1] Tazarjani, Retinal OCT Texture Analysis for Differentiating Healthy
-%   Controls from Multiple Sclerosis (MS) with/without Optic Neuritis,
-%   BioMed Research International, 2021. https://doi.org/10.1155/2021/5579018
+% References
+% ----------
+% [1] Tazarjani, Retinal OCT Texture Analysis for Differentiating Healthy
+% Controls from Multiple Sclerosis (MS) with/without Optic Neuritis,
+% BioMed Research International, 2021. https://doi.org/10.1155/2021/5579018
 %
 %
-%   Example
-%   ---------      
-%   % Generate stacked b-scans of RNFL and GCIP layers
+% Example
+% -------      
+% Generate stacked b-scans of RNFL and GCIPL layers
+% ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+% .. code-block:: matlab
 %
 %     [~, seg, bscan] = read_vol(file);
 %     layers = {'RNFL', 'GCIPL'};
 %     stacked = stack_bscans(bscan, seg, layers)
-%     
-%
-%  
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
-
 
 layer_top_bottom = {'RNFL',     'ILM',        'RNFL_GCL';
                     'GCL',      'RNFL_GCL',   'GCL_IPL';

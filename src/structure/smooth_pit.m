@@ -1,16 +1,14 @@
 function [Z_smooth, rmse] = smooth_pit(rho, Z, span)
-%SMOOTH_PIT Smooth the foveal pit based on LOESS
+% Smooth the foveal pit based on LOESS smoothing
 %
-%   Z_smooth = smooth_pit(rho, Z, span)
-%   Returnes a smoothed version of Z based on LOESS smoothing.
 %
-%   Input arguments:
+% Input arguments
+% --------------- 
+% * **rho**:         Matrix with radial coordinates of thickness values.          
 %  
-%   'rho'            Matrix with radial coordinates of thickness values.          
-%  
-%   'Z'              Matrix with foveal pit values.           
+% * **Z**:           Matrix with foveal pit values.           
 %    
-%   'span'           Percentage of samples included in each window.
+% * **span**:        Percentage of samples included in each window.
 %
 %
 %   Output arguments:
@@ -18,22 +16,21 @@ function [Z_smooth, rmse] = smooth_pit(rho, Z, span)
 %   'Z_smooth'       Smoothed version of the thickness map.
 %
 %   
-%   Notes
-%   -----
-%   The function expects the data in radial format: [n_angle x n_points].
-%   To use it for entire B-Scans convert data to radial format first.
+% Notes
+% -----
+% The function expects the data in radial format: [n_angle x n_points].
+% To use it for entire B-Scans convert data to radial format first.
 %
 %
-%   References
-%   ----------
-%   [1] Romero-Bascones et al., Foveal Pit Morphology Characterization: A 
-%   Quantitative Analysis of the Key Methodological Steps, Entropy, 2021
-%   https://doi.org/10.3390/e23060699
+% References
+% ----------
+% [1] Romero-Bascones et al., Foveal Pit Morphology Characterization: A 
+% Quantitative Analysis of the Key Methodological Steps, Entropy, 2021
+% https://doi.org/10.3390/e23060699
 %
-%
-%   Example
-%   ---------      
-%   % Example description
+% Example
+% -------      
+% .. code-block:: matlab
 %
 %   [header, seg]  = read_vol('my_file.vol','coordinates');
 %   Thickness = compute_thickness(seg, 'TRT');
@@ -41,9 +38,6 @@ function [Z_smooth, rmse] = smooth_pit(rho, Z, span)
 %   'star', 'n_point', 100, 'max_d', 2.4, 'n_angle', n_angle);     
 %   [theta, rho] = cart2pol(X, Y);
 %   TRT_smooth = smooth_pit(rho, TRT, 20);     
-%
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
 
 if nargin ~= 3
     error(['3 input arguments are expected but ' nargin ' where provided']);

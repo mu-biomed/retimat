@@ -1,62 +1,46 @@
 function plot_sectors(Z, Sectors, varargin)
-%PLOT_SECTORS Visualize sectorization results
+% Visualize sectorization results
 %
-%   plot_sectors(Z, Sectors, n_point)
-%   Visualize sectorization results
 %
-%   Input arguments (mandatory):
-%  
-%   'Z'              Values of each sector.
+% Input arguments (mandatory)
+% ---------------------------
+% * **Z**:              Values of each sector.
 %                    
-%   'Sectors'        Struct defining the sectorization. Either manually defined
-%                    or obtained after using sectorize_map().
+% * **Sectors**:        Struct defining the sectorization. Either manually defined or obtained after using sectorize_map().
 %
 %
-%   Input arguments (name/value pair):
+% Input arguments (name/value pair)
+% ---------------------------------
+% * **n_point**:     Number of points in each non-straight line segment. Higher number increases resolution and computation time. Default: 50.
 %
-%   'n_point'        Number of points in each non-straight line segment. Higher
-%                    number increases resolution and computation time.
-%                    Default: 50
+% * **alpha**:       Transparency of patches. Range: [0,1]. Default: 1. 
 %
-%   'alpha'          Transparency of patches. Range: [0,1]. 
-%                    Default: 1 
+% * **edge_color**:  Color of the edges of each patch. Default: 'k' (black).
 %
-%   'edge_color'     Color of the edges of each patch.
-%                    Default: 'k' (black)
+% * **axis_off**:    Set it to true to hide axis. Default: true.
 %
-%   'axis_off'       Set it to true to hide axis.
-%                    Default: 'true'
-%
-%   'axis_equal'     Set it to true to set a aspect ratio of 1.
-%                    Default: 'true'
+% * **axis_equal**:  Set it to true to set a aspect ratio of 1. Default: true.
 %
 %
-%   References
-%   ----------
-%   [1] Eric (2020). donut (https://www.github.com/ericspivey/donut), GitHub.
-%   Retrieved January 29, 2020. (Used to create the plot_patch function).
-%
-%
-%   Notes
-%   -----
-%   ETDRS sectorization is defined as a structure with fields:
+% Notes
+% -----
+% ETDRS sectorization is defined as a structure with fields:
 %   - type: 'wedge'
 %   - radius: [0.5 1.5 3]
 %   - n_angle = 4
 %   - theta_0 = -pi/4
 %
 %
-%   Example
-%   ---------      
-%   % Plot ETDRS sectorization
+% Example
+% -------      
+% Plot ETDRS sectorization
+% ^^^^^^^^^^^^^^^^^^^^^^^^
+% .. code-block:: matlab
 %
 %   [header, seg] = read_vol(file, 'verbose', 'get_coordinates');
 %   Thickness = compute_thickness(seg, 'TRT', header.scale_z);
 %   [TRT, Sectors] = sectorize_map(X, Y, TRT, 'mean', 'etdrs');
 %   plot_sectors(TRT, Sectors);
-%  
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2023
 
 parsed = parse_inputs(varargin);
 

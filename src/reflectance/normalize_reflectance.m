@@ -1,62 +1,54 @@
 function bscan_norm = normalize_reflectance(bscan, seg, method)
-%NORMALIZE_REFLECTANCE Normalize B-scan reflectance.
-%
-%   bscan_norm = normalize_reflectance(bscan, seg, method)
-%   Normalize the intensity (reflectance) of one or more bscans based on the
-%   reflectance of the RPE layer.
+% Normalize the intensity (reflectance) of one or more bscans based on the
+% reflectance of the RPE layer.
 %
 %
-%   Input arguments:
+% Input arguments
+% --------------- 
+% * **bscan**:       Matrix with B-scans of dimensions n_axial x n_ascan x N_bscan. If 2D matrix then it will be interpreted as a single B-scan.
 %  
-%   'bscan'          Matrix with B-scans of dimensions n_axial x n_ascan x 
-%                    n_bscan. If 2D matrix then it will be interpreted as a
-%                    single B-scan.
+% * **seg**:         Struct with the segmentation of the ILM, IZ_RPE and BM.
 %  
-%   'seg'            Struct with the segmentation of the ILM, IZ_RPE and BM.
-%  
-%   'method'         Method used to normalize. Use 'ascan' to normalize each
-%                    ascan separately and 'bscan' to normalize each bscan as a
-%                    whole. Default: 'bscan'.
+% * **method**:      Method used to normalize.
+% 
+%   - 'ascan': to normalize each A-scan separately
+%   - 'bscan': to normalize each B-scan as a whole (default).
 %
 %  
-%   Output arguments:
-%  
-%   'bscan_norm'     Normalized bscan images.          
+% Output arguments
+% ---------------- 
+% * **bscan_norm**:  Normalized bscan images.          
 %  
 %   
-%   Notes
-%   -----
-%   This function relies on an accurate segmentation of the ILM, IZ_RPE and BM.
+% Notes
+% -----
+% This function relies on an accurate segmentation of the ILM, IZ_RPE and
+% BM.
 %
-%   The normalization sets the low and hight reflectance references to be the
-%   vitreous and the RPE, respectively. Can be thought as the % of deviation
-%   from those parametesr. Values outside [0,100] are expected.
+% The normalization sets the low and hight reflectance references to be the
+% vitreous and the RPE, respectively. Can be thought as the % of deviation
+% from those parametesr. Values outside [0,100] are expected.
 %
-%   The performance might be somewhat slow due to the necessity of looping 
-%   through all the A-scans. There might be computational improvements using 
-%   poly2mask but that needs to be adapted to handle NaNs properly (usual in
-%   segmentation). It might be also cleaner to use here reflectance_map to
-%   avoid duplicated code.
-%
-%
-%   References
-%   ----------
-%   [1] Sharafeldeen, Precise higher‐order refectivity and morphology models
-%   for early diagnosis of diabetic retinopathy using OCT images, Scientific
-%   Reports, 2021. https://doi.org/10.1038/s41598-021-83735-7
+% The performance might be somewhat slow due to the necessity of looping 
+% through all the A-scans. There might be computational improvements using 
+% poly2mask but that needs to be adapted to handle NaNs properly (usual in
+% segmentation). It might be also cleaner to use here reflectance_map to
+% avoid duplicated code.
 %
 %
-%   Example
-%   ---------      
-%   % Load a .vol file and normalize the reflectance
+% References
+% ----------
+% [1] Sharafeldeen, Precise higher‐order refectivity and morphology models
+% for early diagnosis of diabetic retinopathy using OCT images, Scientific
+% Reports, 2021. https://doi.org/10.1038/s41598-021-83735-7
 %
+%
+% Example
+% -------      
+% .. code-block:: matlab
+% 
 %     [~,seg,bscan] = read_vol('my_file.vol');
 %     bscan_norm = normalize_reflectance(bscan, seg);
-%
-%
-%  
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
 if ismatrix(bscan)
     [n_axial, n_ascan] = size(bscan);

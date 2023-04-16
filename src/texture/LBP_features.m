@@ -1,49 +1,29 @@
 function [X, LBP_hist] = LBP_features(I, n_neighbor, features)
-%LBP_features Compute features using Local Binary Pattern 
+% Compute features using Local Binary Pattern 
 %
-%   X = LBP_features(I, n_neighbor, features)
-%   Detail explanation goes here
 %
-%   Input arguments:
-%  
-%   'I'              Input grayscale image to be analyzed.
+% Input arguments
+% ---------------
+% * **I**:           Input grayscale image to be analyzed.
 %
-%   'n_neighbor'     Number of neighbors. Default is 8
+% * **n_neighbor**:  Number of neighbors. Default is 8.
 %
-%   'features'       String or a cell array of strings defining the nmerical   
-%                    features to be computed. By default all the features will   
-%                    be returned. If 'none' then no features are computed and 
-%                    only the LBP histogram is returned.
+% * **features**:    String or a cell array of strings defining the nmerical features to be computed. By default all the features are returned. If 'none' then no features are computed and only the LBP histogram is returned.
 %  
 %  
-%   Output arguments:
-%  
-%   'X'              Struct with features computed from LBP histogram.
+% Output arguments
+% ---------------- 
+% * **X**:           Struct with features computed from LBP histogram.
 %
-%   'H'              LBP histogram
+% * **H**:           LBP histogram.
 %
 %   
-%   Notes
-%   -----
-%   
-%
-%
-%   References
-%   ----------
-%   [1] 
-%
-%   Example 1
-%   ---------      
-%   % Example description
+% Example
+% -------      
+% .. code-block:: matlab
 %
 %     I = imread('cameraman.tif');
 %     X = LBP_features(I, 8)
-%     
-%
-%  
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
-
 
 if nargin == 1
     n_neighbor = 8;

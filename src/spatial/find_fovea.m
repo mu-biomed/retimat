@@ -1,57 +1,49 @@
 function [x_fovea, y_fovea] = find_fovea(X, Y, TRT, method, max_d)
-%FIND_FOVEA Find foveal center based on total retinal thickness (TRT) map
+% Find foveal center based on total retinal thickness (TRT) map.
 %
-%   [x_fovea, y_fovea] = template(X, Y, TRT, method)
-%   Returns x and y coordinates of the foveal center
 %
-%   Input arguments:
+% Input arguments
+% --------------- 
+% * **X**:              Matrix with X coordinates of each A-Scan.
+%
+% * **Y**:              Matrix with Y coordinates of each A-Scan.
+%
+% * **TRT**:            Matrix with total retinal thickness values.            
+%
+% * **method**:         Method used to find the foveal center. Options ['none', 'min', 'resample_min', 'smooth_min']
 %  
-%   'X'              Matrix with X coordinates of each A-Scan.
+% * **max_d**:          Maximum alignment error. Default: 0.85
 %
-%   'Y'              Matrix with Y coordinates of each A-Scan.
 %
-%   'TRT'            Matrix with total retinal thickness values.            
+% Output arguments
+% ---------------- 
+% * **x_fovea**:        X coordinate of the foveal center.          
 %  
-%   'method'         Method used to find the foveal center.
-%                    Default: 'smooth_min'
-%                    Options: ['none', 'min', 'resample_min', 'smooth_min']
-%   
-%   'max_d'          Maximum alignment error.
-%                    Default: 0.85
-%
-%
-%   Output arguments:
-%  
-%   'x_fovea'        X coordinate of the foveal center.          
-%  
-%   'y_fovea'        Y coordinate of the foveal center.
+% * **y_fovea**:        Y coordinate of the foveal center.
 %   
 %
-%   Notes
-%   -----
-%   The smooth+min method is based on the foveafinder.m function
-%   of AURA Tools. If you use it, please provide appropriate credit to the
-%   original work (https://www.nitrc.org/projects/aura_tools/).
+% Notes
+% -----
+% The ``smooth+min`` method is based on the ``foveafinder.m`` function of
+% AURA tools. If you use it, please provide appropriate credit to the
+% original work (https://www.nitrc.org/projects/aura_tools/).
 %
 %
-%   References
-%   ----------
-%   [1] Romero-Bascones et al., Foveal Pit Morphology Characterization: A 
-%   Quantitative Analysis of the Key Methodological Steps, Entropy, 2021
-%   https://doi.org/10.3390/e23060699
+% References
+% ----------
+% [1] Romero-Bascones et al., Foveal Pit Morphology Characterization: A 
+% Quantitative Analysis of the Key Methodological Steps, Entropy, 2021
+% https://doi.org/10.3390/e23060699
 %   
-%   Example 
-%   ---------      
-%   % Example description
+% Example
+% -------      
 %
-%     file = '../data/raster.vol';
-%     [header, seg, ~, ~] = read_vol(file, 'coordinates');
-%     Thickness = compute_thickness(seg, 'TRT', header.scale_z);
-%     [x_fovea, y_fovea] = find_fovea(header.X, header.Y, Thickness.TRT)
-%  
-%
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
+% .. code-block:: matlab
+% 
+%   file = '../data/raster.vol';
+%   [header, seg, ~, ~] = read_vol(file, 'coordinates');
+%   Thickness = compute_thickness(seg, 'TRT', header.scale_z);
+%   [x_fovea, y_fovea] = find_fovea(header.X, header.Y, Thickness.TRT)
 
 if nargin == 3
     method = 'smooth_min';

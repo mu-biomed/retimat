@@ -1,16 +1,26 @@
-% function spiderPlot(Data1,Data2,varargin)
-function spider_plot(Data,varargin)
-% -------------------------
-% Data: matrix with N (observations)x M (angles)
-% param: (optional) structure with parameters for plotting configuration
-% -- center: mean or median
-% -- superior: interval superior value % percentile (e.g. 75)
-% -- inferior: interval inferior value % percentile (e.g. 25)
-% -- circleRadius: radius of the radar outer circle. Change to hide
-% outliers
-% -- plotDots: flag to overlay raw data points or not 
-%--------------------------
-% David Romero 24/04/2020
+function spider_plot(Data, varargin)
+% Visualize sectorization results
+%
+%
+% Input arguments (mandatory)
+% ---------------------------
+% * **Data**:          matrix with N (observations)x M (angles)
+%                 
+%
+% Input arguments (name/value pair)
+% ---------------------------------
+% * **param**:     structure with parameters for plotting configuration.
+%
+%   - center: 'mean' or 'median'
+%   - superior: interval superior value % percentile (e.g. 75)
+%   - inferior: interval inferior value % percentile (e.g. 25)
+%   - circleRadius: radius of the radar outer circle. Change to hide outliers
+%   - plotDots: flag to overlay raw data points or not 
+%
+%
+% Notes
+% -----
+% This is a legacy function that should be updated at some point.
 
 % Set default params
 center = 'mean';
