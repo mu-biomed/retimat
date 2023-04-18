@@ -121,6 +121,9 @@ if any([n_bscan n_ascan] > 10000) || any([n_bscan n_ascan] <= 0)
 end
 
 % Build the header
+header.patient_id     = deblank(patient_id);
+header.eye            = deblank(eye);
+
 switch scan_pattern
     case 2
         header.fixation      = 'onh';
@@ -136,8 +139,8 @@ switch scan_pattern
         header.bscan_pattern = 'unknown';        
 end
 
-header.n_ascan        = double(n_ascan);
 header.n_bscan        = double(n_bscan);
+header.n_ascan        = double(n_ascan);
 header.n_axial        = double(n_axial);
 header.scale_x        = scale_x;
 header.scale_y        = scale_y;
@@ -147,8 +150,6 @@ header.size_y_fundus  = double(size_y_fundus);
 header.scale_x_fundus = scale_x_fundus;
 header.scale_y_fundus = scale_y_fundus;
 header.fov_fundus     = fov_fundus;
-header.patient_id     = deblank(patient_id);
-header.eye            = deblank(eye);
 header.scan_focus     = scan_focus;
 
 if ~any([read_fundus read_seg read_bscan full_header get_coordinates])
