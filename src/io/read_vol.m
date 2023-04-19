@@ -14,7 +14,7 @@ function [header, segment, bscan, fundus] = read_vol(file, varargin)
 %
 %   - 'get_coordinates': retrieve fundus and A-Scan X, Y coordinates
 %
-%   - 'raw_voxel': return raw pixel reflectance instead of visualization-adapted values.
+%   - 'raw_pixel': return raw pixel reflectance instead of visualization-adapted values.
 %
 %
 % Output arguments
