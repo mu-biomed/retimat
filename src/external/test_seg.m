@@ -1,6 +1,9 @@
 close all;clc;clearvars;
 
-file = '/home/drombas/github/retimat/tutorials/data/example_raster.vol';
+% file = '/home/drombas/github/retimat/tutorials/data/example_raster.vol';
+
+file = 'C:\Users\dromero\Desktop\GITHUB\retimat\tutorials\data\example_raster.vol';
+addpath(genpath('C:\Users\dromero\Desktop\GITHUB\retimat'));
 
 % addpath(genpath('/home/drombas/github/retimat/src'));
 % [header, seg, bscan] = read_vol(file,'raw_pixel');
@@ -11,20 +14,23 @@ file = '/home/drombas/github/retimat/tutorials/data/example_raster.vol';
 % segment_layers_aura(bscan, header);
 
 %% AURA
-filenames = {file};
+[h, ~, bscan] = read_vol(file, 'raw_pixel');
+
+h.SizeX = h.n_ascan;
+h.SizeZ = h.n_axial;
+h.NumBScans = h.n_bscan;
+h.ScaleX = h.scale_x;
+h.ScaleZ = h.scale_z;
+h.Distance = h.scale_y;
+h.ScanPosition = h.eye;
+header = h;
 
 params.resizedata = true;
 params.minseg = false;
 params.smooth = true;
 params.segmethod = 1;
-params.gridradii = [500 1500 2500];
-params.logfile = false;
 params.printtoscreen = true;
-params.resultfolder = './Results';
-params.overwrite_results = true;
-params.saveXMLfiles = true;
-params.displaygrid = true;
 params.skip_completed = true;
 params.displayresult = true;
 
-seg_aura(file, params)
+segment_layers(bscan, h, params)
