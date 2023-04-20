@@ -14,23 +14,30 @@ addpath(genpath('C:\Users\dromero\Desktop\GITHUB\retimat'));
 % segment_layers_aura(bscan, header);
 
 %% AURA
-[h, ~, bscan] = read_vol(file, 'raw_pixel');
-
-h.SizeX = h.n_ascan;
-h.SizeZ = h.n_axial;
-h.NumBScans = h.n_bscan;
-h.ScaleX = h.scale_x;
-h.ScaleZ = h.scale_z;
-h.Distance = h.scale_y;
-h.ScanPosition = h.eye;
-header = h;
+[h, seg, bscan] = read_vol(file, 'raw_pixel');
 
 params.resizedata = true;
 params.minseg = false;
 params.smooth = true;
 params.segmethod = 1;
-params.printtoscreen = true;
-params.skip_completed = true;
-params.displayresult = true;
 
-segment_layers(bscan, h, params)
+seg2 = segment_layers(bscan, h, params);
+
+figure;
+subplot(121);
+imagesc(bscan(:,:,12).^0.25);colormap(gray);
+hold on;
+boundaries = fields(seg);
+for i=1:length(boundaries)
+    plot(seg.(boundaries{i})(12,:), 'Linewidth', 2);
+end
+legend(boundaries, 'Interpreter','none');
+
+subplot(122);
+imagesc(bscan(:,:,12).^0.25);colormap(gray);
+hold on;
+boundaries = fields(seg2);
+for i=1:length(boundaries)
+    plot(seg2.(boundaries{i})(12,:), 'Linewidth', 2);
+end
+legend(boundaries, 'Interpreter','none');

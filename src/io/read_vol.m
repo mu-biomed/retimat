@@ -121,8 +121,9 @@ if any([n_bscan n_ascan] > 10000) || any([n_bscan n_ascan] <= 0)
 end
 
 % Build the header
-header.patient_id     = deblank(patient_id);
-header.eye            = deblank(eye);
+header.patient_id = deblank(patient_id);
+header.eye        = deblank(eye);
+header.scanner    = 'heidelberg';
 
 switch scan_pattern
     case 2
@@ -140,8 +141,8 @@ switch scan_pattern
 end
 
 header.n_bscan        = double(n_bscan);
-header.n_ascan        = double(n_ascan);
 header.n_axial        = double(n_axial);
+header.n_ascan        = double(n_ascan);
 header.scale_x        = scale_x;
 header.scale_y        = scale_y;
 header.scale_z        = scale_z;
@@ -318,7 +319,6 @@ end
 % Save segmentation data
 if read_seg   
     segment.ILM = ILM;
-    segment.BM  = BM;
     
     if n_seg(1) > 2
         segment.RNFL_GCL = RNFL_GCL;
@@ -335,6 +335,8 @@ if read_seg
         segment.IZ_RPE  = IZ_RPE;
     end
     
+    segment.BM = BM;
+
     % Remove outliers if present
     layers = fields(segment);
     for i=1:length(layers)

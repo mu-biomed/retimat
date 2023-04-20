@@ -1,14 +1,78 @@
-function seg = segment_layers(img_vol, header, params)
+function seg = segment_layers_aura(bscan, header, varargin)
+% Segment retinal layers based on AURA Tools
+% IF YOU USE THIS FUNCTION PLEASE CITE THE ORIGINAL WORK [1][2].
+%
+%
+% Input arguments
+% --------------- 
+% * **bscan**:        3D matrix with B-scans.        
+%  
+% * **header**:       Struct with metadata.
+%
+% * **varargin**:     Optional parameters from the list:
+%                       
+%   - 'segmethod':    Followed by 1, 2 or 3.
+%
+%   - 'resizedata':   Resize the data.
+%
+%   - 'smooth_seg':   Smooth final segmentation results.
+%
+%   - 'minseg':       Minimum segmentation flag.
+%
+%
+% Output arguments
+% ---------------- 
+% * **seg**:        Structure with retinal layer segmentation.          
+%
+%
+% References
+% ----------
+% [1] A. Lang, A. Carass, M. Hauser, E. S. Sotirchos, P. A. Calabresi, 
+% H. S. Ying, J. L. Prince, "Retinal layer segmentation of macular OCT
+% images using boundary classification", Biomed. Opt. Express, vol. 4,
+% No. 7, pp. 1133-1152, 2013. http://dx.doi.org/10.1364/BOE.4.001133
+%
+% [2] P. Bhargava, A. Lang, O. Al-Louzi, A. Carass, S. Saidha, J. Prince,
+% P. A. Calabresi. "Cross-platform comparison of retinal layers in multiple
+% sclerosis utilizing a novel open-source optical coherence tomography
+% automated segmentation algorithm", 2014 Cooperative Meeting of CMSC and
+% ACTRIMS, Dallas, TX, International Journal of MS Care, vol. 16, No. S3,
+% pp. 11-12, 2014. http://dx.doi.org/10.7224/1537-2073-16.S3.1
+%
+%
+% Examples
+% --------         
+% Segment a vol file
+% ^^^^^^^^^^^^^^^^^^
+% .. code-block:: matlab
+%
+%     [header, ~, bscan] = read_vol('my_oct.vol')
+%     seg = segment_layers_aura(bscan, header);
 
-scanner_type = 'spectralis';
-segmethod    = 1;
-resizedata   = true;
-min_seg      = false;
+idx = find(strcmp(varargin, 'segmethod'));
+if isempty(idx)
+    segmethod = 2;
+else
+    segmethod = varargin{idx+1};
+end
 
-if strcmp(scanner_type, 'cirrus')
+resizedata = any(strcmp('resizedata', varargin));
+min_seg    = any(strcmp('min_seg', varargin));
+smooth_seg = any(strcmp('smooth_seg', varargin));
+
+% Adapt header for AURA
+header.SizeX        = header.n_ascan;
+header.SizeZ        = header.n_axial;
+header.NumBScans    = header.n_bscan;
+header.ScaleX       = header.scale_x;
+header.ScaleZ       = header.scale_z;
+header.Distance     = header.scale_y;
+header.ScanPosition = header.eye;
+
+if strcmp(header.scanner, 'cirrus')
     n_ascan = 512;
     model_filename = 'model_rf_edge_nf27_sr100_nv6_nb8_flat1_norm1_dn0__nt60_mt10_cirrus_28-Oct-2013';
-elseif strcmp(scanner_type,'spectralis')
+elseif strcmp(header.scanner, 'heidelberg')
     n_ascan = 1024;
     if min_seg
         model_filename = 'model_rf_edge_nf27_sr100_nv2_nb4_flat1_norm1_dn0_exp25_nt20_mt5_04-Dec-2013.mat';
@@ -19,7 +83,7 @@ else
     error("Unknown scanner");
 end
 
-%-- Check data size
+% Check data size
 sizeX = header.ScaleX*(double(header.SizeX)-1);
 sizeY = header.Distance*(double(header.NumBScans)-1);
 max_size = 7;
@@ -31,46 +95,46 @@ if sizeX > max_size || sizeY > max_size
         npx = round(3/header.ScaleX);
         cpx = round(double(header.SizeX)/2);
         cvals_x = (cpx-npx):(cpx+npx);
-        img_vol = img_vol(:,cvals_x,:);
-        header.SizeX = size(img_vol,2);
+        bscan = bscan(:,cvals_x,:);
+        header.SizeX = size(bscan,2);
     end
 
     if sizeY > max_size
         npx = round(3/header.Distance);
         cpx = round(double(header.NumBScans)/2);
         cvals_y = (cpx-npx):(cpx+npx);
-        img_vol = img_vol(:,:,cvals_y);
-        header.NumBScans = size(img_vol,3);
+        bscan = bscan(:,:,cvals_y);
+        header.NumBScans = size(bscan,3);
     end
     fprintf('done!\n');
 end
 
-vol_size_crop = size(img_vol);
-img_vol_crop = img_vol;
+vol_size_crop = size(bscan);
+img_vol_crop = bscan;
 
 % Resize A-scan number
-if resizedata && size(img_vol,2) ~= n_ascan
+if resizedata && size(bscan,2) ~= n_ascan
     fprintf('Resizing data to have %d A-scans...', n_ascan);
-    sc = n_ascan / size(img_vol, 2);
-    img_vol = imresize(img_vol,[size(img_vol,1) n_ascan]);
-    img_vol(img_vol < 0) = 0;
+    sc = n_ascan / size(bscan, 2);
+    bscan = imresize(bscan,[size(bscan,1) n_ascan]);
+    bscan(bscan < 0) = 0;
     header.ScaleX = header.ScaleX/sc;
     header.SizeX = n_ascan;
     fprintf('done!\n');
 end
 
 % Preprocessing
-img_vol(isnan(img_vol)) = 0;
+bscan(isnan(bscan)) = 0;
 
-img_vol = normalizeOCTVolume(img_vol, 2, header);
+bscan = normalizeOCTVolume(bscan, 2, header);
 
-if strcmp(scanner_type,'spectralis')
-    img_vol = img_vol.^0.25;
+if strcmp(header.scanner, 'heidelberg')
+    bscan = bscan.^0.25;
 end
 
 % Generate retina mask
-if strcmp(scanner_type,'spectralis')
-    [retina_mask, shifts, bds, nbpt] = retinaDetector2_scale(img_vol,header);
+if strcmp(header.scanner, 'heidelberg')
+    [retina_mask, shifts, bds, nbpt] = retinaDetector2_scale(bscan, header);
 else
     % Slightly different parameters for cirrus
     p.sigma_lat = 2*16.67;
@@ -78,29 +142,29 @@ else
     p.distconst = 96.68;
 
     % Need to median filter first
-    sz = size(img_vol);
+    sz = size(bscan);
     dn_k = [3 3 1];
-    img_vol = permute(img_vol,[2 1 3]);
-    img_vol = medfilt2(img_vol(:,:),[dn_k(2) dn_k(1)],'symmetric');
-    img_vol = reshape(img_vol,sz(2),sz(1),sz(3));
-    img_vol = permute(img_vol,[2 1 3]);
+    bscan = permute(bscan,[2 1 3]);
+    bscan = medfilt2(bscan(:,:),[dn_k(2) dn_k(1)],'symmetric');
+    bscan = reshape(bscan,sz(2),sz(1),sz(3));
+    bscan = permute(bscan,[2 1 3]);
 
-    img_vol = im2double(img_vol);
-    [retina_mask, shifts, bds, nbpt] = retinaDetector2_scale(img_vol,header,p,false,true);
+    bscan = im2double(bscan);
+    [retina_mask, shifts, bds, nbpt] = retinaDetector2_scale(bscan,header,p,false,true);
 end
 fprintf('done! (%d outlier points)\n',nbpt);
 
-if nbpt > 0.5*size(img_vol,2)
+if nbpt > 0.5*size(bscan,2)
     fprintf('Warning: poor fit of retina boundaries detected (%d outlier points). Check for artifacts in the data.\n',nbpt);
 end
 
 % Flattening
-img_vol = retinaFlatten(img_vol, shifts, 'linear');
+bscan = retinaFlatten(bscan, shifts, 'linear');
 retina_mask = retinaFlatten(retina_mask, shifts, 'nearest');
 
 % Flip if left eye
 if ~strncmp(header.ScanPosition, 'OD', 2)
-    img_vol = flip(img_vol, 2);
+    bscan = flip(bscan, 2);
     retina_mask = flip(retina_mask, 2);
     bds = flip(bds, 1);
 end
@@ -111,7 +175,7 @@ feat_list = train_params.feature_list;
 
 % Compute 3D spatial features
 if ~isempty(feat_list.vol)
-    feat_vol_3d = calculateFeatures3D(feat_list.vol,img_vol,...
+    feat_vol_3d = calculateFeatures3D(feat_list.vol,bscan,...
                                       retina_mask,header);   
 else
     feat_vol_3d = [];
@@ -125,8 +189,8 @@ bv = find(sc > 0, 1, 'last') + px_buf;
 if tv < 1
     tv = 1;
 end
-if bv > size(img_vol,1)
-    bv = size(img_vol,1);
+if bv > size(bscan,1)
+    bv = size(bscan,1);
 end
 
 % Crop
@@ -136,23 +200,23 @@ end
 
 % Run the images through the classifier in small groups for efficiency
 nGroup = 10; % slices per group
-inds = 1:nGroup:size(img_vol, 3);
+inds = 1:nGroup:size(bscan, 3);
 
 %-- Run each group of data through the classifier
-votes_vol = zeros([10 bv-tv+1 size(img_vol,2) size(img_vol,3)],'uint8');
+votes_vol = zeros([10 bv-tv+1 size(bscan,2) size(bscan,3)],'uint8');
 fprintf('Running data through boundary classifier...');
 for l = inds
     fprintf('%3.0f%% ',l / size(votes_vol, 4) * 100);
 
     % Size of current group
-    if (l+nGroup-1) > size(img_vol, 3)
-        ni = size(img_vol,3);
+    if (l+nGroup-1) > size(bscan, 3)
+        ni = size(bscan,3);
     else 
         ni = (l+nGroup-1);
     end
 
     % Get image group
-    img_grp = img_vol(:,:,l:ni);
+    img_grp = bscan(:,:,l:ni);
 
     % Calculate 2D features
     feat_vec = calculateFeatures2D(feat_list.img,img_grp,...
@@ -196,18 +260,16 @@ elseif segmethod == 1
 elseif segmethod == 3
     bd_pts = votesToSegmentation(votes_vol(:,:,:,2:end),'canny',header);
 else
-    error(fids,'error')
+    error("Unknown segmentation method")
 end
 
 clear votes_vol votes
     
 %-- Smoothing
-if params.smooth
-    fprintf('Smoothing results...')
+if smooth_seg
     ks = 25; % 25 um smoothing kernel
     bd_pts = imfilter(bd_pts, fspecial('gaussian', [31 1],ks/header.ScaleX/1000),'replicate');
     bd_pts = imfilter(bd_pts, fspecial('gaussian', [1 15],ks/header.Distance/1000),'replicate');
-    fprintf('done!\n');
 end
 
 if ~strncmp(header.ScanPosition,'OD',2)
@@ -226,20 +288,14 @@ end
 bd_pts(bd_pts < 1) = 1;
 bd_pts(bd_pts > size(img_vol_crop,1)) = size(img_vol_crop,1);
 
-seg.ILM     = bd_pts(:, 1);
-seg.NFL_GCL = bd_pts(:, 2);
-seg.IPL_INL = bd_pts(:, 3);
-seg.INL_OPL = bd_pts(:, 4);
-seg.OPL_ONL = bd_pts(:, 5);
-seg.ELM     = bd_pts(:, 6);
-seg.PHR     = bd_pts(:, 7);
-seg.RPE     = bd_pts(:, 8);
-seg.BM      = bd_pts(:, 9);
+bd_pts = permute(bd_pts, [2 1 3]);
 
-if params.displayresult
-    if strcmp(scanner_type,'spectralis')
-        octViewer(img_vol_crop.^0.25,bd_pts);
-    elseif strcmp(scanner_type,'cirrus')
-        octViewer(img_vol_crop,bd_pts);
-    end
-end
+seg.ILM     = bd_pts(:, :, 1);
+seg.NFL_GCL = bd_pts(:, :, 2);
+seg.IPL_INL = bd_pts(:, :, 3);
+seg.INL_OPL = bd_pts(:, :, 4);
+seg.OPL_ONL = bd_pts(:, :, 5);
+seg.ELM     = bd_pts(:, :, 6);
+seg.MZ_EZ   = bd_pts(:, :, 7);
+seg.OSP_IZ  = bd_pts(:, :, 8);
+seg.BM      = bd_pts(:, :, 9);
