@@ -126,12 +126,18 @@ header.eye        = deblank(eye);
 header.scanner    = 'heidelberg';
 
 switch scan_pattern
+    case 1
+        header.fixation      = 'unknown';
+        header.bscan_pattern = 'line';
     case 2
         header.fixation      = 'onh';
         header.bscan_pattern = 'peripapillary';
     case 3
         header.fixation      = 'macula';
         header.bscan_pattern = 'raster';
+    case 4
+        header.fixation      = 'unknown';
+        header.bscan_pattern = 'raster_fast';
     case 5
         header.fixation      = 'macula';
         header.bscan_pattern = 'star';

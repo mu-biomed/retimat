@@ -21,7 +21,7 @@ params.minseg = false;
 params.smooth = true;
 params.segmethod = 1;
 
-seg2 = segment_layers(bscan, h, params);
+seg2 = segment_layers_aura(bscan, h, params);
 
 figure;
 subplot(121);
@@ -34,7 +34,7 @@ end
 legend(boundaries, 'Interpreter','none');
 
 subplot(122);
-imagesc(bscan(:,:,12).^0.25);colormap(gray);
+imagesc(bscan(:,:,12).^0.25); colormap(gray);
 hold on;
 boundaries = fields(seg2);
 for i=1:length(boundaries)
