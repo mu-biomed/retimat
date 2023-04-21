@@ -107,9 +107,9 @@ for i_series = 1:n_series
     chunks_series = chunks(chunks.series_id == series_id(i_series),:);
 
     header{i_series}  = read_header(fid, chunks_series, patient_header);    
-    bscan{i_series}   = read_bscan(fid, chunks_series, verbose);
+    bscan{i_series}   = read_bscan(fid, chunks_series, header{i_series}, verbose);
     segment{i_series} = read_segmentation(fid, chunks_series);     
-    fundus{i_series}  = read_fundus(fid, chunks_series);      
+    fundus{i_series}  = read_fundus(fid, chunks_series, header{i_series});      
     
     if ~raw_pixel
         bscan{i_series} = bscan{i_series}.^0.25; % to make intensities visible
@@ -224,13 +224,18 @@ for ii=1:length(bscan_id)
     header.n_average(ii) = data.n_average;
 end
 
-function bscan = read_bscan(fid, chunks, verbose)
-global IMAGE_FLAG NA_FLAG
+function bscan = read_bscan(fid, chunks, header, verbose)
+global IMAGE_FLAG
 
 is_image = chunks.type == IMAGE_FLAG;
-is_bscan = chunks.bscan_id ~= NA_FLAG;
-     
-bscan_id = chunks.bscan_id(is_image & is_bscan);     
+
+% infer B-scans based on image flag and byte size
+% this could be safer if we read all images and organize b-scans after
+bscan_size = header.n_ascan * header.n_axial * 2 + 20;
+is_bscan = chunks.size == bscan_size;       
+bscan_id = chunks.bscan_id(is_image & is_bscan);  
+idx_bscan = find(is_image & is_bscan);
+
 n_bscan = length(bscan_id);
 
 if n_bscan == 0
@@ -243,12 +248,11 @@ if verbose
     disp(['Reading ' num2str(n_bscan) ' bscans']);
 end
      
-bscan_id = sort(bscan_id);
-     
-for i_bscan=1:n_bscan
-    is_bscan = chunks.bscan_id == bscan_id(i_bscan);
+[~, idx] = sort(bscan_id);
+idx_bscan = idx_bscan(idx);
 
-    start = chunks.start(is_bscan & is_image);
+for i_bscan=1:n_bscan
+    start = chunks.start(idx_bscan(i_bscan));
     fseek(fid, start, -1);
 
     data = parse_chunk(fid, IMAGE_FLAG);
@@ -261,11 +265,12 @@ for i_bscan=1:n_bscan
     bscan(:, :, i_bscan) = data.bscan;
 end  
     
-function fundus = read_fundus(fid, chunks)
-global IMAGE_FLAG NA_FLAG
+function fundus = read_fundus(fid, chunks, header)
+global IMAGE_FLAG
 
 is_image     = chunks.type == IMAGE_FLAG;
-is_not_bscan = chunks.bscan_id == NA_FLAG;
+bscan_size   = header.n_ascan * header.n_axial * 2 + 20;
+is_not_bscan = chunks.size ~= bscan_size;       
 
 if sum(is_image & is_not_bscan) == 0
     warning("No fundus image found in series.")
