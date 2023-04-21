@@ -53,6 +53,70 @@ if nargin <= 4
 end
 
 switch method
+    case 'flood'
+        n_seed   = 3000;
+        max_step = 30;
+        n_point  = 128;
+        
+        Z = TRT;
+        % not needed
+        % Z = round(255 * (Z - min(Z(:))) ./ (max(Z(:)) - min(Z(:))));
+        
+        hist2d = zeros(n_point, n_point);  % count of end pixels
+        
+        Z_flat = Z(:); % for indexing efficiency
+        for i_seed=1:n_seed
+            i = randi(n_point, 1);
+            j = randi(n_point, 1);
+
+            for i_step=1:max_step
+                fprintf('%d/%d step %d\n',i_seed, n_seed, i_step);
+
+                % Define suitable neighbors
+                neigh_i = [i-1   i i+1 i-1 i+1 i-1   i i+1];
+                neigh_j = [j-1 j-1 j-1   j   j j+1 j+1 j+1];
+
+                include = neigh_i > 0 & neigh_j > 0 & neigh_i <= n_point & neigh_j <=n_point;
+                if sum(include) == 0
+                    break;
+                end
+                
+                neigh_i = neigh_i(include);
+                neigh_j = neigh_j(include);
+                
+                % Compute gradient to neighbors
+                idx = sub2ind([n_point n_point], neigh_i, neigh_j);
+                d = Z_flat(idx) - Z(i, j);
+
+                % If no neighbors with smaller thickness
+                if all(d(~isnan(d)) >= 0)
+                    break;
+                end
+
+                % Select neighbor as new step
+                [~, idx_min] = min(d);
+                i = neigh_i(idx_min);
+                j = neigh_j(idx_min);
+            end
+
+            % If end point is an edge --> remove
+            if any([i j] == 1) || any([i j] == n_point)
+                continue;
+            end
+
+            % Increase count for the reached end point
+            idx = sub2ind([n_point n_point], i, j);
+
+            hist2d(i, j) = hist2d(i, j) + 1;    
+            Z(i, j) = Z(i, j) + 1;
+            Z_flat(idx) = Z_flat(idx) + 1;
+        end
+
+        [~, idx_fov] = max(hist2d(:));
+        [i_fov, j_fov] = ind2sub([n_point n_point], idx_fov);
+        x_fovea = X(i_fov, j_fov);
+        y_fovea = Y(i_fov, j_fov);
+        
     case 'none'
         x_fovea = 0;
         y_fovea = 0;
@@ -150,7 +214,7 @@ switch method
 
     otherwise
         error(strcat("Unsupported fovea location method. Valid options: ",...
-            "'none','min','resample_min','smooth_min'"));
+            "'flood','none','min','resample_min','smooth_min'"));
 end
 
 function [x_min, y_min] = find_min(X, Y, Z)
