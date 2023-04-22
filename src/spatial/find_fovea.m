@@ -58,7 +58,8 @@ switch method
         max_step = 30;
         n_point  = 128;
         
-        Z = TRT;
+        [X, Y, Z] = resample_map(X, Y, TRT, 'regular', 'n_point', n_point,...
+                                 'max_d', max(abs(X(:))));
         % not needed
         % Z = round(255 * (Z - min(Z(:))) ./ (max(Z(:)) - min(Z(:))));
         
@@ -70,7 +71,7 @@ switch method
             j = randi(n_point, 1);
 
             for i_step=1:max_step
-                fprintf('%d/%d step %d\n',i_seed, n_seed, i_step);
+%                 fprintf('%d/%d step %d\n',i_seed, n_seed, i_step);
 
                 % Define suitable neighbors
                 neigh_i = [i-1   i i+1 i-1 i+1 i-1   i i+1];
