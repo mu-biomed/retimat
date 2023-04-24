@@ -1,64 +1,56 @@
 function [header, segment, bscan, fundus] = read_fda(file, varargin)
-%READ_FDA Read Topcon OCT files (fda)
+% Reads the header, segmentation and images (OCT + fundus) contained in  
+% an .fda Topcon file. 
+%
+% Input arguments
+% ---------------
+% * **file**:        Path of the .fda file to read.
+%
+% * **varargin**:    Optional flags from the list:
+%
+%   - 'verbose': If provided, reading info is displayed.
+%   - 'get_coordinates': If provided A-scan coordinates are returned. 
+%
+%
+% Output arguments
+% ---------------- 
+% * **header**         Structure with .fda file header values.          
+%  
+% * **segment**        Segmenation data stored in the .fda file.
+%
+% * **bscan**          3D single image with B-Scans.
+%
+% * **fundus**         2D fundus image.
+%
+%
+% Notes
+% -----
+% This code is heavily based on [1,2], which were developed by reverse 
+% engineering fda files. Therefore, data read using this function may be
+% incomplete/incorrect.
+%
+% The reading process is as follows:
+% 
+% 1. Identify data chunks present in file (not all are always present)
+% 2. Read specific chunks with the relevant information
+%
+% 'get_coordinates' flag only works if the scanning pattern is horizontal
+% raster (pending to implement others).
+%
+%
+% References
+% ----------
+% [1] uocte documentation
+% https://bitbucket.org/uocte/uocte/wiki/Topcon%20File%20Format
+%
+% [2] OCT-Converter: https://github.com/marksgraham/OCT-Converter
+%
+%
+% Example
+% -------      
+% .. code-block:: matlab
 %
 %   [header, segment, bscan, fundus] = read_fda(file)
-%
-%   Reads the header, segmentation and images (bscan + fundus) contained in  
-%   an .fda Topcon file. 
-%
-%   Input arguments:
-%  
-%   'file'           Path of the .fda file to read.
-%
-%   'varargin'       Optional flags from the list:
-%
-%                    'verbose': If provided, reading info is displayed.
-%  
-%                    'get_coordinates': If provided A-scan coordinates are 
-%                    returned. This only works if the scanning pattern is
-%                    horizontal raster (pending to implement others).
-%
-%
-%   Output arguments:
-%  
-%   'header'         Structure with .fda file header values.          
-%  
-%   'segment'        Segmenation data stored in the .fda file.
-%
-%   'bscan'          3D single image with B-Scans.
-%
-%   'fundus'         2D fundus image.
-%
-%   
-%   Notes
-%   -----
-%   This code is heavily based on [1,2], which were developed by reverse 
-%   engineering fda files. Therefore, data read using this function may be
-%   incomplete/incorrect.
-%
-%   The reading process is as follows:
-%   1. Identify data chunks present in file (not all are always present)
-%   2. Read specific chunks with the relevant information
-%
-%
-%   References
-%   ----------
-%   [1] uocte documentation
-%   https://bitbucket.org/uocte/uocte/wiki/Topcon%20File%20Format
-%
-%   [2] OCT-Converter
-%   https://github.com/marksgraham/OCT-Converter
-%
-%
-%   Example
-%   ---------      
-%   % Read fda file
-%
-%     [header, segment, bscan, fundus] = read_fda(file)
-%     
-%  
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
 verbose         = any(strcmp('verbose', varargin));
 get_coordinates = any(strcmp('get_coordinates', varargin));

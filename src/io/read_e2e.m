@@ -1,69 +1,64 @@
 function [header, segment, bscan, fundus] = read_e2e(file, varargin)
-%read_e2e Read .e2e file exported from Spectralis OCT (Heidelberg Engineering)
+% Read metadata, segmentation, OCT and fundus images in .e2e/.E2E files from Spectralis OCT (Heidelberg Engineering)
 %
-%   [header, segment, bscan, slo] = read_e2e(file, options)
-%
-%   This function reads the header, segmentation and image information 
-%   contained in the .e2e/.E2E files. 
-%
-%   Input arguments:
+% Input arguments
+% --------------- 
+% * **file**:           String containing the path to the .vol file to be read.          
 %  
-%   'file'           String containing the path to the .vol file to be read.          
+% * **varargin**:       Optional parameters from the list:
+%                                             
+%   - 'verbose': Display header info during read.
+%   - 'raw_pixel': Display raw pixel intensities.
+%
+%
+% Output arguments
+% ----------------  
+% * **header**:         Structure with .vol file header values.          
 %  
-%   'varargin'       Optional parameters from the list:
-%                                              
-%                    'verbose': Display header info during read.
+% * **segment**:        Segmenation data stored in the .vol file.
 %
-%                    'raw_pixel': Display raw pixel intensities.
+% * **bscan**:          3D single image with B-Scans.
 %
-%
-%   Output arguments:
-%  
-%   'header'         Structure with .vol file header values.          
-%  
-%   'segment'        Segmenation data stored in the .vol file.
-%
-%   'bscan'          3D single image with B-Scans.
-%
-%   'fundus'         2D fundus image.
+% * **fundus**:         2D fundus image.
 %   
 %
-%   Notes
-%   -----
-%   This function was developed based on the previous reverse engineering 
-%   attempts [1-3] and is not an official file reader. Therefore, some of 
-%   the information retrieved can be incorrect/incomplete.
+% Notes
+% -----
+% This function was developed based on the previous reverse engineering 
+% attempts [1-3] and is not an official file reader. Therefore, some of 
+% the information retrieved can be incorrect/incomplete.
 %   
-%   Scan focus, scale_x, scale_y and acquisition pattern not found yet.
+% Scan focus, scale_x, scale_y and acquisition pattern are yet to be found.
 %
-%   Spectralis OCT data can be exported into both E2E and vol format. We
-%   recommend using the latter as it is easier to parse and it only stores
-%   a single eye and acquisition. 
+% Spectralis OCT data can be exported into both E2E and vol format. We
+% recommend using the latter as it is easier to parse and it only stores
+% a single eye and acquisition. 
 %
-%   References
-%   ----------
-%   [1] uocte documentation
-%   https://bitbucket.org/uocte/uocte/wiki/Topcon%20File%20Format
 %
-%   [2] OCT-Converter, https://github.com/marksgraham/OCT-Converter
+% References
+% ----------
+% [1] uocte documentation
+% https://bitbucket.org/uocte/uocte/wiki/Topcon%20File%20Format
+%
+% [2] OCT-Converter, https://github.com/marksgraham/OCT-Converter
 %   
-%   [3] LibE2E, https://github.com/neurodial/LibE2E
+% [3] LibE2E, https://github.com/neurodial/LibE2E
 %   
-%   Examples
-%   ---------      
-%   % Read all the information in a .e2e/.E2E file
+% Examples
+% --------      
+% Read all the information in a .e2e/.E2E file
+% ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+% .. code-block:: matlab
 %
-%     file = 'my_oct.e2e';
-%     [header, segment, bscan, fundus] = read_e2e(file)
+%    file = 'my_oct.e2e';
+%    [header, segment, bscan, fundus] = read_e2e(file)
 %     
+% Read only the header of the .e2e/.E2E file (faster)
+% ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+% .. code-block:: matlab
 %
-%   % Read only the header (faster) of the .e2e/.E2E file
-%     file = 'my_oct.e2e';
+%    file = 'my_oct.e2e';
 %     header = read_e2e(file)
-%
-%
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022
 
 verbose   = any(strcmp('verbose', varargin));
 raw_pixel = any(strcmp('raw_pixel', varargin));
@@ -112,9 +107,9 @@ for i_series = 1:n_series
     chunks_series = chunks(chunks.series_id == series_id(i_series),:);
 
     header{i_series}  = read_header(fid, chunks_series, patient_header);    
-    bscan{i_series}   = read_bscan(fid, chunks_series, verbose);
+    bscan{i_series}   = read_bscan(fid, chunks_series, header{i_series}, verbose);
     segment{i_series} = read_segmentation(fid, chunks_series);     
-    fundus{i_series}  = read_fundus(fid, chunks_series);      
+    fundus{i_series}  = read_fundus(fid, chunks_series, header{i_series});      
     
     if ~raw_pixel
         bscan{i_series} = bscan{i_series}.^0.25; % to make intensities visible
@@ -229,13 +224,18 @@ for ii=1:length(bscan_id)
     header.n_average(ii) = data.n_average;
 end
 
-function bscan = read_bscan(fid, chunks, verbose)
-global IMAGE_FLAG NA_FLAG
+function bscan = read_bscan(fid, chunks, header, verbose)
+global IMAGE_FLAG
 
 is_image = chunks.type == IMAGE_FLAG;
-is_bscan = chunks.bscan_id ~= NA_FLAG;
-     
-bscan_id = chunks.bscan_id(is_image & is_bscan);     
+
+% infer B-scans based on image flag and byte size
+% this could be safer if we read all images and organize b-scans after
+bscan_size = header.n_ascan * header.n_axial * 2 + 20;
+is_bscan = chunks.size == bscan_size;       
+bscan_id = chunks.bscan_id(is_image & is_bscan);  
+idx_bscan = find(is_image & is_bscan);
+
 n_bscan = length(bscan_id);
 
 if n_bscan == 0
@@ -248,12 +248,11 @@ if verbose
     disp(['Reading ' num2str(n_bscan) ' bscans']);
 end
      
-bscan_id = sort(bscan_id);
-     
-for i_bscan=1:n_bscan
-    is_bscan = chunks.bscan_id == bscan_id(i_bscan);
+[~, idx] = sort(bscan_id);
+idx_bscan = idx_bscan(idx);
 
-    start = chunks.start(is_bscan & is_image);
+for i_bscan=1:n_bscan
+    start = chunks.start(idx_bscan(i_bscan));
     fseek(fid, start, -1);
 
     data = parse_chunk(fid, IMAGE_FLAG);
@@ -266,11 +265,12 @@ for i_bscan=1:n_bscan
     bscan(:, :, i_bscan) = data.bscan;
 end  
     
-function fundus = read_fundus(fid, chunks)
-global IMAGE_FLAG NA_FLAG
+function fundus = read_fundus(fid, chunks, header)
+global IMAGE_FLAG
 
 is_image     = chunks.type == IMAGE_FLAG;
-is_not_bscan = chunks.bscan_id == NA_FLAG;
+bscan_size   = header.n_ascan * header.n_axial * 2 + 20;
+is_not_bscan = chunks.size ~= bscan_size;       
 
 if sum(is_image & is_not_bscan) == 0
     warning("No fundus image found in series.")

@@ -1,60 +1,47 @@
 function FD = fractal_dimension(I, method, visu)
-%fractal_dimension Compute Fractal Dimension of a grayscale image
-%
-%   FD = fractal_dimension(I)
-%   Computes the fractal dimension of a 2D grayscale image 
+% Compute Fractal Dimension of a grayscale image
 %
 %
-%   Input arguments:
-%  
-%   'I'              Input image as a 2D matrix. Color images are converted to
-%                    gray scale values.          
+% Input arguments
+% --------------- 
+% * **I**:           Input image as a 2D matrix. Color images are converted to gray scale values.          
 %
-%   'method'         Optional. String indicating the method to use for fractal 
-%                    dimension computation.
-%                    Options: 'DBC', 'IR_DBC' (see references [1] and [2], 
-%                    respectively)
-%                    Default = 'IR_DBC'
+% * **method**:      String indicating the method to use for fractal dimension computation.
 %
-%   'visu'           Optional. If true a plot with the computed values is
-%                    shown.
-%                    Default = false
+%   - 'DBC' [1]
+%   - 'IR_DBC' (default) [2]
+%
+% * **visu**:        If true a plot with the computed values is shown. Default = false
 %
 %
-%   Output arguments:
-%  
-%   'FD'             Fractal dimension. Double.          
+% Output arguments
+% ----------------
+% * **FD**:          Fractal dimension.          
 %  
 % 
-%   Notes
-%   -----
-%   This implementation does not incorporate a procedure to compute the fractal
-%   dimension of neither color nor binary images. The 'DBC' method has several
-%   assumptions on image size so 'IR_DBC' method is prefered.
+% Notes
+% -----
+% This implementation does not incorporate a procedure to compute the
+% fractal dimension of neither color nor binary images. The 'DBC' method 
+% has several assumptions on image size so 'IR_DBC' method is prefered.
 %
 %
-%   References
-%   ----------
-%   [1] Sarkar N. and Chaudhuri B. "An Efficient Differential Box-Counting 
-%   Approach to Compute Fractal Dimension of Image", IEEE Transactions On 
-%   Systems, Man and Cybernetics, 1991
+% References
+% ----------
+% [1] Sarkar N. and Chaudhuri B. "An Efficient Differential Box-Counting 
+% Approach to Compute Fractal Dimension of Image", IEEE Transactions On 
+% Systems, Man and Cybernetics, 1991
 %
-%   [2] Long M. and Peng F. "A Box-Counting Method with Adaptable Box Height
-%   for Measuring the Fractal Feature of Images", Radioengineering, 2013
+% [2] Long M. and Peng F. "A Box-Counting Method with Adaptable Box Height
+% for Measuring the Fractal Feature of Images", Radioengineering, 2013
 %   
 %
-%   Example
-%   ---------      
-%   % Compute fractal dimension
-%
+% Example
+% -------      
+% .. code-block:: matlab
+% 
 %     I = imread('cameraman.tif');
 %     FD = fractal_dimension(I);
-%     
-%
-%  
-%   David Romero-Bascones, Biomedical Engineering Department, Mondragon
-%   Unibertsitatea, 2021
-%   dromero@mondragon.edu
 
 if nargin == 1
     method = 'IR_DBC';

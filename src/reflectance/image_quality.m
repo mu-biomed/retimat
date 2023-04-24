@@ -1,81 +1,76 @@
 function iq = image_quality(I, metric, varargin)
-%IMAGE_QUALITY Compute an image quality metric
-%
-%   metric = image_quality(I)
-%   Compute an image quality metric for each bscan in I. 
-%   Supported metrics:
-%    - signal to noise ratio (snr)
-%    - peak to noise ratio (psnr) [1]
-%    - contrast to noise ratio (cnr) [2]
-%    - maximum tissue contrast index (mTCI) [3].
+% Compute an image quality metric for each bscan in I. 
 %
 %
-%   Input arguments:
-%  
-%   'I'              2D or 3D matrix with bscan data. If 3D data the 3rd
-%                    dimension is assumed to be the bscan index.
+% Input arguments (mandatory)
+% ---------------------------
+% * **I**:           2D or 3D matrix with bscan data. If 3D data the 3rd dimension is assumed to be the bscan index.
 %            
-%   'metric'         Metric used to compute image quality. Accepted options
-%                    Options: 'mTCI','snr','psnr','cnr'
-%                    Default: 'mTCI'
+% * **metric**:      Metric used to compute image quality. Accepted options
 %
-%   Optional input arguments (varargin):
+%   - 'mTCI': maximum tissue contrast index [3].
+%   - 'snr': signal to noise ratio.
+%   - 'psnr': peak to noise ratio [1].
+%   - 'cnr': contrast to noise ratio [2].
 %
-%   'scanner'        When using mTCI. String defining the OCT scanner.
-%                    Options: 'Cirrus','RTVue',Spectralis','3D-OCT-1000'
-%                    If not provided an arbitrary value will be used.
+%
+% Input arguments (optional)
+% --------------------------
+% * **scanner**: String defining the OCT scanner (when using mTCI). If not provided an arbitrary value will be used.
 %   
-%   'seg'            Struct with segmentation used in 'snr','psnr','cnr'.
+%   - 'Cirrus'
+%   - 'RTVue'
+%   - 'Spectralis'
+%   - '3D-OCT-1000'
+%                    
+% * **seg**:           struct with segmentation used in 'snr','psnr','cnr'.
 %
 %  
-%   Output arguments:
-%  
-%   'iq'         Image quality metric.        
+% Output arguments
+% ---------------- 
+% * **iq**: Image quality metric.        
 %  
 %
-%   Notes
-%   -----
-%   The definition of SNR, CNR varies across the literature. Check the
-%   references for the precise definition implemented here.
+% Notes
+% -----
+% The definition of SNR, CNR varies across the literature. Check the
+% references for the precise definition implemented here.
 %   
-%   Here SNR, PSNR and CNR rely on an accurate segmentation of both the ILM
-%   and the BM. If the image is pure nois, highly ocluded, or the 
-%   segmentation is wrong these metrics might not work.
+% Here SNR, PSNR and CNR rely on an accurate segmentation of both the ILM
+% and the BM. If the image is pure nois, highly ocluded, or the 
+% segmentation is wrong these metrics might not work.
 %
-%   A more accurate noise estimation procedure may require acquiring a
-%   noise profiling or reference image [4].
-%
-%
-%   References
-%   ----------
-%
-%   [2] Rico-Jimenez J J, Real-time OCT image denoising using a self-fusion
-%   neural network," Biomed. Opt. Express, 2022.
-%   https://doi.org/10.1364/BOE.451029
-%
-%   [1] Shirasawa, Objective Determination of Optimal Number of Spectral-
-%   Domain Optical Coherence Tomographic Images of Retina to Average, PLOS
-%   ONE, 2014. http://dx.doi.org/10.1371/journal.pone.0110550
-%
-%   [3] Huang, Signal Quality Assessment of Retinal Optical Coherence 
-%   Tomography Images, IOVS, 2012. 
-%   https://dx.doi.org/10.1167%2Fiovs.11-8755
-%
-%   [4] Sahu, Statistical modeling and Gaussianization procedure based 
-%   de-speckling algorithm for retinal OCT images, Journal of Ambient
-%   Intelligence and Humanized Computing, 2018.
+% A more accurate noise estimation procedure may require acquiring a NOISE
+% profiling or reference image [4].
 %
 %
-%   Example
-%   ---------      
-%   % Compute mTCI for a whole volume
+% References
+% ----------
+%
+% [1] Shirasawa, Objective Determination of Optimal Number of Spectral-
+% Domain Optical Coherence Tomographic Images of Retina to Average, PLOS
+% ONE, 2014. http://dx.doi.org/10.1371/journal.pone.0110550
+%
+% [2] Rico-Jimenez J J, Real-time OCT image denoising using a self-fusion
+% neural network," Biomed. Opt. Express, 2022.
+% https://doi.org/10.1364/BOE.451029
+%
+% [3] Huang, Signal Quality Assessment of Retinal Optical Coherence 
+% Tomography Images, IOVS, 2012. Https://dx.doi.org/10.1167%2Fiovs.11-8755
+%
+% [4] Sahu, Statistical modeling and Gaussianization procedure based 
+% de-speckling algorithm for retinal OCT images, Journal of Ambient
+% Intelligence and Humanized Computing, 2018.
+%
+%
+% Example
+% ---------      
+% Compute mTCI for a whole volume
+% ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+% .. code-block:: matlab
 %
 %   [~, ~, bscan] = read_vol(file);
 %   mTCI = image_quality(bscan, 'mTCI', 'Spectralis');
-%
-%  
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2022.
 
 if nargin == 1
     metric = 'mTCI';

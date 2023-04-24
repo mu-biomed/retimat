@@ -1,62 +1,37 @@
 function X = get_morph_params(rho, Z, parameters, average)
-% GET_MORPH_PARAMS - compute morphological parameters of the foveal pit
-% based on thickness profile values
+% Compute morphological parameters of the foveal pit
 %
-% Output arguments:
-%   Paramorf: struct with morphological parameters
 %
-%   Paramorf = get_morph_params(rho, Z, features, average)
-%   Detail explanation goes here
-%
-%   Input arguments:
+% Input arguments
+% --------------- 
+% * **rho**:         Matrix with rho coordinates (polar coordinates). Each row is a different angular direction.
 %  
-%   'rho'            Matrix with rho coordinates (polar coordinates). Each row
-%                    is a different angular direction.
-%  
-%   'Z'              Matrix with thickness profile values. Each row is a
-%                    different angular direction.
+% * **Z**:           Matrix with thickness profile values. Each row is a different angular direction.
 %            
-%   'parameters'     String or cell array of strings with the name of the
-%                    parameters to computed. By default all available 
-%                    parameters are returned.
+% * **parameters**:  String or cell array of strings with the name of the parameters to computed. By default all available parameters are returned.
 %  
-%   'average'        If true then radial parameters such as max slope are
-%                    averaged across angular directions. Default is true.
+% * **average**:     If true then radial parameters such as max slope are averaged across angular directions. Default is true.
 %
 %
-%   Output arguments:
+% Output arguments
+% ---------------- 
+% * **X**:           Struct with computed features.          
 %  
-%   'X'              Struct with computed features.          
 %  
-%
-%   
-%   Notes
-%   -----
-%   This parameters are usually computed for the TRT profile but can be 
-%   computed as well for layers with a convex thickness profile such as GCL,
-%   IPL or INL
+% Notes
+% -----
+% This parameters are usually computed for the TRT profile but can be 
+% computed as well for layers with a convex thickness profile such as GCL,
+% IPL or INL
 %
 %
-%   References
-%   ----------
-%   [1] Scheibe P. et al., Parametric Model for the 3D Reconstruction of
-%   Individual Fovea Shape from OCT Data, Experimental Eye Research, 2014.
+% References
+% ----------
+% [1] Scheibe P. et al., Parametric Model for the 3D Reconstruction of
+% Individual Fovea Shape from OCT Data, Experimental Eye Research, 2014.
 %
-%   [2] Yadav S. et al., CuBe: Parametric Modeling of 3D Foveal Shape Using 
-%   Cubic Bézier, Biomedical Optics Express, 2017.
-%
-%
-%   Example 1
-%   ---------      
-%   % Example description
-%
-%     I = [1 1 5 6 8 8;2 3 5 7 0 2; 0 2 3 5 6 7];
-%     [GLCMS,SI] = graycomatrix(I,'NumLevels',9,'G',[])
-%     
-%
-%  
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2021
+% [2] Yadav S. et al., CuBe: Parametric Modeling of 3D Foveal Shape Using 
+% Cubic Bézier, Biomedical Optics Express, 2017.
 
 % Feature names with flags for necessary previous steps
 % Name    [cft, rim_height, rim_radius, slope, max_slope, max_slope_rad]

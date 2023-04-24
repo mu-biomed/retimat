@@ -1,66 +1,59 @@
 function X = GLCM_features(GLCM, varargin)
-%GLCM_FEATURES Compute multiple metrics from a GLCM matrix
-%
-%   X = GLCM_features(M)
-%   Compute several features from GLCM matrix
-%
-%   Input arguments (required):
-%  
-%   'GLCM'           2D GLCM matrix obtained by graycomatrix()
-%  
-%   Input arguments (optional):
-%
-%   'features'       Cell array of strings with the lisst of features to be 
-%                    computed. By default the full set of features will be
-%                    computed.
+% Compute multiple features from a GLCM matrix
 %
 %
-%   Output arguments:
-%  
-%   'X'              Structure with computed features.          
+% Input arguments (mandatory)
+% --------------------------- 
+% * **GLCM**:         2D GLCM matrix obtained by graycomatrix()
 %  
 %
+% Input arguments (optional)
+% --------------------------
+% * **features**:     Cell array of strings with the features to be computed. By default the full set of features are computed.
+%
+%
+% Output arguments
+% ---------------- 
+% * **X**:            Structure with computed features.          
+%  
 %   
-%   Notes
-%   -----
-%   Some features assume GLCM matrix to be symmetric
-%   The naming convention of some parameters is messy in the literature. The 
-%   following issues are important:
-%   - Homogeneity: inverse difference and inverse difference moment.
+% Notes
+% -----
+% Some features assume GLCM matrix to be symmetric
+% 
+% The naming convention of some parameters is messy in the literature. The 
+% following issues are important:
+%
+%   - Homogeneity: equal to inverse difference and inverse difference moment.
 %   - Dissimilarity: equal to the difference average
 %   - Cluster tendency is equal to sum variance 
 %   - Intertia is equal to contrast
 %   
-%   Additional features not yet implemented: maximal correlation coefficient
+% Additional features not yet implemented: maximal correlation coefficient
 %
-%   References
-%   ----------
-%   [1] Haralick R. Shanmugam K. and Dinstein I. "Textural Features for Image
-%   Classification", IEEE Transactions on Systems, Man and Cybernetics, 1973
-%   http://haralick.org/journals/TexturalFeaturesHaralickShanmugamDinstein.pdf#page10
+% References
+% ----------
+% [1] Haralick R. Shanmugam K. and Dinstein I. "Textural Features for Image
+% Classification", IEEE Transactions on Systems, Man and Cybernetics, 1973
+% http://haralick.org/journals/TexturalFeaturesHaralickShanmugamDinstein.pdf#page10
 %
-%   [2] Soh L. "Texture Analysis of SAR Sea Ice Imagery Using Gray Level
-%   Co-Ocurrence Matrices", IEEE Transations on Gegoscience and Remote Sensing,
-%   1999. https://doi.org/10.1109/36.752194
+% [2] Soh L. "Texture Analysis of SAR Sea Ice Imagery Using Gray Level
+% Co-Ocurrence Matrices", IEEE Transations on Gegoscience and Remote Sensing,
+% 1999. https://doi.org/10.1109/36.752194
 %
-%   [3] Zwanenburg et al. The Image Biomarker Standardization Initiative: 
-%   Standardized Quantitative Radiomics for High-Throughput Image-based 
-%   Phenotyping, 2020,  Radiology, 
-%   https://pubs.rsna.org/doi/full/10.1148/radiol.2020191145
-%   Implementation: https://pyradiomics.readthedocs.io/en/latest/features.html?highlight=imc#radiomics.glcm.RadiomicsGLCM.getImc1FeatureValue
+% [3] Zwanenburg et al. The Image Biomarker Standardization Initiative: 
+% Standardized Quantitative Radiomics for High-Throughput Image-based 
+% Phenotyping, 2020, Radiology, 
+% https://pubs.rsna.org/doi/full/10.1148/radiol.2020191145
+% Implementation: https://pyradiomics.readthedocs.io/en/latest/features.html?highlight=imc#radiomics.glcm.RadiomicsGLCM.getImc1FeatureValue
 %
-%   Example
-%   ---------      
-%   % Metrics computation
+% Example
+% -------
+% .. code-block:: matlab
 %
-%     GLCMS = graycomatrix(I,'NumLevels',9,'G',[])
+%     I = imread('cameraman.tif');
+%     M = graycomatrix(I,'NumLevels',9,'G',[])
 %     X = GLCM_features(M)
-%     
-%
-%  
-%   David Romero-Bascones, Biomedical Engineering Department, Mondragon
-%   Unibertsitatea, 2021
-%   dromero@mondragon.edu
 
 feature_list = {'autocorrelation',...
                 'cluster_prominence',...

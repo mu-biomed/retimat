@@ -1,56 +1,55 @@
 function Zs = sectorize_peripapillar(X, Y, Z, sect_type, varargin)
-%SECTORIZE_PERIPAPILLAR Sectorize a peripapilar circular scan
+% Sectorize thickness values of a peripapillar circular scan
 %
-%   Zs = sectorize_peripapillar(X, Y, Z, sect_type)
-%   Summarize thickness point values across a peripapillary circular scan.
 %
-%   Input arguments:
-%  
-%   'X'              X coordinates of map points
+% Input arguments
+% --------------- 
+% * **X**:              X coordinates of map points
 %
-%   'Y'              Y coordinates of map points
+% * **Y**:              Y coordinates of map points
 %
-%   'Z'              Z coordinates of map points
+% * **Z**:              Z coordinates of map points
 %
-%   'sector_type'    String defining the sectorization type.
-%                    Options: ['average','4_quadrant','qustom']
-%                    'qustom must be followed by the number of angles and 
-%                    the initial angle (see examples).
+% * **sector_type**:    String defining the sectorization type:
+%
+%   - 'average'
+%   - '4_quadrant'
+%   - 'qustom': must be followed by the number of angles and the initial angle (see examples).
 %   
-%   'varargin'       Extra arguments to define the sectorization. 
+% * **varargin**:       Extra arguments to define the sectorization. 
 %                    
 %  
-%   Output arguments:
-%  
-%   'Zs'             Sectorized values for each sector.          
+% Output arguments
+% ---------------- 
+% * **Zs**:             Sectorized values for each sector.          
 %
 %   
-%   Notes
-%   -----
-%   X and Y coordinates must follow the temporal-nasal and inferior-superior
-%   conventions.
-%   '4_quadrant' sectorization returns values in the order: 'nasal',
-%   'superior', 'temporal' and 'inferior'.
+% Notes
+% -----
+% X and Y coordinates must follow the temporal-nasal and inferior-superior
+% conventions.
+% 
+% '4_quadrant' sectorization returns values in the order: 'nasal',
+% 'superior', 'temporal' and 'inferior'.
 %
 %
-%   Example
-%   ---------      
-%   4 quadrants sectorization
+% Examples
+% --------      
+% 4 quadrants sectorization
+% ^^^^^^^^^^^^^^^^^^^^^^^^^
+% .. code-block:: matlab
 %
 %   [header, seg, ~, ~] = read_vol(file,'verbose', 'get_coordinates');
 %   Thickness = compute_thickness(seg, 'TRT', header.scale_z);
 %   Z = sectorize_peripapillar(X, Y, TRT, '4_quadrant');
 %
-%   Example 2
-%   ---------
-%   Qustom number of quadrants sectorization
+% Qustom number of quadrants sectorization
+% ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+% .. code-block:: matlab
 %
 %   [header, seg, ~, ~] = read_vol(file,'verbose', 'get_coordinates');
 %   Thickness = compute_thickness(seg, 'TRT', header.scale_z);
 %   Z = sectorize_peripapillar(X, Y, TRT, 'qustom', 8, -pi/8);
-%
-%   David Romero-Bascones, dromero@mondragon.edu
-%   Biomedical Engineering Department, Mondragon Unibertsitatea, 2023
 
 switch sect_type
     case 'average'
