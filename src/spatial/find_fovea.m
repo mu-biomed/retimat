@@ -10,7 +10,7 @@ function [x_fovea, y_fovea] = find_fovea(X, Y, TRT, method, max_d)
 %
 % * **TRT**:            Matrix with total retinal thickness values.            
 %
-% * **method**:         Method used to find the foveal center. Options ['none', 'min', 'resample_min', 'smooth_min']
+% * **method**:         Method used to find the foveal center. Options ['flood' (default), 'min', 'resample_min', 'smooth_min']
 %  
 % * **max_d**:          Maximum alignment error. Default: 0.85
 %
@@ -46,7 +46,7 @@ function [x_fovea, y_fovea] = find_fovea(X, Y, TRT, method, max_d)
 %   [x_fovea, y_fovea] = find_fovea(header.X, header.Y, Thickness.TRT)
 
 if nargin == 3
-    method = 'smooth_min';
+    method = 'flood';
 end
 if nargin <= 4
     max_d = 0.85;
@@ -58,6 +58,10 @@ switch method
         max_step = 30;
         n_point  = 128;
         
+        % gap around edges to discard points. In the future we may want to
+        % use padding first with extrapolation
+        edge_gap = 5;
+
         [X, Y, Z] = resample_map(X, Y, TRT, 'regular', 'n_point', n_point,...
                                  'max_d', max(abs(X(:))));
         % not needed
@@ -101,7 +105,7 @@ switch method
             end
 
             % If end point is an edge --> remove
-            if any([i j] == 1) || any([i j] == n_point)
+            if any([i j] <= edge_gap) || any([i j] > n_point-edge_gap)
                 continue;
             end
 
@@ -117,11 +121,7 @@ switch method
         [i_fov, j_fov] = ind2sub([n_point n_point], idx_fov);
         x_fovea = X(i_fov, j_fov);
         y_fovea = Y(i_fov, j_fov);
-        
-    case 'none'
-        x_fovea = 0;
-        y_fovea = 0;
-    
+
     case 'min'
         % Search only in the central region
         roi_radius = max_d; 
@@ -150,7 +150,7 @@ switch method
         
     otherwise
         error(strcat("Unsupported fovea location method. Valid options: ",...
-            "'flood','none','min','resample_min','smooth_min'"));
+            "'flood','min','resample_min','smooth_min'"));
 end
 
 function [x_min, y_min] = find_min(X, Y, Z)
