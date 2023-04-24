@@ -119,7 +119,7 @@ if any([n_bscan n_ascan] > 10000) || any([n_bscan n_ascan] <= 0)
 
     if ~no_warning
         msg = ['Scan dimensions are unnormal: [', num2str(n_bscan), ',', ...
-           num2str(n_ascan), ']. File might be corrupt.'];
+           num2str(n_ascan), ']. File might be corrupt:' file];
         warning(msg);
     end
     return;
