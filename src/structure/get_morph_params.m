@@ -71,11 +71,11 @@ param_data = {'cft',                   1, 0, 0, 0, 0, 0;...
               'min_height',            0, 0, 0, 0, 0, 0;...
               'pit_area',              1, 1, 0, 0, 0, 0;...
               'pit_depth',             1, 1, 0, 0, 0, 0;...    
-              'pit_volume',            1, 1, 1, 0, 0, 0;...
               'rim_height',            0, 1, 0, 0, 0, 0;...
               'rim_radius',            0, 1, 1, 0, 0, 0;...
               'rim_disk_area',         0, 1, 1, 0, 0, 0;...
               'rim_disk_perim',        0, 1, 1, 0, 0, 0};             
+%               'pit_volume',            1, 1, 1, 0, 0, 0;...
 
 if nargin == 1
     error("The function expects at least 2 input arguments");
@@ -185,6 +185,10 @@ for i=1:length(parameters)
             X.pit_area = area_square - AUC;
 
         case 'pit_volume' % See [2] (not exactly the same implementation)
+            warning("pit volume feature is not available yet");
+            X.pit_volume = nan;
+            continue;
+            
             % Computed as the difference between all the volume under the
             % rim (Vt) and the volume under the foveal surface (Vs).
             Vt = nan(1,n_angle);
@@ -210,14 +214,15 @@ for i=1:length(parameters)
             end
             
             % Volume under the foveal surface (Vs)
-            % The formula comes from the diskreted volume integral defined
+            % The formula comes from the discretized volume integral defined
             % in equation 30-31 in [2]. We substitute c by Z and r by rho.
             for n=1:n_angle
-                Vs(n) = sum(Z(n, 1:idx_rim(n)) .* (2*pi/n_angle).*rho(1:idx_rim(n)));
+                Vs(n) = sum(Z(n, 1:idx_rim(n)) .* rho(1:idx_rim(n)));
             end
-                                    
+            Vr = 2*pi/n_angle * sum(Vs);
+
             % Pit volume
-            X.pit_volume = sum(Vt) - sum(Vs);
+            X.pit_volume = sum(Vt) - Vr;
             
         case 'rim_height'  % See [1]
             X.rim_height = 1e3 * rim_height;
