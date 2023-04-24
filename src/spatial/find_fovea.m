@@ -10,7 +10,7 @@ function [x_fovea, y_fovea] = find_fovea(X, Y, TRT, method, max_d)
 %
 % * **TRT**:            Matrix with total retinal thickness values.            
 %
-% * **method**:         Method used to find the foveal center. Options ['none', 'min', 'resample_min', 'smooth_min']
+% * **method**:         Method used to find the foveal center. Options ['flood' (default), 'min', 'resample_min', 'smooth_min']
 %  
 % * **max_d**:          Maximum alignment error. Default: 0.85
 %
@@ -46,17 +46,82 @@ function [x_fovea, y_fovea] = find_fovea(X, Y, TRT, method, max_d)
 %   [x_fovea, y_fovea] = find_fovea(header.X, header.Y, Thickness.TRT)
 
 if nargin == 3
-    method = 'smooth_min';
+    method = 'flood';
 end
 if nargin <= 4
     max_d = 0.85;
 end
 
 switch method
-    case 'none'
-        x_fovea = 0;
-        y_fovea = 0;
-    
+    case 'flood'
+        n_seed   = 3000;
+        max_step = 30;
+        n_point  = 128;
+        
+        % gap around edges to discard points. In the future we may want to
+        % use padding first with extrapolation
+        edge_gap = 5;
+
+        [X, Y, Z] = resample_map(X, Y, TRT, 'regular', 'n_point', n_point,...
+                                 'max_d', max(abs(X(:))));
+        % not needed
+        % Z = round(255 * (Z - min(Z(:))) ./ (max(Z(:)) - min(Z(:))));
+        
+        hist2d = zeros(n_point, n_point);  % count of end pixels
+        
+        Z_flat = Z(:); % for indexing efficiency
+        for i_seed=1:n_seed
+            i = randi(n_point, 1);
+            j = randi(n_point, 1);
+
+            for i_step=1:max_step
+%                 fprintf('%d/%d step %d\n',i_seed, n_seed, i_step);
+
+                % Define suitable neighbors
+                neigh_i = [i-1   i i+1 i-1 i+1 i-1   i i+1];
+                neigh_j = [j-1 j-1 j-1   j   j j+1 j+1 j+1];
+
+                include = neigh_i > 0 & neigh_j > 0 & neigh_i <= n_point & neigh_j <=n_point;
+                if sum(include) == 0
+                    break;
+                end
+                
+                neigh_i = neigh_i(include);
+                neigh_j = neigh_j(include);
+                
+                % Compute gradient to neighbors
+                idx = sub2ind([n_point n_point], neigh_i, neigh_j);
+                d = Z_flat(idx) - Z(i, j);
+
+                % If no neighbors with smaller thickness
+                if all(d(~isnan(d)) >= 0)
+                    break;
+                end
+
+                % Select neighbor as new step
+                [~, idx_min] = min(d);
+                i = neigh_i(idx_min);
+                j = neigh_j(idx_min);
+            end
+
+            % If end point is an edge --> remove
+            if any([i j] <= edge_gap) || any([i j] > n_point-edge_gap)
+                continue;
+            end
+
+            % Increase count for the reached end point
+            idx = sub2ind([n_point n_point], i, j);
+
+            hist2d(i, j) = hist2d(i, j) + 1;    
+            Z(i, j) = Z(i, j) + 1;
+            Z_flat(idx) = Z_flat(idx) + 1;
+        end
+
+        [~, idx_fov] = max(hist2d(:));
+        [i_fov, j_fov] = ind2sub([n_point n_point], idx_fov);
+        x_fovea = X(i_fov, j_fov);
+        y_fovea = Y(i_fov, j_fov);
+
     case 'min'
         % Search only in the central region
         roi_radius = max_d; 
@@ -83,74 +148,9 @@ switch method
 
         [x_fovea, y_fovea] = find_min(X, Y, TRT_filt);
         
-    case 'robust'
-        % Interpolate to small regular grid 
-        [X, Y, TRT] = resample_map(X, Y, TRT, 'regular', 'max_d', max_d, ...
-                                   'n_point', 100);
-        
-        % Find the ring with the highest mean thickness and define a search
-        % region as any point inside it.
-        interpol = scatteredInterpolant(X(:), Y(:), TRT(:));
-
-        n_r = 5;
-        n_x = 10;
-        n_y = 10;
-        
-        r_range = linspace(1,  1.5, n_r);
-        x_range = linspace(-1, 1,   n_x);
-        y_range = linspace(-1, 1,   n_y);
-        
-        metric = nan(n_r, n_x, n_y);
-        
-        n_point = 20;
-        theta = linspace(0, 2*pi, n_point);
-        
-        for i=1:n_x
-            for j=1:n_y
-                for k=1:n_r
-                    [x, y] = pol2cart(theta, r_range(k)*ones(1,n_point));
-                    x = x - x_range(i);
-                    y = y - y_range(j);            
-                    metric(i, j, k) = mean(interpol(x,y),'omitnan');            
-                    
-        %             x = X - x_range(i);
-        %             y = Y - y_range(j);
-        %             mask = sqrt(x.^2 + y.^2) < r_range(k);
-        %             metric(i,j,k) = mean(Z(mask),'omitnan');
-                end
-            end
-        end
-
-        [~, idx] = max(metric(:));
-        [i,j,k] = ind2sub(size(metric), idx);
-
-        x_opt = x_range(i);
-        y_opt = y_range(j);
-        r_opt = r_range(k);
-        
-%         close all;
-%         surf(X,Y,TRT,'EdgeColor','none');view(0,90);hold on;
-%         [x,y] = pol2cart(linspace(0,2*pi,20), r_opt*ones(1,20));
-%         x = x - x_opt;
-%         y = y - y_opt;
-%         plot3(x,y,max(TRT(:))*ones(1,20),'--r');
-
-        search_mask = sqrt((X + x_opt).^2 + (Y + y_opt).^2) < r_opt;
-        
-        % Smooth the TRT map with a circular kernel of 0.25 mm radius 
-        kernel_rad = 0.25;
-        [~, rho] = cart2pol(X, Y);
-        kernel = rho < kernel_rad;
-        kernel = double(kernel)/sum(kernel(:));
-
-        TRT_filt = imfilter(TRT, kernel,'replicate');
-
-        TRT_filt(~search_mask) = nan;
-        [x_fovea, y_fovea] = find_min(X, Y, TRT_filt);
-
     otherwise
         error(strcat("Unsupported fovea location method. Valid options: ",...
-            "'none','min','resample_min','smooth_min'"));
+            "'flood','min','resample_min','smooth_min'"));
 end
 
 function [x_min, y_min] = find_min(X, Y, Z)
