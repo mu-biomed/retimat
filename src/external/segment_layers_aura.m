@@ -25,6 +25,14 @@ function seg = segment_layers_aura(bscan, header, varargin)
 % * **seg**:        Structure with retinal layer segmentation.          
 %
 %
+% Notes
+% -----
+% This function is built by modyfing the main script of AURA tools. To use
+% it download OCTLayerSegmentation from AURA tools
+% https://www.nitrc.org/projects/aura_tools and add it to the path. If you
+% use this function please cite the original authors of AURA [1][2].
+%
+%
 % References
 % ----------
 % [1] A. Lang, A. Carass, M. Hauser, E. S. Sotirchos, P. A. Calabresi, 

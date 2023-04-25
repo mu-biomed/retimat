@@ -14,6 +14,7 @@ try
     addfcn('texture');
     addfcn('utils');
     addfcn('visu');
+    addfcn('external');
     
     disp('RETIMAT is ready to be used.');
 catch emsg
