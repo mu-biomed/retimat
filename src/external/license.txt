@@ -1,0 +1,75 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Software: 
+	      AURA tools - OCT Layer Segmentation
+
+	  Image Analysis and Communications Lab (IACL)
+
+Version: 2.11 (2015-02)
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+License:
+
+Copyright (c) 2015 Johns Hopkins University, Image Analysis
+and Communications Lab (IACL)
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Contributors:
+
+Andrew Lang, alang9@jhu.edu
+Aaron Carass
+Jerry L. Prince, prince@jhu.edu
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Acknowledgment: 
+
+If you use this software or methods derived from this software 
+to process or produce any data for publication, please refer 
+to the following publications:
+
+A. Lang, A. Carass, M. Hauser, E. S. Sotirchos, P. A. Calabresi, 
+H. S. Ying, J. L. Prince, "Retinal layer segmentation of macular
+OCT images using boundary classification", Biomed. Opt. Express, 
+vol. 4, No. 7, pp. 1133-1152, 2013.
+[http://dx.doi.org/10.1364/BOE.4.001133]
+
+P. Bhargava, A. Lang, O. Al-Louzi, A. Carass, S. Saidha, J. 
+Prince, P. A. Calabresi. "Cross-platform comparison of retinal 
+layers in multiple sclerosis utilizing a novel open-source 
+optical coherence tomography automated segmentation algorithm", 
+2014 Cooperative Meeting of CMSC and ACTRIMS, Dallas, TX, 
+International Journal of MS Care, vol. 16, No. S3, pp. 11-12, 2014. 
+[http://dx.doi.org/10.7224/1537-2073-16.S3.1]
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+More information: 
+
+IACL website - http://www.iacl.ece.jhu.edu/
+
+NITRC page - http://www.nitrc.org/projects/aura_tools/
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
