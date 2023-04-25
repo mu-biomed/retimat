@@ -13,15 +13,18 @@ addpath(genpath('C:\Users\dromero\Desktop\GITHUB\retimat'));
 % 
 % segment_layers_aura(bscan, header);
 
+file = 'PNYU001E_Macular Cube 512x128_3-20-2019_16-21-23_OD_sn17573_cube_raw.img';
+[h, bscan] = read_img(file);
+
 %% AURA
-[h, seg, bscan] = read_vol(file, 'raw_pixel');
+% [h, seg, bscan] = read_vol(file, 'raw_pixel');
 
 params.resizedata = true;
 params.minseg = false;
 params.smooth = true;
 params.segmethod = 1;
 
-seg2 = segment_layers_aura(bscan, h, params);
+seg2 = segment_layers_aura(bscan, h, 'resizedata','segmethod',2);
 
 figure;
 subplot(121);

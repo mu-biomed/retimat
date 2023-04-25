@@ -66,6 +66,8 @@ end
 
 header = data_from_filename(fname);               
 
+header.scanner = 'cirrus';
+
 % Read image data 
 fid = fopen(file);
 if fid == -1
