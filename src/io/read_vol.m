@@ -262,7 +262,7 @@ for i_bscan = 1:n_bscan
 end
 
 if any(n_seg == 3) && ~no_warning
-    warning('Incomplete segmentation: only 3 layers');
+    warning('RETIMAT:only_3_seg','Incomplete segmentation: only 3 layers');
 end
 
 if any(n_seg <=0) || any(n_seg > 17) && ~no_warning
