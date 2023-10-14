@@ -56,11 +56,11 @@ switch method
     case 'flood'
         n_seed   = 3000;
         max_step = 30;
-        n_point  = 128;
+        n_point  = 64;
         
         % gap around edges to discard points. In the future we may want to
         % use padding first with extrapolation
-        edge_gap = 5;
+        edge_gap = 15;
 
         [X, Y, Z] = resample_map(X, Y, TRT, 'regular', 'n_point', n_point,...
                                  'max_d', max(abs(X(:))));
