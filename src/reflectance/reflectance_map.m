@@ -18,10 +18,10 @@ function R = reflectance_map(bscan, method, metric, seg, varargin)
 %   - 'total'
 %   - 'layer_index'
 %     
-% * **seg**:            Struct with boundary segmentation data (in voxel units measured from the top of each B-Scan). The dimensions must match the provided volume (bscan). If not provided, all the voxels in each ascan are used.
+% * **seg**:            Struct with boundary segmentation data (in voxel units measured from the top of each B-Scan). The dimensions must match the provided volume (bscan). If not provided, all the voxels in each A-scan are used.
 %
 %
-% Input argumenta (optional)
+% Input arguments (optional)
 % --------------------------
 % * **scale_z**: axial (depth) resolution of the image. Necessary if the metric is 'total reflectance'.
 %
@@ -69,7 +69,7 @@ function R = reflectance_map(bscan, method, metric, seg, varargin)
 % .. code-block:: matlab
 %
 %   [header, seg, bscan] = read_vol('my_file.vol');
-%   R = reflectance_map(bscan, seg, 'MR', 'ILM', 'RPE')   
+%   R = reflectance_map(bscan, 'raw', 'total', 'ILM', 'RPE')   
 
 if nargin < 2
     method = 'raw';
