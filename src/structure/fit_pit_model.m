@@ -320,7 +320,7 @@ switch fit_type
         [X, Y] = pol2cart(theta, rho);
         
         % Remove pit value (repeated in all radial scans)
-        Zf = Z(:);
+        Zf = Z;
         Xf = X;
         Yf = Y;
         
@@ -330,9 +330,10 @@ switch fit_type
             Yf(n,1) = nan;
         end
         
-        Zf = Zf(~isnan(Zf)); 
-        Xf = Xf(~isnan(Xf));
-        Yf = Yf(~isnan(Yf)); 
+        exclude = isnan(Xf) | isnan(Yf) | isnan(Zf);
+        Zf = Zf(~exclude); 
+        Xf = Xf(~exclude);
+        Yf = Yf(~exclude); 
    
         % Fit the model
         fitted = fit([Xf Yf], Zf, fun, opt);
