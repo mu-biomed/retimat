@@ -77,7 +77,7 @@ The fundus image acquired along with the img is stored in a separated ``bin`` fi
 
 .. code-block:: matlab
 
-        fundus = read_binfile)
+        fundus = read_bin(file)
 
 2. Explore metadata
 ^^^^^^^^^^^^^^^^^^^
