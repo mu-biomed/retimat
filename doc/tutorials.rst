@@ -291,9 +291,9 @@ We can also use more advanced sectorizations
         [TRT_wedge, Sect_wedge]  = sectorize_map(X_new, Y_new, TRT_new, 'mean', Sectors);
         [GCIPL_etdrs, Sect_wedge] = sectorize_map(X_new, Y_new, GCIPL_new, 'mean', Sectors);
 
-5. Visualize resutls
+5. Visualize results
 ^^^^^^^^^^^^^^^^^^^^
-We can visualize arbitrary segmentations by using plot_sectors()
+We can visualize custom sectorizations by using plot_sectors()
 
 .. code-block:: matlab
 
