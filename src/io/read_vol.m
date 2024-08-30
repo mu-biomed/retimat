@@ -105,7 +105,20 @@ visit_date     = fread(fid, 1, '*double');
 grid_type      = fread(fid, 1, '*int32');
 grid_offset    = fread(fid, 1, '*int32');
 spare          = fread(fid, 1832, '*int8');
- 
+
+if isempty(version)
+    header = [];
+    segment = [];
+    bscan = [];
+    fundus = [];
+
+    if ~no_warning
+        warning('Unable to read the file, it may be empty.');
+    end
+
+    return;
+end
+
 if any([n_bscan n_ascan] > 10000) || any([n_bscan n_ascan] <= 0)
     header = [];
     segment = [];
