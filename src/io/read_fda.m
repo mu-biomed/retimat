@@ -154,9 +154,13 @@ else
     header.size_x   = data.size_x;
     header.size_y   = data.size_y;
     header.scale_z  = data.scale_z * 1e-3;  % in mm
-    header.n_bscan  = double(data.n_bscan);
+
     header.fixation = data.fixation;
-    
+
+    % In certain cases n_bscan is not parsed correctly. To partially
+    % account for this both n_bscan and scale_y are overwritten later
+    % based on the IMG_JPEG chunk
+    header.n_bscan  = double(data.n_bscan); 
     header.scale_y  = header.size_y / (header.n_bscan - 1);
 end
 
@@ -192,6 +196,7 @@ else
     
     header.scale_x  = header.size_x / (header.n_ascan -1);
     header.size_z   = header.scale_z * header.n_axial; 
+    header.scale_y  = header.size_y / (header.n_bscan - 1);    
 end     
       
 function header_ord = reorder_header(header)
