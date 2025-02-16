@@ -230,7 +230,10 @@ boundary_name = struct('RETINA_1',       'ILM',...
                        'MULTILAYERS_7',  'BM',...
                        'MULTILAYERS_8',  'INL_OPL',...
                        'MULTILAYERS_9',  'ELM',...
-                       'MULTILAYERS_10', 'CSI');
+                       'MULTILAYERS_10', 'CSI', ...
+                       'NFL_1',          'ILM', ...
+                       'NFL_2',          'RNFL_GCL', ...
+                       'NFL_3',          'IZ_RPE');
                
 idx = find(strcmp(chunks.name, '@CONTOUR_INFO'));
 n_seg_chunk = length(idx);
@@ -250,7 +253,12 @@ for i=1:n_seg_chunk
     z = flip(z, 1);         % flip top-bottom
     
     z = header.n_axial - z;
-    segment.(boundary_name.(data.id)) = z;
+    if ~isfield(boundary_name, data.id)
+        warning('Found unknown layer %s in segmentation.', data.id);
+        segment.(data.id) = z;
+    else
+        segment.(boundary_name.(data.id)) = z;
+    end
 end
         
 function bscan = read_bscan(fid, chunks)
