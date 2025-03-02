@@ -49,8 +49,8 @@ param_data = {'cft',                   1, 0, 0, 0, 0, 0;...
               'rim_height',            0, 1, 0, 0, 0, 0;...
               'rim_radius',            0, 1, 1, 0, 0, 0;...
               'rim_disk_area',         0, 1, 1, 0, 0, 0;...
-              'rim_disk_perim',        0, 1, 1, 0, 0, 0};             
-%               'pit_volume',            1, 1, 1, 0, 0, 0;...
+              'rim_disk_perim',        0, 1, 1, 0, 0, 0;...             
+              'pit_volume',            1, 1, 1, 0, 0, 0};
 
 if nargin == 1
     error("The function expects at least 2 input arguments");
@@ -159,45 +159,55 @@ for i=1:length(parameters)
             AUC = cft*step/2 + sum(Z(2:idx_rim-1)*step) + Z(idx_rim)*step/2;
             X.pit_area = area_square - AUC;
 
-        case 'pit_volume' % See [2] (not exactly the same implementation)
-            warning("pit volume feature is not available yet");
-            X.pit_volume = nan;
-            continue;
+        case 'pit_volume'
             
-            % Computed as the difference between all the volume under the
-            % rim (Vt) and the volume under the foveal surface (Vs).
-            Vt = nan(1,n_angle);
-            Vs = nan(1,n_angle);
-            
-            % Total rim volume 
-            % Computed for each angle as a 3d polygon defined by a base and
-            % top triangles with coordinates (x,y,z_t)
-            % We need to add 1 to compute last sector
-            z = [rim_height rim_height(1)];
-            rad = [rim_radius rim_radius(1)];
-            th = [theta theta(1)];
-            
+            pit_volume = 0;
+            % area of radial wedge sectors
+            area = pi / n_angle * (rho(1, 2:end).^2 - rho(1, 1:end-1).^2);
             for n=1:n_angle
-                % Lower triangle + upper triangle
-                z_t = [0 0 0 mean(z) z(n) z(n+1)];
-                rho2 = [0 rad(n) rad(n+1) 0 rad(n) rad(n+1)];
-                th2 = [th(n) th(n) th(n+1) th(n) th(n) th(n+1)];
-                [x, y] = pol2cart(th2, rho2);
-                [k, Vt(n)] = convhull(x, y, z_t);
+                volume_angle = sum(rim_height(n) * area(1:idx_rim(n) -1));
+                pit_volume = pit_volume + volume_angle;
+            end
                 
-%                 trisurf(k,x,y,z_t);hold on;
-            end
-            
-            % Volume under the foveal surface (Vs)
-            % The formula comes from the discretized volume integral defined
-            % in equation 30-31 in [2]. We substitute c by Z and r by rho.
-            for n=1:n_angle
-                Vs(n) = sum(Z(n, 1:idx_rim(n)) .* rho(1:idx_rim(n)));
-            end
-            Vr = 2*pi/n_angle * sum(Vs);
+            X.pit_volume_new = pit_volume;
 
-            % Pit volume
-            X.pit_volume = sum(Vt) - Vr;
+%         case 'pit_volume_deprecated' % See [2] (not exactly the same implementation)
+%             warning("pit volume feature is not available yet");
+% 
+%             % Computed as the difference between all the volume under the
+%             % rim (Vt) and the volume under the foveal surface (Vs).
+%             Vt = nan(1,n_angle);
+%             Vs = nan(1,n_angle);
+% 
+%             % Total rim volume 
+%             % Computed for each angle as a 3d polygon defined by a base and
+%             % top triangles with coordinates (x,y,z_t)
+%             % We need to add 1 to compute last sector
+%             z = [rim_height rim_height(1)];
+%             rad = [rim_radius rim_radius(1)];
+%             th = [theta theta(1)];
+% 
+%             for n=1:n_angle
+%                 % Lower triangle + upper triangle
+%                 z_t = [0 0 0 mean(z) z(n) z(n+1)];
+%                 rho2 = [0 rad(n) rad(n+1) 0 rad(n) rad(n+1)];
+%                 th2 = [th(n) th(n) th(n+1) th(n) th(n) th(n+1)];
+%                 [x, y] = pol2cart(th2, rho2);
+%                 [k, Vt(n)] = convhull(x, y, z_t);
+% 
+% %                 trisurf(k,x,y,z_t);hold on;
+%             end
+% 
+%             % Volume under the foveal surface (Vs)
+%             % The formula comes from the discretized volume integral defined
+%             % in equation 30-31 in [2]. We substitute c by Z and r by rho.
+%             for n=1:n_angle
+%                 Vs(n) = sum(Z(n, 1:idx_rim(n)) .* rho(1:idx_rim(n)));
+%             end
+%             Vr = 2*pi/n_angle * sum(Vs);
+% 
+%             % Pit volume
+%             X.pit_volume = sum(Vt) - Vr;
             
         case 'rim_height'  % See [1]
             X.rim_height = 1e3 * rim_height;
