@@ -140,8 +140,8 @@ switch method
         [X, Y, TRT] = resample_map(X, Y, TRT, 'regular', 'max_d', max_d, ...
                                    'n_point', 50);
         
-        % Smooth the TRT map with a circular kernel of 0.25 mm radius 
-        kernel_rad = 0.25;
+        % Smooth the TRT map with a circular kernel of 0.15 mm radius 
+        kernel_rad = 0.15;
         [~, rho] = cart2pol(X, Y);
         kernel = rho < kernel_rad;
         TRT_filt = imfilter(TRT, double(kernel)/sum(kernel(:)),'replicate');
