@@ -165,11 +165,12 @@ for i=1:length(parameters)
             % area of radial wedge sectors
             area = pi / n_angle * (rho(1, 2:end).^2 - rho(1, 1:end-1).^2);
             for n=1:n_angle
-                volume_angle = sum(rim_height(n) * area(1:idx_rim(n) -1));
+                height = rim_height(n) - Z(n, 1:idx_rim(n) - 1);
+                volume_angle = sum(height .* area(1:idx_rim(n) - 1));
                 pit_volume = pit_volume + volume_angle;
             end
                 
-            X.pit_volume_new = pit_volume;
+            X.pit_volume = pit_volume;
 
 %         case 'pit_volume_deprecated' % See [2] (not exactly the same implementation)
 %             warning("pit volume feature is not available yet");
